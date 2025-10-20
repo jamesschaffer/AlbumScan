@@ -215,6 +215,11 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
 - **Key Elements:**
   - Full-screen live camera feed
   - Square framing guide overlay (to center album covers)
+    - The area outside the guide overlay should be black with 80% opacity
+    - This square should be large as possible with ~20px margin on the left and right of the screen
+    - This square should be positioned perfecting center measured from the top and bottom of the iphone
+  - When the picture is taken, you need to crop everything that is outside the guide so other records in the background are not included
+  - You need to set the camera lens to the 1x default zoom
   - Large "SCAN" button at bottom
   - History icon (clock symbol) - only visible after first successful scan
 - **Navigation:** 
