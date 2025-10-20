@@ -6,6 +6,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var isProcessing = false
     @Published var capturedImage: UIImage?
     @Published var error: Error?
+    @Published var scannedAlbum: Album?
 
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
@@ -162,13 +163,13 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             // Save to CoreData
             print("🎵 [CameraManager] Saving to CoreData...")
-            _ = try PersistenceController.shared.saveAlbum(from: response, imageData: artData)
+            let savedAlbum = try PersistenceController.shared.saveAlbum(from: response, imageData: artData)
             print("🎵 [CameraManager] Successfully saved to CoreData")
 
-            // TODO: Navigate to album details view
-            // For now, just stop processing
+            // Set the scanned album to trigger navigation
             await MainActor.run {
                 print("🎵 [CameraManager] Identification complete!")
+                self.scannedAlbum = savedAlbum
                 self.isProcessing = false
             }
         } catch {
