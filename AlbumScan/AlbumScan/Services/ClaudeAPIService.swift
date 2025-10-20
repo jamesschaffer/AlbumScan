@@ -81,13 +81,13 @@ class ClaudeAPIService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.timeoutInterval = 10
+        request.timeoutInterval = 30
 
         // Use the loaded prompt from file
         let prompt = systemPrompt
 
         let body: [String: Any] = [
-            "model": "claude-3-5-sonnet-20240620",
+            "model": "claude-sonnet-4-5-20250929",
             "max_tokens": 1500,
             "messages": [
                 [
@@ -117,16 +117,36 @@ class ClaudeAPIService {
     private func parseAlbumResponse(from apiResponse: ClaudeAPIResponse) throws -> AlbumResponse {
         // Extract text content from Claude's response
         guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
+            print("❌ [ClaudeAPI] No text content found in response")
             throw APIError.invalidResponseFormat
+        }
+
+        print("📝 [ClaudeAPI] Raw text from Claude:\n\(textContent)")
+
+        // Strip markdown code fences if present
+        var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanedText.hasPrefix("```json") {
+            cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
+            cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
+            cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            print("✂️ [ClaudeAPI] Stripped markdown code fences")
         }
 
         // Parse JSON from text content
-        guard let jsonData = textContent.data(using: .utf8) else {
+        guard let jsonData = cleanedText.data(using: .utf8) else {
+            print("❌ [ClaudeAPI] Failed to convert text to data")
             throw APIError.invalidResponseFormat
         }
 
-        let albumResponse = try JSONDecoder().decode(AlbumResponse.self, from: jsonData)
-        return albumResponse
+        do {
+            let albumResponse = try JSONDecoder().decode(AlbumResponse.self, from: jsonData)
+            print("✅ [ClaudeAPI] Successfully parsed album response")
+            return albumResponse
+        } catch {
+            print("❌ [ClaudeAPI] JSON parsing error: \(error)")
+            print("❌ [ClaudeAPI] Failed to parse JSON:\n\(cleanedText)")
+            throw APIError.invalidResponseFormat
+        }
     }
 }
 
