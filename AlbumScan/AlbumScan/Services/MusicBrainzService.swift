@@ -46,6 +46,9 @@ class MusicBrainzService {
     func searchAlbum(artist: String, album: String) async throws -> String? {
         print("🔍 [MusicBrainz] Searching for: \(artist) - \(album)")
 
+        // Add small delay to respect rate limiting (1 request per second)
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
+
         // Construct search query
         let query = "artist:\(artist) AND release:\(album)"
 
@@ -65,32 +68,69 @@ class MusicBrainzService {
 
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 5.0
+        request.timeoutInterval = 10.0 // Increased from 5 to 10 seconds
 
         print("🔍 [MusicBrainz] Request URL: \(url.absoluteString)")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // Retry logic - try up to 2 times on network errors
+        var lastError: Error?
+        for attempt in 1...2 {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw MusicBrainzError.invalidResponse
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw MusicBrainzError.invalidResponse
+                }
+
+                print("🔍 [MusicBrainz] Response status: \(httpResponse.statusCode)")
+
+                guard httpResponse.statusCode == 200 else {
+                    if httpResponse.statusCode == 503 && attempt < 2 {
+                        // Service unavailable, wait and retry
+                        print("⚠️ [MusicBrainz] Service unavailable (503), retrying in 2 seconds...")
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        continue
+                    }
+                    throw MusicBrainzError.httpError(httpResponse.statusCode)
+                }
+
+                // Success! Parse response
+                let searchResponse = try JSONDecoder().decode(MusicBrainzSearchResponse.self, from: data)
+                print("🔍 [MusicBrainz] Found \(searchResponse.count) results")
+
+                // Find the best match
+                return findBestMatch(in: searchResponse.releases, searchArtist: artist, searchAlbum: album)
+
+            } catch let error as NSError where error.domain == NSURLErrorDomain {
+                // Network error - retry once
+                lastError = error
+                if attempt < 2 {
+                    print("⚠️ [MusicBrainz] Network error (attempt \(attempt)/2): \(error.code) - retrying...")
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // Wait 1 second before retry
+                    continue
+                } else {
+                    print("❌ [MusicBrainz] Network error after 2 attempts")
+                    throw error
+                }
+            }
         }
 
-        print("🔍 [MusicBrainz] Response status: \(httpResponse.statusCode)")
-
-        guard httpResponse.statusCode == 200 else {
-            throw MusicBrainzError.httpError(httpResponse.statusCode)
+        // If we get here, all retries failed
+        if let error = lastError {
+            throw error
         }
 
-        let searchResponse = try JSONDecoder().decode(MusicBrainzSearchResponse.self, from: data)
+        return nil
+    }
 
-        print("🔍 [MusicBrainz] Found \(searchResponse.count) results")
-
+    /// Find the best matching release from search results
+    private func findBestMatch(in releases: [MusicBrainzRelease], searchArtist: String, searchAlbum: String) -> String? {
         // Find the best match by comparing artist names (case-insensitive)
-        let bestMatch = searchResponse.releases.first { release in
+        let bestMatch = releases.first { release in
             guard let artistCredit = release.artistCredit?.first else { return false }
             let releaseArtist = artistCredit.name.lowercased()
-            let searchArtist = artist.lowercased()
-            return releaseArtist.contains(searchArtist) || searchArtist.contains(releaseArtist)
+            let searchArtistLower = searchArtist.lowercased()
+            return releaseArtist.contains(searchArtistLower) || searchArtistLower.contains(releaseArtist)
         }
 
         if let mbid = bestMatch?.id {
@@ -98,60 +138,16 @@ class MusicBrainzService {
             return mbid
         }
 
-        // Fallback: try fuzzy search if no results
-        if searchResponse.releases.isEmpty {
-            print("🔍 [MusicBrainz] No exact match, trying fuzzy search...")
-            return try await fuzzySearchAlbum(artist: artist, album: album)
-        }
-
         // If we have results but no artist match, return first result
-        if let firstResult = searchResponse.releases.first {
+        if let firstResult = releases.first {
             print("⚠️ [MusicBrainz] No exact artist match, using first result: \(firstResult.id)")
             return firstResult.id
         }
 
-        print("❌ [MusicBrainz] No results found")
+        print("❌ [MusicBrainz] No matching results")
         return nil
     }
 
-    /// Fuzzy search fallback for albums that don't match exactly
-    private func fuzzySearchAlbum(artist: String, album: String) async throws -> String? {
-        let query = "artist:\(artist) release:\(album)~"
-
-        guard var components = URLComponents(string: "\(baseURL)/release") else {
-            throw MusicBrainzError.invalidURL
-        }
-
-        components.queryItems = [
-            URLQueryItem(name: "query", value: query),
-            URLQueryItem(name: "fmt", value: "json"),
-            URLQueryItem(name: "limit", value: "5")
-        ]
-
-        guard let url = components.url else {
-            throw MusicBrainzError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 5.0
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            return nil
-        }
-
-        let searchResponse = try JSONDecoder().decode(MusicBrainzSearchResponse.self, from: data)
-
-        if let firstResult = searchResponse.releases.first {
-            print("✅ [MusicBrainz] Fuzzy search found MBID: \(firstResult.id)")
-            return firstResult.id
-        }
-
-        return nil
-    }
 }
 
 // MARK: - Errors
