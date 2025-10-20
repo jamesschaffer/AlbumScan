@@ -153,8 +153,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
         let croppedImage = UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
 
-        // Resize to 1024x1024 for API
-        let targetSize = CGSize(width: 1024, height: 1024)
+        // Resize to 512x512 for API (reduced from 1024 for faster uploads/processing)
+        let targetSize = CGSize(width: 512, height: 512)
         let renderer = UIGraphicsImageRenderer(size: targetSize)
         let resizedImage = renderer.image { context in
             croppedImage.draw(in: CGRect(origin: .zero, size: targetSize))
