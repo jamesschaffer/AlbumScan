@@ -42,6 +42,15 @@ class CameraManager: NSObject, ObservableObject {
                 return
             }
 
+            // Set camera zoom to 1x (default)
+            do {
+                try videoDevice.lockForConfiguration()
+                videoDevice.videoZoomFactor = 1.0
+                videoDevice.unlockForConfiguration()
+            } catch {
+                print("Could not set zoom factor: \(error)")
+            }
+
             self.session.addInput(videoInput)
 
             // Add photo output
@@ -120,14 +129,23 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
     }
 
     private func processImage(_ image: UIImage) -> UIImage {
-        // Crop to square and resize to 1024x1024
-        let size = min(image.size.width, image.size.height)
+        // Calculate the guide size matching the UI (screen width - 40px margins)
+        let screenWidth = UIScreen.main.bounds.width
+        let guideSize = screenWidth - 40
+
+        // Calculate the ratio between guide size and image size
+        let imageWidth = image.size.width
+        let imageHeight = image.size.height
+
+        // The camera captures full screen, so we need to crop to the center square
+        // matching the guide dimensions
+        let cropSize = min(imageWidth, imageHeight)
         let origin = CGPoint(
-            x: (image.size.width - size) / 2,
-            y: (image.size.height - size) / 2
+            x: (imageWidth - cropSize) / 2,
+            y: (imageHeight - cropSize) / 2
         )
 
-        let cropRect = CGRect(origin: origin, size: CGSize(width: size, height: size))
+        let cropRect = CGRect(origin: origin, size: CGSize(width: cropSize, height: cropSize))
 
         guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
             return image
@@ -135,7 +153,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
         let croppedImage = UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
 
-        // Resize to 1024x1024
+        // Resize to 1024x1024 for API
         let targetSize = CGSize(width: 1024, height: 1024)
         let renderer = UIGraphicsImageRenderer(size: targetSize)
         let resizedImage = renderer.image { context in

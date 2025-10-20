@@ -7,33 +7,32 @@ struct CameraView: View {
     @State private var showingHistory = false
 
     var body: some View {
-        ZStack {
-            // Camera feed
-            CameraPreview(session: cameraManager.session)
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                // Camera feed
+                CameraPreview(session: cameraManager.session)
+                    .ignoresSafeArea()
 
-            // Camera controls overlay
-            VStack {
-                Spacer()
+                // Black overlay with cutout for framing guide
+                FramingGuideOverlay(geometry: geometry)
 
-                // Square framing guide
-                Rectangle()
-                    .stroke(Color.white, lineWidth: 2)
-                    .frame(width: 280, height: 280)
-                    .padding(.bottom, 60)
+                // Camera controls
+                VStack {
+                    Spacer()
 
-                // Scan button
-                Button(action: {
-                    cameraManager.capturePhoto()
-                }) {
-                    Text("SCAN")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(width: 200, height: 50)
-                        .background(Color.blue)
-                        .cornerRadius(25)
+                    // Scan button
+                    Button(action: {
+                        cameraManager.capturePhoto()
+                    }) {
+                        Text("SCAN")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(width: 200, height: 50)
+                            .background(Color.blue)
+                            .cornerRadius(25)
+                    }
+                    .padding(.bottom, 40)
                 }
-                .padding(.bottom, 40)
             }
 
             // History button (top-right)
@@ -74,6 +73,37 @@ struct CameraView: View {
         .onDisappear {
             cameraManager.stopSession()
         }
+    }
+}
+
+// MARK: - Framing Guide Overlay
+
+struct FramingGuideOverlay: View {
+    let geometry: GeometryProxy
+
+    var guideSize: CGFloat {
+        // Calculate the largest square that fits with 20px margins on left/right
+        let availableWidth = geometry.size.width - 40
+        return availableWidth
+    }
+
+    var body: some View {
+        ZStack {
+            // Black overlay covering entire screen
+            Color.black.opacity(0.8)
+                .ignoresSafeArea()
+
+            // Clear square cutout for the guide - centered vertically
+            Rectangle()
+                .frame(width: guideSize, height: guideSize)
+                .blendMode(.destinationOut)
+
+            // White border for the guide
+            Rectangle()
+                .stroke(Color.white, lineWidth: 3)
+                .frame(width: guideSize, height: guideSize)
+        }
+        .compositingGroup()
     }
 }
 
