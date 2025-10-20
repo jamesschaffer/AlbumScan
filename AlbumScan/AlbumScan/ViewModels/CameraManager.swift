@@ -164,13 +164,21 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
     }
 
     private func identifyAlbum(image: UIImage) async {
+        let totalStart = Date()
+        print("⏱️ [TIMING] ========== STARTING ALBUM IDENTIFICATION ==========")
         print("🎵 [CameraManager] Starting album identification...")
+
         do {
+            // Step 1: Claude API
+            let claudeStart = Date()
             print("🎵 [CameraManager] Calling Claude API...")
             let response = try await ClaudeAPIService.shared.identifyAlbum(image: image)
+            let claudeTime = Date().timeIntervalSince(claudeStart)
+            print("⏱️ [TIMING] Claude API took: \(String(format: "%.2f", claudeTime))s")
             print("🎵 [CameraManager] API Response received - Album: \(response.albumTitle) by \(response.artistName)")
 
             // Step 2: Search MusicBrainz for MBID
+            let mbStart = Date()
             print("🔍 [CameraManager] Searching MusicBrainz...")
             var musicbrainzID: String?
             var artworkData: (highRes: Data?, thumbnail: Data?)?
@@ -181,12 +189,17 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                     artist: response.artistName,
                     album: response.albumTitle
                 ) {
+                    let mbTime = Date().timeIntervalSince(mbStart)
+                    print("⏱️ [TIMING] MusicBrainz search took: \(String(format: "%.2f", mbTime))s")
                     musicbrainzID = mbid
                     print("✅ [CameraManager] Found MBID: \(mbid)")
 
                     // Step 3: Download artwork from Cover Art Archive
+                    let artStart = Date()
                     print("🎨 [CameraManager] Downloading artwork...")
                     let artwork = await CoverArtService.shared.retrieveArtwork(mbid: mbid)
+                    let artTime = Date().timeIntervalSince(artStart)
+                    print("⏱️ [TIMING] Artwork download took: \(String(format: "%.2f", artTime))s")
 
                     if artwork.highRes != nil || artwork.thumbnail != nil {
                         artworkData = artwork
@@ -196,6 +209,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                         artworkRetrievalFailed = true
                     }
                 } else {
+                    let mbTime = Date().timeIntervalSince(mbStart)
+                    print("⏱️ [TIMING] MusicBrainz search took: \(String(format: "%.2f", mbTime))s (no results)")
                     print("⚠️ [CameraManager] Album not found on MusicBrainz")
                     artworkRetrievalFailed = true
                 }
@@ -205,6 +220,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             }
 
             // Save to CoreData (artwork failure doesn't block this)
+            let saveStart = Date()
             print("🎵 [CameraManager] Saving to CoreData...")
             let savedAlbum = try PersistenceController.shared.saveAlbum(
                 from: response,
@@ -212,15 +228,21 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 artworkData: artworkData,
                 artworkRetrievalFailed: artworkRetrievalFailed
             )
+            let saveTime = Date().timeIntervalSince(saveStart)
+            print("⏱️ [TIMING] CoreData save took: \(String(format: "%.2f", saveTime))s")
             print("🎵 [CameraManager] Successfully saved to CoreData")
 
             // Set the scanned album to trigger navigation
             await MainActor.run {
+                let totalTime = Date().timeIntervalSince(totalStart)
+                print("⏱️ [TIMING] ========== TOTAL TIME: \(String(format: "%.2f", totalTime))s ==========")
                 print("🎵 [CameraManager] Identification complete!")
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false
             }
         } catch {
+            let totalTime = Date().timeIntervalSince(totalStart)
+            print("⏱️ [TIMING] ========== FAILED AFTER: \(String(format: "%.2f", totalTime))s ==========")
             print("❌ [CameraManager] Error during identification: \(error.localizedDescription)")
             if let apiError = error as? APIError {
                 print("❌ [CameraManager] API Error details: \(apiError)")
