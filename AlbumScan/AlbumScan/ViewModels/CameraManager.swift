@@ -145,25 +145,37 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
     }
 
     private func identifyAlbum(image: UIImage) async {
+        print("🎵 [CameraManager] Starting album identification...")
         do {
+            print("🎵 [CameraManager] Calling Claude API...")
             let response = try await ClaudeAPIService.shared.identifyAlbum(image: image)
+            print("🎵 [CameraManager] API Response received - Album: \(response.albumTitle) by \(response.artistName)")
 
             // Download album art if URL provided
             var artData: Data?
             if let artURL = response.albumArtURL,
                let url = URL(string: artURL) {
+                print("🎵 [CameraManager] Downloading album art from: \(artURL)")
                 artData = try? await downloadImage(from: url)
+                print("🎵 [CameraManager] Album art download \(artData != nil ? "succeeded" : "failed")")
             }
 
             // Save to CoreData
+            print("🎵 [CameraManager] Saving to CoreData...")
             _ = try PersistenceController.shared.saveAlbum(from: response, imageData: artData)
+            print("🎵 [CameraManager] Successfully saved to CoreData")
 
             // TODO: Navigate to album details view
             // For now, just stop processing
             await MainActor.run {
+                print("🎵 [CameraManager] Identification complete!")
                 self.isProcessing = false
             }
         } catch {
+            print("❌ [CameraManager] Error during identification: \(error.localizedDescription)")
+            if let apiError = error as? APIError {
+                print("❌ [CameraManager] API Error details: \(apiError)")
+            }
             await MainActor.run {
                 self.error = error
                 self.isProcessing = false

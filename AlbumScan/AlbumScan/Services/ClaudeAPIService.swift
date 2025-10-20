@@ -23,34 +23,51 @@ class ClaudeAPIService {
     }
 
     func identifyAlbum(image: UIImage) async throws -> AlbumResponse {
+        print("🔑 [ClaudeAPI] Starting identifyAlbum...")
+
         guard !apiKey.isEmpty else {
+            print("❌ [ClaudeAPI] API key is missing!")
             throw APIError.missingAPIKey
         }
+        print("✅ [ClaudeAPI] API key is present")
 
         // Convert image to base64
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            print("❌ [ClaudeAPI] Failed to convert image to JPEG")
             throw APIError.imageProcessingFailed
         }
         let base64Image = imageData.base64EncodedString()
+        print("✅ [ClaudeAPI] Image converted to base64 (\(imageData.count) bytes)")
 
         // Construct API request
+        print("🔨 [ClaudeAPI] Building request...")
         let request = try buildRequest(base64Image: base64Image)
 
         // Make API call
+        print("📡 [ClaudeAPI] Sending request to Claude API...")
         let (data, response) = try await URLSession.shared.data(for: request)
+        print("📡 [ClaudeAPI] Received response (\(data.count) bytes)")
 
         guard let httpResponse = response as? HTTPURLResponse else {
+            print("❌ [ClaudeAPI] Invalid HTTP response")
             throw APIError.invalidResponse
         }
 
+        print("📡 [ClaudeAPI] HTTP Status Code: \(httpResponse.statusCode)")
+
         guard httpResponse.statusCode == 200 else {
+            if let responseBody = String(data: data, encoding: .utf8) {
+                print("❌ [ClaudeAPI] Error response body: \(responseBody)")
+            }
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
         // Parse response
+        print("🔍 [ClaudeAPI] Parsing Claude API response...")
         let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
 
         // Extract album information from response
+        print("🔍 [ClaudeAPI] Extracting album information...")
         return try parseAlbumResponse(from: apiResponse)
     }
 
@@ -70,7 +87,7 @@ class ClaudeAPIService {
         let prompt = systemPrompt
 
         let body: [String: Any] = [
-            "model": "claude-3-5-sonnet-20241022",
+            "model": "claude-3-5-sonnet-20240620",
             "max_tokens": 1500,
             "messages": [
                 [
