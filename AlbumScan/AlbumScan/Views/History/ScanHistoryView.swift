@@ -52,16 +52,6 @@ struct ScanHistoryView: View {
             }
             .navigationTitle("Scan History")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "clock")
-                            .foregroundColor(.primary)
-                    }
-                }
-            }
         }
         .fullScreenCover(isPresented: $showingCamera) {
             CameraView()
@@ -125,9 +115,13 @@ struct AlbumHistoryRow: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
 
-                    Text(album.scannedDate, style: .date)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 4) {
+                        Text(album.recommendationEnum.emoji)
+                            .font(.caption)
+                        Text(album.recommendation)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
 
                 Spacer()

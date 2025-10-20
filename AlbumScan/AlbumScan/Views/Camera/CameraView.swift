@@ -43,12 +43,18 @@ struct CameraView: View {
                         Button(action: {
                             showingHistory = true
                         }) {
-                            Image(systemName: "clock")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
+                            HStack(spacing: 6) {
+                                Image(systemName: "clock")
+                                    .font(.body)
+                                Text("History")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.black.opacity(0.5))
+                            .cornerRadius(20)
                         }
                         .padding()
                     }
