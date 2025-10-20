@@ -125,20 +125,50 @@ class MusicBrainzService {
 
     /// Find the best matching release from search results
     private func findBestMatch(in releases: [MusicBrainzRelease], searchArtist: String, searchAlbum: String) -> String? {
-        // Find the best match by comparing artist names (case-insensitive)
-        let bestMatch = releases.first { release in
+        // Filter releases that match the artist name
+        let matchingReleases = releases.filter { release in
             guard let artistCredit = release.artistCredit?.first else { return false }
             let releaseArtist = artistCredit.name.lowercased()
             let searchArtistLower = searchArtist.lowercased()
             return releaseArtist.contains(searchArtistLower) || searchArtistLower.contains(releaseArtist)
         }
 
-        if let mbid = bestMatch?.id {
-            print("✅ [MusicBrainz] Found MBID: \(mbid)")
-            return mbid
+        // Sort to get consistent, high-quality results:
+        // 1. Prefer releases from major markets (US, GB, XW=worldwide)
+        // 2. Prefer earlier releases (original over reissues)
+        let sortedReleases = matchingReleases.sorted { release1, release2 in
+            // Priority 1: Prefer US, GB, or XW (worldwide) releases
+            let preferredCountries = ["US", "GB", "XW"]
+            let country1Priority = preferredCountries.contains(release1.country ?? "") ? 0 : 1
+            let country2Priority = preferredCountries.contains(release2.country ?? "") ? 0 : 1
+
+            if country1Priority != country2Priority {
+                return country1Priority < country2Priority
+            }
+
+            // Priority 2: Prefer earlier release dates (original release)
+            if let date1 = release1.date, let date2 = release2.date {
+                return date1 < date2
+            }
+
+            // Priority 3: If one has a date and the other doesn't, prefer the one with a date
+            if release1.date != nil && release2.date == nil {
+                return true
+            }
+            if release1.date == nil && release2.date != nil {
+                return false
+            }
+
+            // Otherwise maintain original order
+            return false
         }
 
-        // If we have results but no artist match, return first result
+        if let bestMatch = sortedReleases.first {
+            print("✅ [MusicBrainz] Found MBID: \(bestMatch.id) (country: \(bestMatch.country ?? "unknown"), date: \(bestMatch.date ?? "unknown"))")
+            return bestMatch.id
+        }
+
+        // If no matching releases, try first result as fallback
         if let firstResult = releases.first {
             print("⚠️ [MusicBrainz] No exact artist match, using first result: \(firstResult.id)")
             return firstResult.id
