@@ -31,6 +31,7 @@
 		21AB8AC22EA58A5C009C895F /* album_scan_prompt.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8A832EA58A5C009C895F /* album_scan_prompt.md */; };
 		21AB8AC32EA58A5C009C895F /* project_context.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA72EA58A5C009C895F /* project_context.md */; };
 		21AB8AC42EA58A5C009C895F /* QUICK_START.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA82EA58A5C009C895F /* QUICK_START.md */; };
+		21AB8AC62EA6AE19009C895F /* album_identification_v1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AC52EA6AE19009C895F /* album_identification_v1.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +60,7 @@
 		21AB8AA92EA58A5C009C895F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		21AB8AAA2EA58A5C009C895F /* SETUP_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SETUP_GUIDE.md; sourceTree = "<group>"; };
 		21AB8AAB2EA58A5C009C895F /* AlbumScan.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = AlbumScan.xcdatamodel; sourceTree = "<group>"; };
+		21AB8AC52EA6AE19009C895F /* album_identification_v1.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = album_identification_v1.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +104,14 @@
 				21AB8A862EA58A5C009C895F /* AlbumScan.xcdatamodeld */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		5FDE54BFF94A4D7F8F5B98D8 /* Prompts */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8AC52EA6AE19009C895F /* album_identification_v1.txt */,
+			);
+			path = Prompts;
 			sourceTree = "<group>";
 		};
 		21AB8A882EA58A5C009C895F /* Resources */ = {
@@ -196,6 +206,7 @@
 			isa = PBXGroup;
 			children = (
 				21AB8A872EA58A5C009C895F /* Models */,
+				5FDE54BFF94A4D7F8F5B98D8 /* Prompts */,
 				21AB8A882EA58A5C009C895F /* Resources */,
 				21AB8A8B2EA58A5C009C895F /* Services */,
 				21AB8A8D2EA58A5C009C895F /* Utilities */,
@@ -292,6 +303,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21AB8AC62EA6AE19009C895F /* album_identification_v1.txt in Resources */,
 				21AB8ABF2EA58A5C009C895F /* README.md in Resources */,
 				21AB8AC02EA58A5C009C895F /* FILE_STRUCTURE.md in Resources */,
 				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,

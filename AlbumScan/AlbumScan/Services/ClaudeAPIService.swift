@@ -6,11 +6,20 @@ class ClaudeAPIService {
 
     private let apiKey: String
     private let apiURL = "https://api.anthropic.com/v1/messages"
+    private let systemPrompt: String
 
     private init() {
-        // TODO: Load from environment or secure storage
-        // For now, this is a placeholder
+        // Load API key from environment
         self.apiKey = ProcessInfo.processInfo.environment["CLAUDE_API_KEY"] ?? ""
+
+        // Load prompt from file
+        if let promptPath = Bundle.main.path(forResource: "album_identification_v1", ofType: "txt", inDirectory: "Prompts"),
+           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.systemPrompt = promptContent
+        } else {
+            // Fallback to embedded prompt if file not found
+            self.systemPrompt = Self.defaultPrompt
+        }
     }
 
     func identifyAlbum(image: UIImage) async throws -> AlbumResponse {
@@ -57,34 +66,8 @@ class ClaudeAPIService {
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.timeoutInterval = 10
 
-        let prompt = """
-        You are an expert music historian and critic. Analyze this album cover and provide detailed information about the album.
-
-        Your response must be in valid JSON format with the following structure:
-        {
-          "album_title": "string",
-          "artist_name": "string",
-          "release_year": "string",
-          "genres": ["string"],
-          "record_label": "string",
-          "context_summary": "string (2-3 sentences about cultural significance)",
-          "context_bullets": ["string (3-5 bullet points with specific evidence)"],
-          "rating": number (0-10),
-          "recommendation": "ESSENTIAL|RECOMMENDED|SKIP|AVOID",
-          "key_tracks": ["string"],
-          "album_art_url": "string (optional)"
-        }
-
-        Guidelines:
-        - Be honest and critical - call out mediocre or bad albums explicitly
-        - Focus on musical merit, cultural impact, and artistic significance
-        - Provide specific evidence (chart positions, sales, critical scores, influence)
-        - NEVER mention price, monetary value, pressing details, or collectibility
-        - Evaluate albums purely on musical merit - separate art from artist controversies
-        - Use the recommendation categories: ESSENTIAL (💎), RECOMMENDED (👍), SKIP (😐), AVOID (💩)
-
-        Return only the JSON object, no additional text.
-        """
+        // Use the loaded prompt from file
+        let prompt = systemPrompt
 
         let body: [String: Any] = [
             "model": "claude-3-5-sonnet-20241022",
@@ -167,4 +150,45 @@ enum APIError: LocalizedError {
             return "Server error: \(code)"
         }
     }
+}
+
+// MARK: - Default Prompt Fallback
+
+extension ClaudeAPIService {
+    static let defaultPrompt = """
+You are an experienced music critic analyzing this album cover. Identify the album and write a concise, honest review.
+
+Your response must be in valid JSON format with the following structure:
+{
+  "album_title": "string",
+  "artist_name": "string",
+  "release_year": "string",
+  "genres": ["string"],
+  "record_label": "string",
+  "context_summary": "string (2-3 opening sentences in plain, direct language. Capture the album's core essence and importance. Answer: Why does this album matter? What makes it essential or not? Be honest about quality and legacy. If mediocre or bad, say so clearly.)",
+  "context_bullets": ["string (3-5 ONE-sentence bullet points with specific evidence: impact examples, critical reception with ratings/scores if notable, specific songs or innovations, reputation evolution, commercial success/failure, influence on other artists/genres)"],
+  "rating": number (0-10),
+  "recommendation": "ESSENTIAL|RECOMMENDED|SKIP|AVOID",
+  "key_tracks": ["string"],
+  "album_art_url": "string (optional)"
+}
+
+Critical Guidelines:
+- Be honest and direct—no hedging or unnecessary qualifiers
+- Focus on what actually matters about this album
+- Avoid generic praise or criticism—be specific
+- If the album has no particular significance, state that plainly
+- Keep bullet points to ONE sentence maximum
+- Provide specific evidence (chart positions, sales, critical scores, influence)
+- NEVER mention price, monetary value, pressing details, or collectibility
+- Tone: Concise, decisive, evidence-based, not flowery
+
+Recommendation Categories (use emojis in your reasoning):
+- ESSENTIAL (💎) - Must own for any serious music collection
+- RECOMMENDED (👍) - Worth buying if you're a fan of the artist/genre/era
+- SKIP (😐) - Not worth your time or money
+- AVOID (💩) - Actively bad; belongs in the trash
+
+Return only the JSON object, no additional text.
+"""
 }
