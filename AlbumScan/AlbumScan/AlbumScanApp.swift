@@ -1,12 +1,4 @@
-//
-//  AlbumScanApp.swift
-//  AlbumScan
-//
-//  Created by James Schaffer on 10/19/25.
-//
-
 import SwiftUI
-import CoreData
 
 @main
 struct AlbumScanApp: App {

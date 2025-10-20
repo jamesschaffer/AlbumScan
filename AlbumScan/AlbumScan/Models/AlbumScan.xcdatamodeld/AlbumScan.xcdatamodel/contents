@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="24.0.0" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Album" representedClassName="Album" syncable="YES">
+        <attribute name="albumArtData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="albumArtURL" optional="YES" attributeType="String"/>
+        <attribute name="albumTitle" attributeType="String"/>
+        <attribute name="artistName" attributeType="String"/>
+        <attribute name="contextBulletPointsData" optional="YES" attributeType="Binary"/>
+        <attribute name="contextSummary" attributeType="String"/>
+        <attribute name="genresData" optional="YES" attributeType="Binary"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="keyTracksData" optional="YES" attributeType="Binary"/>
+        <attribute name="lastViewedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="rating" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="rawAPIResponse" optional="YES" attributeType="String"/>
+        <attribute name="recommendation" attributeType="String"/>
+        <attribute name="recordLabel" optional="YES" attributeType="String"/>
+        <attribute name="releaseYear" optional="YES" attributeType="String"/>
+        <attribute name="scannedDate" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+</model>

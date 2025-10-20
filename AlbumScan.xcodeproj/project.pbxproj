@@ -6,17 +6,60 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8E2EA58A5C009C895F /* AppState.swift */; };
+		21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A842EA58A5C009C895F /* Album.swift */; };
+		21AB8AAE2EA58A5C009C895F /* SearchPreLoaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A952EA58A5C009C895F /* SearchPreLoaderView.swift */; };
+		21AB8AAF2EA58A5C009C895F /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8C2EA58A5C009C895F /* Config.swift */; };
+		21AB8AB02EA58A5C009C895F /* ScanErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A982EA58A5C009C895F /* ScanErrorView.swift */; };
+		21AB8AB12EA58A5C009C895F /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A932EA58A5C009C895F /* CameraPreview.swift */; };
+		21AB8AB22EA58A5C009C895F /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8F2EA58A5C009C895F /* CameraManager.swift */; };
+		21AB8AB32EA58A5C009C895F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8AA02EA58A5C009C895F /* ContentView.swift */; };
+		21AB8AB42EA58A5C009C895F /* ClaudeAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A892EA58A5C009C895F /* ClaudeAPIService.swift */; };
+		21AB8AB52EA58A5C009C895F /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A942EA58A5C009C895F /* CameraView.swift */; };
+		21AB8AB62EA58A5C009C895F /* PermissionErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A972EA58A5C009C895F /* PermissionErrorView.swift */; };
+		21AB8AB72EA58A5C009C895F /* ScanHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A9A2EA58A5C009C895F /* ScanHistoryView.swift */; };
+		21AB8AB82EA58A5C009C895F /* AlbumDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A912EA58A5C009C895F /* AlbumDetailsView.swift */; };
+		21AB8AB92EA58A5C009C895F /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8A2EA58A5C009C895F /* PersistenceController.swift */; };
+		21AB8ABA2EA58A5C009C895F /* AlbumScanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A9F2EA58A5C009C895F /* AlbumScanApp.swift */; };
+		21AB8ABB2EA58A5C009C895F /* AlbumScan.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A862EA58A5C009C895F /* AlbumScan.xcdatamodeld */; };
+		21AB8ABC2EA58A5C009C895F /* AlbumResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A852EA58A5C009C895F /* AlbumResponse.swift */; };
+		21AB8ABD2EA58A5C009C895F /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A9C2EA58A5C009C895F /* WelcomeView.swift */; };
+		21AB8ABF2EA58A5C009C895F /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA92EA58A5C009C895F /* README.md */; };
+		21AB8AC02EA58A5C009C895F /* FILE_STRUCTURE.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA62EA58A5C009C895F /* FILE_STRUCTURE.md */; };
+		21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AAA2EA58A5C009C895F /* SETUP_GUIDE.md */; };
+		21AB8AC22EA58A5C009C895F /* album_scan_prompt.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8A832EA58A5C009C895F /* album_scan_prompt.md */; };
+		21AB8AC32EA58A5C009C895F /* project_context.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA72EA58A5C009C895F /* project_context.md */; };
+		21AB8AC42EA58A5C009C895F /* QUICK_START.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA82EA58A5C009C895F /* QUICK_START.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		21AB8A2E2EA58A02009C895F /* AlbumScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlbumScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		21AB8A832EA58A5C009C895F /* album_scan_prompt.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = album_scan_prompt.md; sourceTree = "<group>"; };
+		21AB8A842EA58A5C009C895F /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
+		21AB8A852EA58A5C009C895F /* AlbumResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumResponse.swift; sourceTree = "<group>"; };
+		21AB8A892EA58A5C009C895F /* ClaudeAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAPIService.swift; sourceTree = "<group>"; };
+		21AB8A8A2EA58A5C009C895F /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		21AB8A8C2EA58A5C009C895F /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		21AB8A8E2EA58A5C009C895F /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		21AB8A8F2EA58A5C009C895F /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		21AB8A912EA58A5C009C895F /* AlbumDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetailsView.swift; sourceTree = "<group>"; };
+		21AB8A932EA58A5C009C895F /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
+		21AB8A942EA58A5C009C895F /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
+		21AB8A952EA58A5C009C895F /* SearchPreLoaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchPreLoaderView.swift; sourceTree = "<group>"; };
+		21AB8A972EA58A5C009C895F /* PermissionErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionErrorView.swift; sourceTree = "<group>"; };
+		21AB8A982EA58A5C009C895F /* ScanErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanErrorView.swift; sourceTree = "<group>"; };
+		21AB8A9A2EA58A5C009C895F /* ScanHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryView.swift; sourceTree = "<group>"; };
+		21AB8A9C2EA58A5C009C895F /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		21AB8A9F2EA58A5C009C895F /* AlbumScanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumScanApp.swift; sourceTree = "<group>"; };
+		21AB8AA02EA58A5C009C895F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		21AB8AA62EA58A5C009C895F /* FILE_STRUCTURE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FILE_STRUCTURE.md; sourceTree = "<group>"; };
+		21AB8AA72EA58A5C009C895F /* project_context.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = project_context.md; sourceTree = "<group>"; };
+		21AB8AA82EA58A5C009C895F /* QUICK_START.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUICK_START.md; sourceTree = "<group>"; };
+		21AB8AA92EA58A5C009C895F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		21AB8AAA2EA58A5C009C895F /* SETUP_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SETUP_GUIDE.md; sourceTree = "<group>"; };
+		21AB8AAB2EA58A5C009C895F /* AlbumScan.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = AlbumScan.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		21AB8A302EA58A02009C895F /* AlbumScan */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AlbumScan;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		21AB8A2B2EA58A02009C895F /* Frameworks */ = {
@@ -32,7 +75,13 @@
 		21AB8A252EA58A02009C895F = {
 			isa = PBXGroup;
 			children = (
-				21AB8A302EA58A02009C895F /* AlbumScan */,
+				21AB8A832EA58A5C009C895F /* album_scan_prompt.md */,
+				21AB8AA52EA58A5C009C895F /* AlbumScan */,
+				21AB8AA62EA58A5C009C895F /* FILE_STRUCTURE.md */,
+				21AB8AA72EA58A5C009C895F /* project_context.md */,
+				21AB8AA82EA58A5C009C895F /* QUICK_START.md */,
+				21AB8AA92EA58A5C009C895F /* README.md */,
+				21AB8AAA2EA58A5C009C895F /* SETUP_GUIDE.md */,
 				21AB8A2F2EA58A02009C895F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +92,143 @@
 				21AB8A2E2EA58A02009C895F /* AlbumScan.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		21AB8A872EA58A5C009C895F /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A842EA58A5C009C895F /* Album.swift */,
+				21AB8A852EA58A5C009C895F /* AlbumResponse.swift */,
+				21AB8A862EA58A5C009C895F /* AlbumScan.xcdatamodeld */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		21AB8A882EA58A5C009C895F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		21AB8A8B2EA58A5C009C895F /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A892EA58A5C009C895F /* ClaudeAPIService.swift */,
+				21AB8A8A2EA58A5C009C895F /* PersistenceController.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		21AB8A8D2EA58A5C009C895F /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A8C2EA58A5C009C895F /* Config.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		21AB8A902EA58A5C009C895F /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A8E2EA58A5C009C895F /* AppState.swift */,
+				21AB8A8F2EA58A5C009C895F /* CameraManager.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		21AB8A922EA58A5C009C895F /* Album */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A912EA58A5C009C895F /* AlbumDetailsView.swift */,
+			);
+			path = Album;
+			sourceTree = "<group>";
+		};
+		21AB8A962EA58A5C009C895F /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A932EA58A5C009C895F /* CameraPreview.swift */,
+				21AB8A942EA58A5C009C895F /* CameraView.swift */,
+				21AB8A952EA58A5C009C895F /* SearchPreLoaderView.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		21AB8A992EA58A5C009C895F /* Error */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A972EA58A5C009C895F /* PermissionErrorView.swift */,
+				21AB8A982EA58A5C009C895F /* ScanErrorView.swift */,
+			);
+			path = Error;
+			sourceTree = "<group>";
+		};
+		21AB8A9B2EA58A5C009C895F /* History */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A9A2EA58A5C009C895F /* ScanHistoryView.swift */,
+			);
+			path = History;
+			sourceTree = "<group>";
+		};
+		21AB8A9D2EA58A5C009C895F /* Welcome */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A9C2EA58A5C009C895F /* WelcomeView.swift */,
+			);
+			path = Welcome;
+			sourceTree = "<group>";
+		};
+		21AB8A9E2EA58A5C009C895F /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A922EA58A5C009C895F /* Album */,
+				21AB8A962EA58A5C009C895F /* Camera */,
+				21AB8A992EA58A5C009C895F /* Error */,
+				21AB8A9B2EA58A5C009C895F /* History */,
+				21AB8A9D2EA58A5C009C895F /* Welcome */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		21AB8AA22EA58A5C009C895F /* AlbumScan */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8A872EA58A5C009C895F /* Models */,
+				21AB8A882EA58A5C009C895F /* Resources */,
+				21AB8A8B2EA58A5C009C895F /* Services */,
+				21AB8A8D2EA58A5C009C895F /* Utilities */,
+				21AB8A902EA58A5C009C895F /* ViewModels */,
+				21AB8A9E2EA58A5C009C895F /* Views */,
+				21AB8A9F2EA58A5C009C895F /* AlbumScanApp.swift */,
+				21AB8AA02EA58A5C009C895F /* ContentView.swift */,
+			);
+			path = AlbumScan;
+			sourceTree = "<group>";
+		};
+		21AB8AA32EA58A5C009C895F /* AlbumScanTests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = AlbumScanTests;
+			sourceTree = "<group>";
+		};
+		21AB8AA42EA58A5C009C895F /* AlbumScanUITests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = AlbumScanUITests;
+			sourceTree = "<group>";
+		};
+		21AB8AA52EA58A5C009C895F /* AlbumScan */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8AA22EA58A5C009C895F /* AlbumScan */,
+				21AB8AA32EA58A5C009C895F /* AlbumScanTests */,
+				21AB8AA42EA58A5C009C895F /* AlbumScanUITests */,
+			);
+			path = AlbumScan;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -59,9 +245,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				21AB8A302EA58A02009C895F /* AlbumScan */,
 			);
 			name = AlbumScan;
 			packageProductDependencies = (
@@ -109,6 +292,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21AB8ABF2EA58A5C009C895F /* README.md in Resources */,
+				21AB8AC02EA58A5C009C895F /* FILE_STRUCTURE.md in Resources */,
+				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,
+				21AB8AC22EA58A5C009C895F /* album_scan_prompt.md in Resources */,
+				21AB8AC32EA58A5C009C895F /* project_context.md in Resources */,
+				21AB8AC42EA58A5C009C895F /* QUICK_START.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +308,24 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */,
+				21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */,
+				21AB8AAE2EA58A5C009C895F /* SearchPreLoaderView.swift in Sources */,
+				21AB8AAF2EA58A5C009C895F /* Config.swift in Sources */,
+				21AB8AB02EA58A5C009C895F /* ScanErrorView.swift in Sources */,
+				21AB8AB12EA58A5C009C895F /* CameraPreview.swift in Sources */,
+				21AB8AB22EA58A5C009C895F /* CameraManager.swift in Sources */,
+				21AB8AB32EA58A5C009C895F /* ContentView.swift in Sources */,
+				21AB8AB42EA58A5C009C895F /* ClaudeAPIService.swift in Sources */,
+				21AB8AB52EA58A5C009C895F /* CameraView.swift in Sources */,
+				21AB8AB62EA58A5C009C895F /* PermissionErrorView.swift in Sources */,
+				21AB8AB72EA58A5C009C895F /* ScanHistoryView.swift in Sources */,
+				21AB8AB82EA58A5C009C895F /* AlbumDetailsView.swift in Sources */,
+				21AB8AB92EA58A5C009C895F /* PersistenceController.swift in Sources */,
+				21AB8ABA2EA58A5C009C895F /* AlbumScanApp.swift in Sources */,
+				21AB8ABB2EA58A5C009C895F /* AlbumScan.xcdatamodeld in Sources */,
+				21AB8ABC2EA58A5C009C895F /* AlbumResponse.swift in Sources */,
+				21AB8ABD2EA58A5C009C895F /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -332,6 +539,19 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		21AB8A862EA58A5C009C895F /* AlbumScan.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				21AB8AAB2EA58A5C009C895F /* AlbumScan.xcdatamodel */,
+			);
+			currentVersion = 21AB8AAB2EA58A5C009C895F /* AlbumScan.xcdatamodel */;
+			path = AlbumScan.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 21AB8A262EA58A02009C895F /* Project object */;
 }
