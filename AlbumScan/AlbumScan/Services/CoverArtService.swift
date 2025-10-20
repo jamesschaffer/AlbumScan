@@ -84,8 +84,12 @@ class CoverArtService {
     func downloadArtwork(largeURL: String, thumbnailURL: String) async throws -> (highRes: Data, thumbnail: Data) {
         print("📥 [CoverArt] Downloading images...")
 
+        // Convert HTTP to HTTPS (Cover Art Archive supports both)
+        let securelargeURL = largeURL.replacingOccurrences(of: "http://", with: "https://")
+        let secureThumbnailURL = thumbnailURL.replacingOccurrences(of: "http://", with: "https://")
+
         // Download large (500px) image for detail view
-        guard let largeImageURL = URL(string: largeURL) else {
+        guard let largeImageURL = URL(string: securelargeURL) else {
             throw CoverArtError.invalidURL
         }
 
@@ -97,7 +101,7 @@ class CoverArtService {
         }
 
         // Download small (250px) image - we'll resize to 200x200 for thumbnail
-        guard let thumbnailImageURL = URL(string: thumbnailURL) else {
+        guard let thumbnailImageURL = URL(string: secureThumbnailURL) else {
             throw CoverArtError.invalidURL
         }
 
