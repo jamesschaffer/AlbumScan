@@ -21,7 +21,7 @@ struct PersistenceController {
         container.viewContext.automaticallyMergesChangesFromParent = true
     }
 
-    func saveAlbum(from response: AlbumResponse, imageData: Data?) throws -> Album {
+    func saveAlbum(from response: AlbumResponse, musicbrainzID: String?, artworkData: (highRes: Data?, thumbnail: Data?)?, artworkRetrievalFailed: Bool) throws -> Album {
         let context = container.viewContext
 
         let album = Album(context: context)
@@ -36,8 +36,17 @@ struct PersistenceController {
         album.rating = response.rating
         album.recommendation = response.recommendation
         album.keyTracks = response.keyTracks
+
+        // Legacy fields (kept for backward compatibility)
         album.albumArtURL = response.albumArtURL
-        album.albumArtData = imageData
+        album.albumArtData = nil
+
+        // New MusicBrainz + Cover Art Archive fields
+        album.musicbrainzID = musicbrainzID
+        album.albumArtHighResData = artworkData?.highRes
+        album.albumArtThumbnailData = artworkData?.thumbnail
+        album.albumArtRetrievalFailed = artworkRetrievalFailed
+
         album.scannedDate = Date()
 
         try context.save()

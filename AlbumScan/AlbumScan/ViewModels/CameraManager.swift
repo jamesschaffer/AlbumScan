@@ -170,18 +170,48 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             let response = try await ClaudeAPIService.shared.identifyAlbum(image: image)
             print("🎵 [CameraManager] API Response received - Album: \(response.albumTitle) by \(response.artistName)")
 
-            // Download album art if URL provided
-            var artData: Data?
-            if let artURL = response.albumArtURL,
-               let url = URL(string: artURL) {
-                print("🎵 [CameraManager] Downloading album art from: \(artURL)")
-                artData = try? await downloadImage(from: url)
-                print("🎵 [CameraManager] Album art download \(artData != nil ? "succeeded" : "failed")")
+            // Step 2: Search MusicBrainz for MBID
+            print("🔍 [CameraManager] Searching MusicBrainz...")
+            var musicbrainzID: String?
+            var artworkData: (highRes: Data?, thumbnail: Data?)?
+            var artworkRetrievalFailed = false
+
+            do {
+                if let mbid = try await MusicBrainzService.shared.searchAlbum(
+                    artist: response.artistName,
+                    album: response.albumTitle
+                ) {
+                    musicbrainzID = mbid
+                    print("✅ [CameraManager] Found MBID: \(mbid)")
+
+                    // Step 3: Download artwork from Cover Art Archive
+                    print("🎨 [CameraManager] Downloading artwork...")
+                    let artwork = await CoverArtService.shared.retrieveArtwork(mbid: mbid)
+
+                    if artwork.highRes != nil || artwork.thumbnail != nil {
+                        artworkData = artwork
+                        print("✅ [CameraManager] Artwork downloaded successfully")
+                    } else {
+                        print("⚠️ [CameraManager] No artwork available for this album")
+                        artworkRetrievalFailed = true
+                    }
+                } else {
+                    print("⚠️ [CameraManager] Album not found on MusicBrainz")
+                    artworkRetrievalFailed = true
+                }
+            } catch {
+                print("⚠️ [CameraManager] Artwork retrieval error (non-blocking): \(error.localizedDescription)")
+                artworkRetrievalFailed = true
             }
 
-            // Save to CoreData
+            // Save to CoreData (artwork failure doesn't block this)
             print("🎵 [CameraManager] Saving to CoreData...")
-            let savedAlbum = try PersistenceController.shared.saveAlbum(from: response, imageData: artData)
+            let savedAlbum = try PersistenceController.shared.saveAlbum(
+                from: response,
+                musicbrainzID: musicbrainzID,
+                artworkData: artworkData,
+                artworkRetrievalFailed: artworkRetrievalFailed
+            )
             print("🎵 [CameraManager] Successfully saved to CoreData")
 
             // Set the scanned album to trigger navigation
@@ -200,10 +230,5 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.isProcessing = false
             }
         }
-    }
-
-    private func downloadImage(from url: URL) async throws -> Data {
-        let (data, _) = try await URLSession.shared.data(from: url)
-        return data
     }
 }

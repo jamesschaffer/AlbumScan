@@ -9,9 +9,17 @@ struct AlbumDetailsView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Album artwork
-                    if let artData = album.albumArtData,
+                    // Album artwork (prefer high-res from MusicBrainz, fallback to legacy)
+                    if let artData = album.albumArtHighResData,
                        let uiImage = UIImage(data: artData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity)
+                            .cornerRadius(8)
+                    } else if let legacyArtData = album.albumArtData,
+                              let uiImage = UIImage(data: legacyArtData) {
+                        // Fallback to legacy artwork field
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
