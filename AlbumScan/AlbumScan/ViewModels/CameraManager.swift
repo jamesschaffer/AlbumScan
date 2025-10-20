@@ -22,6 +22,11 @@ class CameraManager: NSObject, ObservableObject {
 
             self.session.beginConfiguration()
 
+            defer {
+                // Always commit configuration, even if setup fails
+                self.session.commitConfiguration()
+            }
+
             // Set session preset
             self.session.sessionPreset = .photo
 
@@ -30,6 +35,9 @@ class CameraManager: NSObject, ObservableObject {
                   let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
                   self.session.canAddInput(videoInput) else {
                 print("Could not add video input")
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not add video input. Make sure you're running on a device with a camera."])
+                }
                 return
             }
 
@@ -38,13 +46,14 @@ class CameraManager: NSObject, ObservableObject {
             // Add photo output
             guard self.session.canAddOutput(self.photoOutput) else {
                 print("Could not add photo output")
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Could not add photo output."])
+                }
                 return
             }
 
             self.session.addOutput(self.photoOutput)
             self.photoOutput.isHighResolutionCaptureEnabled = false
-
-            self.session.commitConfiguration()
         }
     }
 
