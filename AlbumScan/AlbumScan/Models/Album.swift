@@ -2,7 +2,7 @@ import Foundation
 import CoreData
 
 @objc(Album)
-public class Album: NSManagedObject {
+public class Album: NSManagedObject, Identifiable {
     @NSManaged public var id: UUID
     @NSManaged public var albumTitle: String
     @NSManaged public var artistName: String

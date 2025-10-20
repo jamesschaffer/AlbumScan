@@ -6,6 +6,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var isProcessing = false
     @Published var capturedImage: UIImage?
     @Published var error: Error?
+    @Published var scannedAlbum: Album?
 
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
@@ -22,6 +23,11 @@ class CameraManager: NSObject, ObservableObject {
 
             self.session.beginConfiguration()
 
+            defer {
+                // Always commit configuration, even if setup fails
+                self.session.commitConfiguration()
+            }
+
             // Set session preset
             self.session.sessionPreset = .photo
 
@@ -30,6 +36,9 @@ class CameraManager: NSObject, ObservableObject {
                   let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
                   self.session.canAddInput(videoInput) else {
                 print("Could not add video input")
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not add video input. Make sure you're running on a device with a camera."])
+                }
                 return
             }
 
@@ -38,13 +47,14 @@ class CameraManager: NSObject, ObservableObject {
             // Add photo output
             guard self.session.canAddOutput(self.photoOutput) else {
                 print("Could not add photo output")
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Could not add photo output."])
+                }
                 return
             }
 
             self.session.addOutput(self.photoOutput)
             self.photoOutput.isHighResolutionCaptureEnabled = false
-
-            self.session.commitConfiguration()
         }
     }
 
@@ -136,25 +146,37 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
     }
 
     private func identifyAlbum(image: UIImage) async {
+        print("🎵 [CameraManager] Starting album identification...")
         do {
+            print("🎵 [CameraManager] Calling Claude API...")
             let response = try await ClaudeAPIService.shared.identifyAlbum(image: image)
+            print("🎵 [CameraManager] API Response received - Album: \(response.albumTitle) by \(response.artistName)")
 
             // Download album art if URL provided
             var artData: Data?
             if let artURL = response.albumArtURL,
                let url = URL(string: artURL) {
+                print("🎵 [CameraManager] Downloading album art from: \(artURL)")
                 artData = try? await downloadImage(from: url)
+                print("🎵 [CameraManager] Album art download \(artData != nil ? "succeeded" : "failed")")
             }
 
             // Save to CoreData
-            _ = try PersistenceController.shared.saveAlbum(from: response, imageData: artData)
+            print("🎵 [CameraManager] Saving to CoreData...")
+            let savedAlbum = try PersistenceController.shared.saveAlbum(from: response, imageData: artData)
+            print("🎵 [CameraManager] Successfully saved to CoreData")
 
-            // TODO: Navigate to album details view
-            // For now, just stop processing
+            // Set the scanned album to trigger navigation
             await MainActor.run {
+                print("🎵 [CameraManager] Identification complete!")
+                self.scannedAlbum = savedAlbum
                 self.isProcessing = false
             }
         } catch {
+            print("❌ [CameraManager] Error during identification: \(error.localizedDescription)")
+            if let apiError = error as? APIError {
+                print("❌ [CameraManager] API Error details: \(apiError)")
+            }
             await MainActor.run {
                 self.error = error
                 self.isProcessing = false

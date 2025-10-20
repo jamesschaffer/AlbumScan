@@ -5,8 +5,6 @@ struct CameraView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var cameraManager = CameraManager()
     @State private var showingHistory = false
-    @State private var showingScanResult = false
-    @State private var scannedAlbum: Album?
 
     var body: some View {
         ZStack {
@@ -67,7 +65,7 @@ struct CameraView: View {
         .sheet(isPresented: $showingHistory) {
             ScanHistoryView()
         }
-        .sheet(item: $scannedAlbum) { album in
+        .sheet(item: $cameraManager.scannedAlbum) { album in
             AlbumDetailsView(album: album)
         }
         .onAppear {
