@@ -87,7 +87,7 @@ class ClaudeAPIService {
         let prompt = systemPrompt
 
         let body: [String: Any] = [
-            "model": "claude-sonnet-4-5-20250929",
+            "model": "claude-haiku-4-20250514",
             "max_tokens": 1500,
             "messages": [
                 [
