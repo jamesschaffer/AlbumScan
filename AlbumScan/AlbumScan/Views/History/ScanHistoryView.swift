@@ -4,7 +4,6 @@ import CoreData
 struct ScanHistoryView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
-    @State private var showingCamera = false
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Album.scannedDate, ascending: false)],
@@ -38,7 +37,6 @@ struct ScanHistoryView: View {
                 // Scan button at bottom
                 Button(action: {
                     dismiss()
-                    showingCamera = true
                 }) {
                     Text("SCAN")
                         .font(.headline)
@@ -52,9 +50,6 @@ struct ScanHistoryView: View {
             }
             .navigationTitle("Scan History")
             .navigationBarTitleDisplayMode(.inline)
-        }
-        .fullScreenCover(isPresented: $showingCamera) {
-            CameraView()
         }
     }
 
@@ -118,7 +113,7 @@ struct AlbumHistoryRow: View {
                     HStack(spacing: 4) {
                         Text(album.recommendationEnum.emoji)
                             .font(.caption)
-                        Text(album.recommendation)
+                        Text("\(album.recommendation) / \(album.rating, specifier: "%.1f")")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
