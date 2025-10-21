@@ -64,7 +64,7 @@ struct CameraView: View {
 
             // Loading overlay
             if cameraManager.isProcessing {
-                SearchPreLoaderView()
+                SearchPreLoaderView(currentStage: $cameraManager.loadingStage)
             }
         }
         .sheet(isPresented: $showingHistory) {

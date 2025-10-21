@@ -7,6 +7,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var capturedImage: UIImage?
     @Published var error: Error?
     @Published var scannedAlbum: Album?
+    @Published var loadingStage: LoadingStage = .callingAPI
 
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
@@ -85,6 +86,7 @@ class CameraManager: NSObject, ObservableObject {
 
             DispatchQueue.main.async {
                 self.isProcessing = true
+                self.loadingStage = .callingAPI // Reset to first stage
             }
 
             let settings = AVCapturePhotoSettings()
@@ -172,10 +174,18 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             // Step 1: Claude API
             let claudeStart = Date()
             print("🎵 [CameraManager] Calling Claude API...")
+            await MainActor.run {
+                self.loadingStage = .callingAPI
+            }
             let response = try await ClaudeAPIService.shared.identifyAlbum(image: image)
             let claudeTime = Date().timeIntervalSince(claudeStart)
             print("⏱️ [TIMING] Claude API took: \(String(format: "%.2f", claudeTime))s")
             print("🎵 [CameraManager] API Response received - Album: \(response.albumTitle) by \(response.artistName)")
+
+            // Advance to parsing stage
+            await MainActor.run {
+                self.loadingStage = .parsingResponse
+            }
 
             // Step 2: Search MusicBrainz for MBID
             let mbStart = Date()
@@ -193,6 +203,11 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                     print("⏱️ [TIMING] MusicBrainz search took: \(String(format: "%.2f", mbTime))s")
                     musicbrainzID = mbid
                     print("✅ [CameraManager] Found MBID: \(mbid)")
+
+                    // Advance to artwork download stage
+                    await MainActor.run {
+                        self.loadingStage = .downloadingArtwork
+                    }
 
                     // Step 3: Download artwork from Cover Art Archive
                     let artStart = Date()
@@ -213,10 +228,20 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                     print("⏱️ [TIMING] MusicBrainz search took: \(String(format: "%.2f", mbTime))s (no results)")
                     print("⚠️ [CameraManager] Album not found on MusicBrainz")
                     artworkRetrievalFailed = true
+
+                    // Still advance to artwork stage (will skip download)
+                    await MainActor.run {
+                        self.loadingStage = .downloadingArtwork
+                    }
                 }
             } catch {
                 print("⚠️ [CameraManager] Artwork retrieval error (non-blocking): \(error.localizedDescription)")
                 artworkRetrievalFailed = true
+
+                // Still advance to artwork stage
+                await MainActor.run {
+                    self.loadingStage = .downloadingArtwork
+                }
             }
 
             // Save to CoreData (artwork failure doesn't block this)
