@@ -6,6 +6,8 @@ struct CameraView: View {
     @StateObject private var cameraManager = CameraManager()
     @State private var showingHistory = false
 
+    let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -14,51 +16,66 @@ struct CameraView: View {
                     .ignoresSafeArea()
 
                 // Black overlay with cutout for framing guide
-                FramingGuideOverlay(geometry: geometry)
+                FramingGuideOverlay(geometry: geometry, brandGreen: brandGreen)
 
-                // Camera controls
+                // Logo at top
+                VStack(spacing: 0) {
+                    Image("album-scan-logo-simple-white")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 185)
+                        .padding(.top, 20)
+
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+
+                // Camera controls at bottom
                 VStack {
                     Spacer()
 
-                    // Scan button
-                    Button(action: {
-                        cameraManager.capturePhoto()
-                    }) {
-                        Text("SCAN")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(width: 200, height: 50)
-                            .background(Color.blue)
-                            .cornerRadius(25)
+                    HStack(spacing: 20) {
+                        // Scan button
+                        Button(action: {
+                            cameraManager.capturePhoto()
+                        }) {
+                            Text("SCAN")
+                                .font(.system(size: 28, weight: .heavy))
+                                .foregroundColor(.white)
+                                .frame(width: 280, height: 60)
+                                .background(Color.clear)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 30)
+                                        .stroke(brandGreen, lineWidth: 4)
+                                )
+                        }
+
+                        // History button (hamburger menu)
+                        if appState.hasScannedAlbums {
+                            Button(action: {
+                                showingHistory = true
+                            }) {
+                                VStack(spacing: 4) {
+                                    Rectangle()
+                                        .fill(Color.white)
+                                        .frame(width: 20, height: 2)
+                                    Rectangle()
+                                        .fill(Color.white)
+                                        .frame(width: 20, height: 2)
+                                    Rectangle()
+                                        .fill(Color.white)
+                                        .frame(width: 20, height: 2)
+                                }
+                                .frame(width: 60, height: 60)
+                                .background(Color.clear)
+                                .overlay(
+                                    Circle()
+                                        .stroke(brandGreen, lineWidth: 4)
+                                )
+                            }
+                        }
                     }
                     .padding(.bottom, 40)
-                }
-            }
-
-            // History button (top-right)
-            if appState.hasScannedAlbums {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            showingHistory = true
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "clock")
-                                    .font(.body)
-                                Text("History")
-                                    .font(.body)
-                                    .fontWeight(.medium)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.black.opacity(0.5))
-                            .cornerRadius(20)
-                        }
-                        .padding()
-                    }
-                    Spacer()
                 }
             }
 
@@ -86,6 +103,7 @@ struct CameraView: View {
 
 struct FramingGuideOverlay: View {
     let geometry: GeometryProxy
+    let brandGreen: Color
 
     var guideSize: CGFloat {
         // Calculate the largest square that fits with 20px margins on left/right
@@ -104,9 +122,9 @@ struct FramingGuideOverlay: View {
                 .frame(width: guideSize, height: guideSize)
                 .blendMode(.destinationOut)
 
-            // White border for the guide
+            // Green border for the guide
             Rectangle()
-                .stroke(Color.white, lineWidth: 3)
+                .stroke(brandGreen, lineWidth: 4)
                 .frame(width: guideSize, height: guideSize)
         }
         .compositingGroup()
