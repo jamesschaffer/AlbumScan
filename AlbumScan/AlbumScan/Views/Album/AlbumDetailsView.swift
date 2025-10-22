@@ -213,6 +213,16 @@ struct AlbumDetailsView: View {
                         }
                         .padding(.top, 8)
                     }
+
+                    Spacer(minLength: 40)
+
+                    // AI Disclaimer - at very bottom
+                    Text("These ratings are generated fresh each time and may vary wildly, much like asking three different music snobs about the same album—it's all vibes, baby.")
+                        .font(Font.custom("Helvetica Neue", size: 14))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
                 }
                 .padding()
                 .padding(.bottom, 100) // Add padding for the close button
