@@ -46,7 +46,7 @@ struct AlbumDetailsView: View {
                            let uiImage = UIImage(data: artData) {
                             Image(uiImage: uiImage)
                                 .resizable()
-                                .aspectRatio(contentMode: .fit)
+                                .aspectRatio(1, contentMode: .fit)
                                 .frame(maxWidth: .infinity)
                                 .cornerRadius(8)
                         } else if let legacyArtData = album.albumArtData,
@@ -54,7 +54,7 @@ struct AlbumDetailsView: View {
                             // Fallback to legacy artwork field
                             Image(uiImage: uiImage)
                                 .resizable()
-                                .aspectRatio(contentMode: .fit)
+                                .aspectRatio(1, contentMode: .fit)
                                 .frame(maxWidth: .infinity)
                                 .cornerRadius(8)
                         } else {
