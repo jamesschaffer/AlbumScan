@@ -3,7 +3,6 @@ import SwiftUI
 struct AlbumDetailsView: View {
     let album: Album
     @Environment(\.dismiss) var dismiss
-    @State private var showingHistory = false
 
     // MARK: - Typography Settings (Adjust these values to customize fonts)
 
@@ -243,7 +242,7 @@ struct AlbumDetailsView: View {
                     Spacer()
 
                     Button(action: {
-                        showingHistory = true
+                        dismiss()
                     }) {
                         HStack(alignment: .center, spacing: 0) {
                             Image(systemName: "xmark")
@@ -264,9 +263,6 @@ struct AlbumDetailsView: View {
                     .padding(.bottom, 22)
                 }
             }
-        }
-        .fullScreenCover(isPresented: $showingHistory) {
-            ScanHistoryView()
         }
     }
 
