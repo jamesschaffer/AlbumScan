@@ -1,10 +1,23 @@
 import SwiftUI
 import CoreData
+import UIKit
 
 @main
 struct AlbumScanApp: App {
     let persistenceController = PersistenceController.shared
     @State private var showingSplash = true
+
+    init() {
+        // Debug: Print all available fonts
+        print("\n🔤 === AVAILABLE FONTS ===")
+        for family in UIFont.familyNames.sorted() {
+            print("Family: \(family)")
+            for name in UIFont.fontNames(forFamilyName: family) {
+                print("  → \(name)")
+            }
+        }
+        print("=========================\n")
+    }
 
     var body: some Scene {
         WindowGroup {

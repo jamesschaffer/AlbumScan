@@ -77,7 +77,7 @@ struct ScanHistoryView: View {
                     }) {
                         HStack(alignment: .center, spacing: 0) {
                             Text("SCAN")
-                                .font(.system(size: 28, weight: .heavy))
+                                .font(.custom("Bungee", size: 28))
                                 .foregroundColor(.white)
                         }
                         .padding(.horizontal, 40)

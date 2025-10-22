@@ -17,5 +17,9 @@
     <array>
         <string>UIInterfaceOrientationPortrait</string>
     </array>
+    <key>UIAppFonts</key>
+    <array>
+        <string>Bungee-Regular.ttf</string>
+    </array>
 </dict>
 </plist>
