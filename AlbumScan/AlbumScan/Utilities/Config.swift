@@ -4,16 +4,19 @@ enum Config {
     // MARK: - API Configuration
 
     static var claudeAPIKey: String {
-        // First try to get from environment variable
+        // First try to get from Secrets.plist (recommended for local development)
+        if let path = Bundle.main.path(forResource: "Secrets", ofType: "plist"),
+           let secrets = NSDictionary(contentsOfFile: path),
+           let apiKey = secrets["CLAUDE_API_KEY"] as? String, !apiKey.isEmpty {
+            return apiKey
+        }
+
+        // Fallback to environment variable (for Xcode scheme settings)
         if let envKey = ProcessInfo.processInfo.environment["CLAUDE_API_KEY"], !envKey.isEmpty {
             return envKey
         }
 
-        // TODO: Add additional secure storage methods
-        // - Keychain
-        // - Build configuration file
-        // - Secrets.plist (gitignored)
-
+        // If no key found, return empty (will trigger error in API service)
         return ""
     }
 

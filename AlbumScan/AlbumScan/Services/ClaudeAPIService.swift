@@ -9,8 +9,8 @@ class ClaudeAPIService {
     private let systemPrompt: String
 
     private init() {
-        // Load API key from environment
-        self.apiKey = ProcessInfo.processInfo.environment["CLAUDE_API_KEY"] ?? ""
+        // Load API key from Config (which reads from Secrets.plist or environment)
+        self.apiKey = Config.claudeAPIKey
 
         // Load prompt from file
         if let promptPath = Bundle.main.path(forResource: "album_identification_v1", ofType: "txt", inDirectory: "Prompts"),
