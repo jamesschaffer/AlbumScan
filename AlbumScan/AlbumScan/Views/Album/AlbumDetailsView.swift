@@ -93,6 +93,7 @@ struct AlbumDetailsView: View {
                             )
                             .lineSpacing(bandNameLineHeight)
                             .foregroundColor(bandNameColor)
+                            .lineLimit(1)
 
                         Text(album.albumTitle)
                             .font(
@@ -101,45 +102,55 @@ struct AlbumDetailsView: View {
                             )
                             .lineSpacing(albumTitleLineHeight)
                             .foregroundColor(albumTitleColor)
+                            .lineLimit(1)
                     }
                     .padding(.top, 4)
 
                     // Metadata (Release Year, Genre, Label)
                     VStack(alignment: .leading, spacing: 4) {
                         if let year = album.releaseYear {
-                            HStack(spacing: 0) {
-                                Text("Released: ")
+                            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                Text("Released:")
                                     .font(Font.custom("Helvetica Neue", size: metadataFontSize).weight(.bold))
                                     .foregroundColor(metadataLabelColor)
+                                    .frame(width: 95, alignment: .leading)
                                 Text("\(year)")
                                     .font(Font.custom("Helvetica Neue", size: metadataFontSize))
+                                    .lineSpacing(metadataLineHeight - 2)
                                     .foregroundColor(metadataValueColor)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .lineSpacing(metadataLineHeight)
+                            .padding(.vertical, 2)
                         }
 
                         if !album.genres.isEmpty {
-                            HStack(spacing: 0) {
-                                Text("Genre: ")
+                            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                Text("Genre:")
                                     .font(Font.custom("Helvetica Neue", size: metadataFontSize).weight(.bold))
                                     .foregroundColor(metadataLabelColor)
+                                    .frame(width: 95, alignment: .leading)
                                 Text("\(album.genres.joined(separator: ", "))")
                                     .font(Font.custom("Helvetica Neue", size: metadataFontSize))
+                                    .lineSpacing(metadataLineHeight - 2)
                                     .foregroundColor(metadataValueColor)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .lineSpacing(metadataLineHeight)
+                            .padding(.vertical, 2)
                         }
 
                         if let label = album.recordLabel {
-                            HStack(spacing: 0) {
-                                Text("Label: ")
+                            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                Text("Label:")
                                     .font(Font.custom("Helvetica Neue", size: metadataFontSize).weight(.bold))
                                     .foregroundColor(metadataLabelColor)
+                                    .frame(width: 95, alignment: .leading)
                                 Text("\(label)")
                                     .font(Font.custom("Helvetica Neue", size: metadataFontSize))
+                                    .lineSpacing(metadataLineHeight - 2)
                                     .foregroundColor(metadataValueColor)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .lineSpacing(metadataLineHeight)
+                            .padding(.vertical, 2)
                         }
                     }
 
