@@ -10,46 +10,113 @@ struct ScanHistoryView: View {
         animation: .default)
     private var albums: FetchedResults<Album>
 
+    let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
+
     var body: some View {
-        NavigationView {
-            VStack {
+        ZStack {
+            // Black background
+            Color.black.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Add top padding for the logo
+                Color.clear.frame(height: 60)
                 if albums.isEmpty {
                     // Empty state
                     VStack(spacing: 20) {
+                        Spacer()
                         Image(systemName: "clock")
                             .font(.system(size: 60))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white.opacity(0.6))
 
                         Text("Scan your first album to begin")
                             .font(.headline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white.opacity(0.8))
+                        Spacer()
                     }
                 } else {
-                    // Album list
+                    // Album list - extends to bottom edge, scrolls behind button
                     List {
                         ForEach(albums) { album in
                             AlbumHistoryRow(album: album)
+                                .listRowBackground(Color.black)
+                                .listRowSeparator(.hidden)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        deleteAlbum(album)
+                                    } label: {
+                                        Image(systemName: "trash")
+                                    }
+                                    .tint(.red)
+                                }
                         }
-                        .onDelete(perform: deleteAlbums)
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(.black)
+                    .safeAreaInset(edge: .bottom) {
+                        // Spacer to allow scrolling past button
+                        Color.clear.frame(height: 120)
                     }
                 }
-
-                // Scan button at bottom
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("SCAN")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                }
-                .padding()
             }
-            .navigationTitle("Scan History")
-            .navigationBarTitleDisplayMode(.inline)
+
+            // SCAN button overlaid at bottom
+            VStack {
+                Spacer()
+
+                // SCAN button styled like camera view
+                HStack(alignment: .center, spacing: 0) {
+                    // Left placeholder
+                    Color.clear.frame(width: 64, height: 64)
+
+                    Spacer()
+
+                    // Center - SCAN button
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack(alignment: .center, spacing: 0) {
+                            Text("SCAN")
+                                .font(.system(size: 28, weight: .heavy))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 40)
+                        .padding(.vertical, 26)
+                        .frame(width: 201, alignment: .center)
+                        .background(.black.opacity(0.6))
+                        .cornerRadius(42)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 42)
+                                .inset(by: 2)
+                                .stroke(brandGreen, lineWidth: 4)
+                        )
+                    }
+                    .buttonStyle(PressedButtonStyle())
+
+                    Spacer()
+
+                    // Right placeholder
+                    Color.clear.frame(width: 64, height: 64)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 22)
+            }
+
+            // Logo container fixed at top with black semi-transparent background
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    Image("album-scan-logo-simple-white")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 185)
+                    Spacer()
+                }
+                .frame(height: 60)
+                .background(.black.opacity(0.8))
+
+                Spacer()
+            }
         }
     }
 
@@ -64,11 +131,52 @@ struct ScanHistoryView: View {
             }
         }
     }
+
+    private func deleteAlbum(_ album: Album) {
+        withAnimation {
+            viewContext.delete(album)
+
+            do {
+                try viewContext.save()
+            } catch {
+                print("Error deleting album: \(error)")
+            }
+        }
+    }
 }
 
 struct AlbumHistoryRow: View {
     let album: Album
     @State private var showingDetails = false
+
+    // MARK: - Typography Settings (Adjust these values to customize fonts)
+
+    // Album Title Settings
+    private let albumTitleFontSize: CGFloat = 20
+    private let albumTitleLineHeight: CGFloat = 6
+    private let albumTitleFontWeight: Font.Weight = .semibold
+    private let albumTitleColor: Color = .white
+
+    // Artist Name (Band Name) Settings
+    private let artistNameFontSize: CGFloat = 18
+    private let artistNameLineHeight: CGFloat = 6
+    private let artistNameFontWeight: Font.Weight = .regular
+    private let artistNameColor: Color = .white
+
+    // Recommendation Text Settings (e.g., "ESSENTIAL / ")
+    private let recommendationFontSize: CGFloat = 14
+    private let recommendationLineHeight: CGFloat = 6
+    private let recommendationFontWeight: Font.Weight = .regular
+    private let recommendationColor: Color = .white
+
+    // Score Text Settings (e.g., "9.5")
+    private let scoreFontSize: CGFloat = 14
+    private let scoreLineHeight: CGFloat = 4
+    private let scoreFontWeight: Font.Weight = .bold
+    private let scoreColor: Color = Color(red: 0, green: 0.87, blue: 0.32)  // Brand green
+
+    // Brand Colors
+    let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
 
     var body: some View {
         Button(action: {
@@ -81,7 +189,7 @@ struct AlbumHistoryRow: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 60, height: 60)
+                        .frame(width: 96, height: 96)
                         .cornerRadius(6)
                         .clipped()
                 } else if let legacyArtData = album.albumArtData,
@@ -89,33 +197,42 @@ struct AlbumHistoryRow: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 60, height: 60)
+                        .frame(width: 96, height: 96)
                         .cornerRadius(6)
                         .clipped()
                 } else {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
-                        .frame(width: 60, height: 60)
+                        .frame(width: 96, height: 96)
                         .cornerRadius(6)
                 }
 
                 // Album info
                 VStack(alignment: .leading, spacing: 4) {
                     Text(album.albumTitle)
-                        .font(.headline)
+                        .font(.system(size: albumTitleFontSize, weight: albumTitleFontWeight))
+                        .lineSpacing(albumTitleLineHeight)
+                        .foregroundColor(albumTitleColor)
                         .lineLimit(1)
 
                     Text(album.artistName)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: artistNameFontSize, weight: artistNameFontWeight))
+                        .lineSpacing(artistNameLineHeight)
+                        .foregroundColor(artistNameColor.opacity(0.8))
                         .lineLimit(1)
 
                     HStack(spacing: 4) {
                         Text(album.recommendationEnum.emoji)
-                            .font(.caption)
-                        Text("\(album.recommendation) / \(album.rating, specifier: "%.1f")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: recommendationFontSize, weight: recommendationFontWeight))
+                            .lineSpacing(recommendationLineHeight)
+                        Text("\(album.recommendation) / ")
+                            .font(.system(size: recommendationFontSize, weight: recommendationFontWeight))
+                            .lineSpacing(recommendationLineHeight)
+                            .foregroundColor(recommendationColor.opacity(0.8))
+                        Text("\(album.rating, specifier: "%.1f")")
+                            .font(.system(size: scoreFontSize, weight: scoreFontWeight))
+                            .lineSpacing(scoreLineHeight)
+                            .foregroundColor(scoreColor)
                     }
                 }
 
