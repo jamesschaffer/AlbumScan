@@ -122,7 +122,7 @@ struct AlbumHistoryRow: View {
                 Spacer()
             }
         }
-        .sheet(isPresented: $showingDetails) {
+        .fullScreenCover(isPresented: $showingDetails) {
             AlbumDetailsView(album: album)
         }
     }

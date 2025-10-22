@@ -123,10 +123,10 @@ struct CameraView: View {
                 SearchPreLoaderView(currentStage: $cameraManager.loadingStage)
             }
         }
-        .sheet(isPresented: $showingHistory) {
+        .fullScreenCover(isPresented: $showingHistory) {
             ScanHistoryView()
         }
-        .sheet(item: $cameraManager.scannedAlbum) { album in
+        .fullScreenCover(item: $cameraManager.scannedAlbum) { album in
             AlbumDetailsView(album: album)
         }
         .onAppear {
