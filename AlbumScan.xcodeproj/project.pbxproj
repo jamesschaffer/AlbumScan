@@ -34,6 +34,8 @@
 		21AB8AC62EA6AE19009C895F /* album_identification_v1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AC52EA6AE19009C895F /* album_identification_v1.txt */; };
 		21AB8ACB2EA6DB9D009C895F /* CoverArtService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8AC92EA6DB9D009C895F /* CoverArtService.swift */; };
 		21AB8ACC2EA6DB9D009C895F /* MusicBrainzService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8ACA2EA6DB9D009C895F /* MusicBrainzService.swift */; };
+		21AB8AD52EA81F3E009C895F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AD42EA81F3E009C895F /* Assets.xcassets */; };
+		21B9102E2EA822B000C6E5B7 /* LaunchScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B9102D2EA822B000C6E5B7 /* LaunchScreenView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -65,6 +67,8 @@
 		21AB8AC52EA6AE19009C895F /* album_identification_v1.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = album_identification_v1.txt; sourceTree = "<group>"; };
 		21AB8AC92EA6DB9D009C895F /* CoverArtService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverArtService.swift; sourceTree = "<group>"; };
 		21AB8ACA2EA6DB9D009C895F /* MusicBrainzService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBrainzService.swift; sourceTree = "<group>"; };
+		21AB8AD42EA81F3E009C895F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		21B9102D2EA822B000C6E5B7 /* LaunchScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchScreenView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +85,7 @@
 		21AB8A252EA58A02009C895F = {
 			isa = PBXGroup;
 			children = (
+				21AB8AD42EA81F3E009C895F /* Assets.xcassets */,
 				21AB8A832EA58A5C009C895F /* album_scan_prompt.md */,
 				21AB8AA52EA58A5C009C895F /* AlbumScan */,
 				21AB8AA62EA58A5C009C895F /* FILE_STRUCTURE.md */,
@@ -191,6 +196,7 @@
 		21AB8A9E2EA58A5C009C895F /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				21B9102D2EA822B000C6E5B7 /* LaunchScreenView.swift */,
 				21AB8A922EA58A5C009C895F /* Album */,
 				21AB8A962EA58A5C009C895F /* Camera */,
 				21AB8A992EA58A5C009C895F /* Error */,
@@ -315,6 +321,7 @@
 				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,
 				21AB8AC22EA58A5C009C895F /* album_scan_prompt.md in Resources */,
 				21AB8AC32EA58A5C009C895F /* project_context.md in Resources */,
+				21AB8AD52EA81F3E009C895F /* Assets.xcassets in Resources */,
 				21AB8AC42EA58A5C009C895F /* QUICK_START.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -328,6 +335,7 @@
 			files = (
 				21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */,
 				21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */,
+				21B9102E2EA822B000C6E5B7 /* LaunchScreenView.swift in Sources */,
 				21AB8ACB2EA6DB9D009C895F /* CoverArtService.swift in Sources */,
 				21AB8ACC2EA6DB9D009C895F /* MusicBrainzService.swift in Sources */,
 				21AB8AAE2EA58A5C009C895F /* SearchPreLoaderView.swift in Sources */,

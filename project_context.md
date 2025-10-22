@@ -246,11 +246,17 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
   - SCAN button → Search Pre-Loader (Screen 2)
 
 ### Screen 2: Search Pre-Loader (Loading State)
-- **Purpose:** Indicates processing during API call
+- **Purpose:** Indicates steps processing during API call
 - **Key Elements:**
-  - Generic loading spinner
-  - Text: "Identifying album..."
-  - No cancel button (quick 3-5 second process)
+  - Show text with animated (...) at the end as the animation showing progress
+  - We want to match the text to where the app is in the process
+  - Three levels of text
+    - Making the call to Claude = Flipping through every record bin in existence...
+    - Getting text back and parsing it = Writing a review that's somehow both pretentious and correct...
+    - Finding and downloading artwork = Hunting down cover art worthy of your screen...
+  - We want to make sure that each step shows for at least 1 second
+  - The preloader animates left off the screen and the new one comes in from the right
+  - No cancel button
 - **Navigation:** 
   - Success → Album Details (Screen 3)
   - Failure → Scan Error (Screen 5)
