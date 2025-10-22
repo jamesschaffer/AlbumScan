@@ -36,6 +36,7 @@
 		21AB8ACC2EA6DB9D009C895F /* MusicBrainzService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8ACA2EA6DB9D009C895F /* MusicBrainzService.swift */; };
 		21AB8AD52EA81F3E009C895F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AD42EA81F3E009C895F /* Assets.xcassets */; };
 		21B9102E2EA822B000C6E5B7 /* LaunchScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B9102D2EA822B000C6E5B7 /* LaunchScreenView.swift */; };
+		21B910322EA91D9300C6E5B7 /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = 21B910312EA91D9300C6E5B7 /* Secrets.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -69,6 +70,7 @@
 		21AB8ACA2EA6DB9D009C895F /* MusicBrainzService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBrainzService.swift; sourceTree = "<group>"; };
 		21AB8AD42EA81F3E009C895F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		21B9102D2EA822B000C6E5B7 /* LaunchScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchScreenView.swift; sourceTree = "<group>"; };
+		21B910312EA91D9300C6E5B7 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +87,7 @@
 		21AB8A252EA58A02009C895F = {
 			isa = PBXGroup;
 			children = (
+				21B910312EA91D9300C6E5B7 /* Secrets.plist */,
 				21AB8AD42EA81F3E009C895F /* Assets.xcassets */,
 				21AB8A832EA58A5C009C895F /* album_scan_prompt.md */,
 				21AB8AA52EA58A5C009C895F /* AlbumScan */,
@@ -319,6 +322,7 @@
 				21AB8ABF2EA58A5C009C895F /* README.md in Resources */,
 				21AB8AC02EA58A5C009C895F /* FILE_STRUCTURE.md in Resources */,
 				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,
+				21B910322EA91D9300C6E5B7 /* Secrets.plist in Resources */,
 				21AB8AC22EA58A5C009C895F /* album_scan_prompt.md in Resources */,
 				21AB8AC32EA58A5C009C895F /* project_context.md in Resources */,
 				21AB8AD52EA81F3E009C895F /* Assets.xcassets in Resources */,
