@@ -1,6 +1,17 @@
 import SwiftUI
 import AVFoundation
 
+// MARK: - Pressed Button Style
+
+struct PressedButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
 struct CameraView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var cameraManager = CameraManager()
@@ -34,48 +45,76 @@ struct CameraView: View {
                 VStack {
                     Spacer()
 
-                    HStack(spacing: 20) {
-                        // Scan button
+                    // Bottom control bar container
+                    HStack(alignment: .center, spacing: 0) {
+                        // Left side - placeholder for settings button
+                        Color.clear
+                            .frame(width: 64, height: 64)
+
+                        Spacer()
+
+                        // Center - Scan button
                         Button(action: {
                             cameraManager.capturePhoto()
                         }) {
-                            Text("SCAN")
-                                .font(.system(size: 28, weight: .heavy))
-                                .foregroundColor(.white)
-                                .frame(width: 280, height: 60)
-                                .background(Color.clear)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 30)
-                                        .stroke(brandGreen, lineWidth: 4)
-                                )
+                            HStack(alignment: .center, spacing: 0) {
+                                Text("SCAN")
+                                    .font(.system(size: 28, weight: .heavy))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal, 40)
+                            .padding(.vertical, 26)
+                            .frame(width: 201, alignment: .center)
+                            .background(.black.opacity(0.6))
+                            .cornerRadius(42)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 42)
+                                    .inset(by: 2)
+                                    .stroke(brandGreen, lineWidth: 4)
+                            )
                         }
+                        .buttonStyle(PressedButtonStyle())
 
-                        // History button (hamburger menu)
+                        Spacer()
+
+                        // Right side - History button
                         if appState.hasScannedAlbums {
                             Button(action: {
                                 showingHistory = true
                             }) {
-                                VStack(spacing: 4) {
-                                    Rectangle()
-                                        .fill(Color.white)
-                                        .frame(width: 20, height: 2)
-                                    Rectangle()
-                                        .fill(Color.white)
-                                        .frame(width: 20, height: 2)
-                                    Rectangle()
-                                        .fill(Color.white)
-                                        .frame(width: 20, height: 2)
+                                HStack(alignment: .center, spacing: 0) {
+                                    VStack(spacing: 4) {
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 20, height: 2)
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 20, height: 2)
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 20, height: 2)
+                                    }
                                 }
-                                .frame(width: 60, height: 60)
-                                .background(Color.clear)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 20)
+                                .frame(width: 64, height: 64, alignment: .center)
+                                .background(.black.opacity(0.6))
+                                .cornerRadius(999)
                                 .overlay(
-                                    Circle()
+                                    RoundedRectangle(cornerRadius: 999)
+                                        .inset(by: 2)
                                         .stroke(brandGreen, lineWidth: 4)
                                 )
                             }
+                            .buttonStyle(PressedButtonStyle())
+                        } else {
+                            // Placeholder to maintain spacing when no history
+                            Color.clear
+                                .frame(width: 64, height: 64)
                         }
                     }
-                    .padding(.bottom, 40)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 22)
                 }
             }
 
