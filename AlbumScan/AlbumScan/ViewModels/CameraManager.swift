@@ -84,6 +84,26 @@ class CameraManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
 
+            // Check if session is running before attempting capture
+            guard self.session.isRunning else {
+                print("❌ Camera session is not running")
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -3, userInfo: [NSLocalizedDescriptionKey: "Camera session is not running. Please restart the app."])
+                    self.isProcessing = false
+                }
+                return
+            }
+
+            // Check if photoOutput is connected to the session
+            guard self.session.outputs.contains(self.photoOutput) else {
+                print("❌ Photo output is not connected to session")
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -4, userInfo: [NSLocalizedDescriptionKey: "Camera is not properly configured. Please restart the app."])
+                    self.isProcessing = false
+                }
+                return
+            }
+
             DispatchQueue.main.async {
                 self.isProcessing = true
                 self.loadingStage = .callingAPI // Reset to first stage

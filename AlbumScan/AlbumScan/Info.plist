@@ -21,5 +21,9 @@
     <array>
         <string>Bungee-Regular.ttf</string>
     </array>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>still-camera</string>
+    </array>
 </dict>
 </plist>
