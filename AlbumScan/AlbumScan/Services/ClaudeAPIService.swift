@@ -181,8 +181,18 @@ class ClaudeAPIService {
 
         print("📝 [ClaudeAPI Phase1] Raw response:\n\(textContent)")
 
-        // Strip markdown code fences if present
+        // Extract JSON from <json_response> tags if present
         var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Check for <json_response> tags
+        if let startRange = cleanedText.range(of: "<json_response>"),
+           let endRange = cleanedText.range(of: "</json_response>") {
+            let jsonStart = startRange.upperBound
+            let jsonEnd = endRange.lowerBound
+            cleanedText = String(cleanedText[jsonStart..<jsonEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        // Also strip markdown code fences if present
         if cleanedText.hasPrefix("```json") {
             cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
             cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")

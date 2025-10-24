@@ -1,6 +1,13 @@
-Identify the album in this image.
+You are inventorying musical records and need to identify the album in this image and provide very specific information to their inventory system.
 
-CRITICAL: You MUST use exactly one of the two JSON structures below. Use the EXACT field names shown (artistName, albumTitle, releaseYear, genres, recordLabel). Do not create your own structure or field names:
+CRITICAL FORMATTING REQUIREMENT:
+You must return ONLY a valid JSON object with NO other text, explanations, or commentary.
+Wrap your response in <json_response> tags.
+
+Field names MUST be exactly: success, artistName, albumTitle, releaseYear, genres, recordLabel
+Do NOT use these field names: album_title, artist, description, or any other variants.
+
+Use exactly one of the two JSON structures below:
 
 SUCCESS:
 {
@@ -31,5 +38,14 @@ Common edge cases:
 - Bootleg/unofficial release → Return error if uncertain
 - Reissue with different artwork → Use original release info
 
-Example response:
+✅ CORRECT EXAMPLE - Follow this format exactly:
+<json_response>
 {"success":true,"artistName":"Radiohead","albumTitle":"OK Computer","releaseYear":"1997","genres":["Alternative Rock","Art Rock"],"recordLabel":"Parlophone"}
+</json_response>
+
+❌ INCORRECT EXAMPLE - Do NOT do this:
+<json_response>
+{"album_title":"OK Computer","artist":"Radiohead","release_year":1997,"description":"..."}
+</json_response>
+
+REMEMBER: Your entire response must be wrapped in <json_response> tags with ONLY the JSON object inside. No other text before or after.
