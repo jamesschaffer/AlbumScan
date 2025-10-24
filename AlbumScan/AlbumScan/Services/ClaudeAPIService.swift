@@ -167,6 +167,10 @@ class ClaudeAPIService {
                             "text": phase1Prompt
                         ]
                     ]
+                ],
+                [
+                    "role": "assistant",
+                    "content": "{"
                 ]
             ]
         ]
@@ -181,10 +185,12 @@ class ClaudeAPIService {
             throw APIError.invalidResponseFormat
         }
 
-        print("📝 [ClaudeAPI Phase1] Raw response:\n\(textContent)")
+        // Prepend the opening brace from our prefill
+        let fullResponse = "{" + textContent
+        print("📝 [ClaudeAPI Phase1] Raw response:\n\(fullResponse)")
 
         // Strip markdown code fences if present
-        var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        var cleanedText = fullResponse.trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanedText.hasPrefix("```json") {
             cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
             cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
