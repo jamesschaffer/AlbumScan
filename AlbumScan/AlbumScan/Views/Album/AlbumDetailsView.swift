@@ -153,65 +153,99 @@ struct AlbumDetailsView: View {
                         }
                     }
 
-                    // Cultural Context Summary
-                    Text(album.contextSummary)
-                        .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
-                        .lineSpacing(bodyTextLineHeight)
-                        .foregroundColor(bodyTextColor)
-                        .padding(.vertical, 8)
+                    // Review Content - show different UI based on Phase 2 status
+                    if album.phase2Failed {
+                        // Phase 2 failed - show error message
+                        VStack(alignment: .center, spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 48))
+                                .foregroundColor(.orange)
+                                .padding(.top, 20)
 
-                    // Bullet Points
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(album.contextBulletPoints, id: \.self) { bullet in
-                            HStack(alignment: .top, spacing: 8) {
-                                Text("•")
-                                    .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
-                                    .foregroundColor(bodyTextColor)
-                                Text(bullet)
-                                    .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
-                                    .lineSpacing(bodyTextLineHeight)
-                                    .foregroundColor(bodyTextColor)
-                            }
-                            .padding(.leading, listItemIndent)
-                        }
-                    }
-
-                    // Rating
-                    HStack {
-                        Text("Rating:")
-                            .font(
-                                Font.custom("Helvetica Neue", size: albumTitleFontSize)
-                                    .weight(.bold)
-                            )
-                            .foregroundColor(albumTitleColor)
-                        Text("\(album.rating, specifier: "%.1f")/10")
-                            .font(
-                                Font.custom("Helvetica Neue", size: albumTitleFontSize)
-                                    .weight(.bold)
-                            )
-                            .foregroundColor(albumTitleColor)
-                    }
-                    .padding(.top, 8)
-
-                    // Key Tracks
-                    if !album.keyTracks.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("🎵 Key Tracks")
-                                .font(
-                                    Font.custom("Helvetica Neue", size: albumTitleFontSize)
-                                        .weight(.bold)
-                                )
+                            Text("Review Temporarily Unavailable")
+                                .font(Font.custom("Helvetica Neue", size: albumTitleFontSize).weight(.bold))
                                 .foregroundColor(albumTitleColor)
 
-                            ForEach(album.keyTracks, id: \.self) { track in
-                                Text("• \(track)")
-                                    .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
-                                    .lineSpacing(bodyTextLineHeight)
-                                    .foregroundColor(bodyTextColor)
+                            Text("The detailed review couldn't be generated for this album. The album was successfully identified, but our review service encountered an issue.")
+                                .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
+                                .lineSpacing(bodyTextLineHeight)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+
+                            Text("💡 Tip: Scan this album again to retry generating the review.")
+                                .font(Font.custom("Helvetica Neue", size: 16))
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 8)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 32)
+                    } else {
+                        // Phase 2 succeeded - show full review
+                        VStack(alignment: .leading, spacing: 16) {
+                            // Cultural Context Summary
+                            Text(album.contextSummary)
+                                .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
+                                .lineSpacing(bodyTextLineHeight)
+                                .foregroundColor(bodyTextColor)
+                                .padding(.vertical, 8)
+
+                            // Bullet Points
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(album.contextBulletPoints, id: \.self) { bullet in
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Text("•")
+                                            .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
+                                            .foregroundColor(bodyTextColor)
+                                        Text(bullet)
+                                            .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
+                                            .lineSpacing(bodyTextLineHeight)
+                                            .foregroundColor(bodyTextColor)
+                                    }
                                     .padding(.leading, listItemIndent)
+                                }
+                            }
+
+                            // Rating
+                            HStack {
+                                Text("Rating:")
+                                    .font(
+                                        Font.custom("Helvetica Neue", size: albumTitleFontSize)
+                                            .weight(.bold)
+                                    )
+                                    .foregroundColor(albumTitleColor)
+                                Text("\(album.rating, specifier: "%.1f")/10")
+                                    .font(
+                                        Font.custom("Helvetica Neue", size: albumTitleFontSize)
+                                            .weight(.bold)
+                                    )
+                                    .foregroundColor(albumTitleColor)
+                            }
+                            .padding(.top, 8)
+
+                            // Key Tracks
+                            if !album.keyTracks.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("🎵 Key Tracks")
+                                        .font(
+                                            Font.custom("Helvetica Neue", size: albumTitleFontSize)
+                                                .weight(.bold)
+                                        )
+                                        .foregroundColor(albumTitleColor)
+
+                                    ForEach(album.keyTracks, id: \.self) { track in
+                                        Text("• \(track)")
+                                            .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
+                                            .lineSpacing(bodyTextLineHeight)
+                                            .foregroundColor(bodyTextColor)
+                                            .padding(.leading, listItemIndent)
+                                    }
+                                }
+                                .padding(.top, 8)
                             }
                         }
-                        .padding(.top, 8)
                     }
 
                     Spacer(minLength: 40)
