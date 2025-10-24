@@ -149,6 +149,7 @@ class ClaudeAPIService {
             "model": "claude-sonnet-4-5-20250929",  // Use Sonnet for Phase 1
             "max_tokens": 300,  // Small response for fast ID
             "temperature": 0.0,  // Deterministic
+            "system": "You respond only with valid JSON objects. Never include explanations, markdown formatting, or any text outside the JSON structure.",
             "messages": [
                 [
                     "role": "user",
