@@ -1,6 +1,7 @@
 import AVFoundation
 import UIKit
 import Combine
+import CoreData
 
 class CameraManager: NSObject, ObservableObject {
     @Published var isProcessing = false
@@ -8,6 +9,13 @@ class CameraManager: NSObject, ObservableObject {
     @Published var error: Error?
     @Published var scannedAlbum: Album?
     @Published var loadingStage: LoadingStage = .callingAPI
+    @Published var scanState: ScanState = .idle
+    @Published var phase1Data: Phase1Response?
+    @Published var phase2Data: Phase2Response?
+    @Published var albumArtwork: UIImage?
+
+    // Feature flag: toggle between old single-tier and new two-tier flow
+    var useTwoTierFlow = false
 
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
@@ -143,9 +151,13 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         DispatchQueue.main.async {
             self.capturedImage = processedImage
 
-            // Send to API
+            // Send to API (choose flow based on feature flag)
             Task {
-                await self.identifyAlbum(image: processedImage)
+                if self.useTwoTierFlow {
+                    await self.identifyAlbumTwoTier(image: processedImage)
+                } else {
+                    await self.identifyAlbum(image: processedImage)
+                }
             }
         }
     }
@@ -297,5 +309,213 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.isProcessing = false
             }
         }
+    }
+
+    // MARK: - Two-Tier Flow (New)
+
+    private func identifyAlbumTwoTier(image: UIImage) async {
+        let totalStart = Date()
+        print("⏱️ [TWO-TIER] ========== STARTING TWO-TIER IDENTIFICATION ==========")
+
+        do {
+            // PHASE 1: Fast Identification
+            await MainActor.run {
+                self.scanState = .identifying
+            }
+
+            let phase1Start = Date()
+            print("🔑 [TWO-TIER Phase1] Starting fast identification...")
+            let phase1Response = try await ClaudeAPIService.shared.identifyAlbumPhase1(image: image)
+            let phase1Time = Date().timeIntervalSince(phase1Start)
+            print("⏱️ [TIMING] Phase 1 took: \(String(format: "%.2f", phase1Time))s")
+
+            // Check if Phase 1 succeeded
+            guard phase1Response.isSuccess,
+                  let artistName = phase1Response.artistName,
+                  let albumTitle = phase1Response.albumTitle else {
+                print("❌ [TWO-TIER Phase1] Identification failed")
+                await MainActor.run {
+                    self.scanState = .identificationFailed
+                    self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: phase1Response.displayError])
+                    self.isProcessing = false
+                }
+                return
+            }
+
+            print("✅ [TWO-TIER Phase1] Identified: \(albumTitle) by \(artistName)")
+
+            // Store Phase 1 data
+            await MainActor.run {
+                self.phase1Data = phase1Response
+                self.scanState = .identified
+            }
+
+            // Brief transition delay (0.5s minimum)
+            try await Task.sleep(nanoseconds: 500_000_000)
+
+            // PHASE 2 & ARTWORK IN PARALLEL
+            await MainActor.run {
+                self.scanState = .loadingReview
+            }
+
+            async let phase2Task = self.executePhase2(
+                artistName: artistName,
+                albumTitle: albumTitle,
+                releaseYear: phase1Response.releaseYear ?? "Unknown",
+                genres: phase1Response.genres ?? [],
+                recordLabel: phase1Response.recordLabel ?? "Unknown"
+            )
+
+            async let artworkTask = self.executeArtworkFetch(
+                artistName: artistName,
+                albumTitle: albumTitle
+            )
+
+            // Wait for both to complete
+            let (phase2Result, artworkResult) = await (phase2Task, artworkTask)
+
+            // Save to CoreData
+            let savedAlbum = try await self.saveTwoTierAlbum(
+                phase1: phase1Response,
+                phase2: phase2Result.response,
+                phase2Failed: phase2Result.failed,
+                musicbrainzID: artworkResult.mbid,
+                artworkData: artworkResult.data,
+                artworkFailed: artworkResult.failed
+            )
+
+            // Complete
+            await MainActor.run {
+                let totalTime = Date().timeIntervalSince(totalStart)
+                print("⏱️ [TIMING] ========== TWO-TIER TOTAL: \(String(format: "%.2f", totalTime))s ==========")
+                self.scanState = .complete
+                self.scannedAlbum = savedAlbum
+                self.isProcessing = false
+            }
+
+        } catch {
+            let totalTime = Date().timeIntervalSince(totalStart)
+            print("⏱️ [TIMING] ========== TWO-TIER FAILED AFTER: \(String(format: "%.2f", totalTime))s ==========")
+            print("❌ [TWO-TIER] Error: \(error.localizedDescription)")
+            await MainActor.run {
+                self.error = error
+                self.scanState = .identificationFailed
+                self.isProcessing = false
+            }
+        }
+    }
+
+    private func executePhase2(artistName: String, albumTitle: String, releaseYear: String, genres: [String], recordLabel: String) async -> (response: Phase2Response?, failed: Bool) {
+        let phase2Start = Date()
+        print("🔑 [TWO-TIER Phase2] Starting review generation...")
+
+        do {
+            let phase2Response = try await ClaudeAPIService.shared.generateReviewPhase2(
+                artistName: artistName,
+                albumTitle: albumTitle,
+                releaseYear: releaseYear,
+                genres: genres,
+                recordLabel: recordLabel
+            )
+            let phase2Time = Date().timeIntervalSince(phase2Start)
+            print("⏱️ [TIMING] Phase 2 took: \(String(format: "%.2f", phase2Time))s")
+            print("✅ [TWO-TIER Phase2] Review generated successfully")
+
+            await MainActor.run {
+                self.phase2Data = phase2Response
+            }
+
+            return (phase2Response, false)
+        } catch {
+            print("❌ [TWO-TIER Phase2] Review generation failed: \(error.localizedDescription)")
+            return (nil, true)
+        }
+    }
+
+    private func executeArtworkFetch(artistName: String, albumTitle: String) async -> (mbid: String?, data: (highRes: Data?, thumbnail: Data?)?, failed: Bool) {
+        let artStart = Date()
+        print("🎨 [TWO-TIER Artwork] Starting artwork fetch...")
+
+        do {
+            if let mbid = try await MusicBrainzService.shared.searchAlbum(artist: artistName, album: albumTitle) {
+                print("✅ [TWO-TIER Artwork] Found MBID: \(mbid)")
+
+                let artwork = await CoverArtService.shared.retrieveArtwork(mbid: mbid)
+                let artTime = Date().timeIntervalSince(artStart)
+                print("⏱️ [TIMING] Artwork fetch took: \(String(format: "%.2f", artTime))s")
+
+                if artwork.highRes != nil || artwork.thumbnail != nil {
+                    print("✅ [TWO-TIER Artwork] Artwork downloaded")
+
+                    // Update UI with artwork
+                    if let highResData = artwork.highRes, let image = UIImage(data: highResData) {
+                        await MainActor.run {
+                            self.albumArtwork = image
+                        }
+                    }
+
+                    return (mbid, artwork, false)
+                } else {
+                    print("⚠️ [TWO-TIER Artwork] No artwork available")
+                    return (mbid, nil, true)
+                }
+            } else {
+                print("⚠️ [TWO-TIER Artwork] Album not found on MusicBrainz")
+                return (nil, nil, true)
+            }
+        } catch {
+            print("❌ [TWO-TIER Artwork] Error: \(error.localizedDescription)")
+            return (nil, nil, true)
+        }
+    }
+
+    private func saveTwoTierAlbum(phase1: Phase1Response, phase2: Phase2Response?, phase2Failed: Bool, musicbrainzID: String?, artworkData: (highRes: Data?, thumbnail: Data?)?, artworkFailed: Bool) async throws -> Album {
+        print("💾 [TWO-TIER Save] Saving to CoreData...")
+
+        // This will need a new save function in PersistenceController
+        // For now, we'll create a temporary implementation
+        let album = Album(context: PersistenceController.shared.container.viewContext)
+        album.id = UUID()
+        album.scannedDate = Date()
+
+        // Phase 1 data
+        album.artistName = phase1.artistName ?? "Unknown"
+        album.albumTitle = phase1.albumTitle ?? "Unknown"
+        album.releaseYear = phase1.releaseYear
+        album.genres = phase1.genres ?? []
+        album.recordLabel = phase1.recordLabel
+        album.phase1Completed = true
+
+        // Phase 2 data
+        if let phase2 = phase2 {
+            album.contextSummary = phase2.contextSummary
+            album.contextBulletPoints = phase2.contextBullets
+            album.rating = phase2.rating
+            album.recommendation = phase2.recommendation
+            album.keyTracks = phase2.keyTracks
+            album.phase2Completed = true
+            album.phase2Failed = false
+        } else {
+            album.contextSummary = "Review temporarily unavailable"
+            album.contextBulletPoints = []
+            album.rating = 0.0
+            album.recommendation = "SKIP"
+            album.keyTracks = []
+            album.phase2Completed = false
+            album.phase2Failed = phase2Failed
+            album.phase2LastAttempt = Date()
+        }
+
+        // Artwork data
+        album.musicbrainzID = musicbrainzID
+        album.albumArtHighResData = artworkData?.highRes
+        album.albumArtThumbnailData = artworkData?.thumbnail
+        album.albumArtRetrievalFailed = artworkFailed
+        album.artworkLoaded = !artworkFailed
+
+        try PersistenceController.shared.container.viewContext.save()
+        print("✅ [TWO-TIER Save] Saved successfully")
+
+        return album
     }
 }

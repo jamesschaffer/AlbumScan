@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		210597BF2EABDD27001CDE4F /* ScanState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597BE2EABDD27001CDE4F /* ScanState.swift */; };
+		210597C02EABDD27001CDE4F /* Phase2Response.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597BD2EABDD27001CDE4F /* Phase2Response.swift */; };
+		210597C12EABDD27001CDE4F /* Phase1Response.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597BC2EABDD27001CDE4F /* Phase1Response.swift */; };
 		21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8E2EA58A5C009C895F /* AppState.swift */; };
 		21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A842EA58A5C009C895F /* Album.swift */; };
 		21AB8AAE2EA58A5C009C895F /* SearchPreLoaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A952EA58A5C009C895F /* SearchPreLoaderView.swift */; };
@@ -41,6 +44,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		210597BC2EABDD27001CDE4F /* Phase1Response.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase1Response.swift; sourceTree = "<group>"; };
+		210597BD2EABDD27001CDE4F /* Phase2Response.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase2Response.swift; sourceTree = "<group>"; };
+		210597BE2EABDD27001CDE4F /* ScanState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanState.swift; sourceTree = "<group>"; };
 		21914B312EA955D60039D3CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		21AB8A2E2EA58A02009C895F /* AlbumScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlbumScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21AB8A832EA58A5C009C895F /* album_scan_prompt.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = album_scan_prompt.md; sourceTree = "<group>"; };
@@ -114,6 +120,9 @@
 		21AB8A872EA58A5C009C895F /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				210597BC2EABDD27001CDE4F /* Phase1Response.swift */,
+				210597BD2EABDD27001CDE4F /* Phase2Response.swift */,
+				210597BE2EABDD27001CDE4F /* ScanState.swift */,
 				21AB8A842EA58A5C009C895F /* Album.swift */,
 				21AB8A852EA58A5C009C895F /* AlbumResponse.swift */,
 				21AB8A862EA58A5C009C895F /* AlbumScan.xcdatamodeld */,
@@ -356,6 +365,9 @@
 				21AB8AB32EA58A5C009C895F /* ContentView.swift in Sources */,
 				21AB8AB42EA58A5C009C895F /* ClaudeAPIService.swift in Sources */,
 				21AB8AB52EA58A5C009C895F /* CameraView.swift in Sources */,
+				210597BF2EABDD27001CDE4F /* ScanState.swift in Sources */,
+				210597C02EABDD27001CDE4F /* Phase2Response.swift in Sources */,
+				210597C12EABDD27001CDE4F /* Phase1Response.swift in Sources */,
 				21AB8AB62EA58A5C009C895F /* PermissionErrorView.swift in Sources */,
 				21AB8AB72EA58A5C009C895F /* ScanHistoryView.swift in Sources */,
 				21AB8AB82EA58A5C009C895F /* AlbumDetailsView.swift in Sources */,
