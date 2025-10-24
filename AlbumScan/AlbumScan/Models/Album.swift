@@ -34,6 +34,13 @@ public class Album: NSManagedObject, Identifiable {
     // Raw API Response (for debugging)
     @NSManaged public var rawAPIResponse: String?
 
+    // Two-Tier API Tracking
+    @NSManaged public var phase1Completed: Bool // Track if Phase 1 (identification) succeeded
+    @NSManaged public var phase2Completed: Bool // Track if Phase 2 (review) succeeded
+    @NSManaged public var phase2Failed: Bool // Track if Phase 2 needs retry
+    @NSManaged public var phase2LastAttempt: Date? // When we last tried Phase 2 (for retry logic)
+    @NSManaged public var artworkLoaded: Bool // Track if artwork fetch completed
+
     // Computed properties for array handling
     var genres: [String] {
         get {
