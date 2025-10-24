@@ -93,7 +93,7 @@ By using AlbumScan, you consent to this privacy policy.
 
 If you have questions about this privacy policy or your data, please contact:
 
-**Email:** [Your email address]
+**Email:** james@jamesschaffer.com
 **GitHub:** https://github.com/jamesschaffer/AlbumScan
 
 ## Third-Party Privacy Policies
