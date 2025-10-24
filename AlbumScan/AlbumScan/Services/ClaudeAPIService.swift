@@ -7,18 +7,36 @@ class ClaudeAPIService {
     private let apiKey: String
     private let apiURL = "https://api.anthropic.com/v1/messages"
     private let systemPrompt: String
+    private let phase1Prompt: String
+    private let phase2Prompt: String
 
     private init() {
         // Load API key from Config (which reads from Secrets.plist or environment)
         self.apiKey = Config.claudeAPIKey
 
-        // Load prompt from file
+        // Load prompt from file (legacy v1 prompt)
         if let promptPath = Bundle.main.path(forResource: "album_identification_v1", ofType: "txt", inDirectory: "Prompts"),
            let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.systemPrompt = promptContent
         } else {
             // Fallback to embedded prompt if file not found
             self.systemPrompt = Self.defaultPrompt
+        }
+
+        // Load Phase 1 prompt (fast identification)
+        if let promptPath = Bundle.main.path(forResource: "album_identification_v2", ofType: "txt", inDirectory: "Prompts"),
+           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase1Prompt = promptContent
+        } else {
+            self.phase1Prompt = "Identify this album cover."
+        }
+
+        // Load Phase 2 prompt (deep review)
+        if let promptPath = Bundle.main.path(forResource: "album_review", ofType: "txt", inDirectory: "Prompts"),
+           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase2Prompt = promptContent
+        } else {
+            self.phase2Prompt = "Review this album."
         }
     }
 
@@ -69,6 +87,121 @@ class ClaudeAPIService {
         // Extract album information from response
         print("🔍 [ClaudeAPI] Extracting album information...")
         return try parseAlbumResponse(from: apiResponse)
+    }
+
+    // MARK: - Phase 1: Fast Album Identification
+
+    func identifyAlbumPhase1(image: UIImage) async throws -> Phase1Response {
+        print("🔑 [ClaudeAPI Phase1] Starting fast identification...")
+
+        guard !apiKey.isEmpty else {
+            print("❌ [ClaudeAPI Phase1] API key is missing!")
+            throw APIError.missingAPIKey
+        }
+
+        // Convert image to base64
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            print("❌ [ClaudeAPI Phase1] Failed to convert image to JPEG")
+            throw APIError.imageProcessingFailed
+        }
+        let base64Image = imageData.base64EncodedString()
+        print("✅ [ClaudeAPI Phase1] Image converted to base64 (\(imageData.count) bytes)")
+
+        // Build Phase 1 request (no web search, fast)
+        let request = try buildPhase1Request(base64Image: base64Image)
+
+        // Make API call
+        print("📡 [ClaudeAPI Phase1] Sending request...")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        print("📡 [ClaudeAPI Phase1] Received response (\(data.count) bytes)")
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        print("📡 [ClaudeAPI Phase1] HTTP Status: \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 else {
+            if let responseBody = String(data: data, encoding: .utf8) {
+                print("❌ [ClaudeAPI Phase1] Error: \(responseBody)")
+            }
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        // Parse response
+        let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
+        return try parsePhase1Response(from: apiResponse)
+    }
+
+    private func buildPhase1Request(base64Image: String) throws -> URLRequest {
+        guard let url = URL(string: apiURL) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.timeoutInterval = 10  // Faster timeout for Phase 1
+
+        let body: [String: Any] = [
+            "model": "claude-sonnet-4-5-20250929",  // Use Sonnet for Phase 1
+            "max_tokens": 300,  // Small response for fast ID
+            "temperature": 0.0,  // Deterministic
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "image",
+                            "source": [
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": base64Image
+                            ]
+                        ],
+                        [
+                            "type": "text",
+                            "text": phase1Prompt
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        return request
+    }
+
+    private func parsePhase1Response(from apiResponse: ClaudeAPIResponse) throws -> Phase1Response {
+        guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
+            print("❌ [ClaudeAPI Phase1] No text content found")
+            throw APIError.invalidResponseFormat
+        }
+
+        print("📝 [ClaudeAPI Phase1] Raw response:\n\(textContent)")
+
+        // Strip markdown code fences if present
+        var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanedText.hasPrefix("```json") {
+            cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
+            cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
+            cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        guard let jsonData = cleanedText.data(using: .utf8) else {
+            throw APIError.invalidResponseFormat
+        }
+
+        do {
+            let phase1Response = try JSONDecoder().decode(Phase1Response.self, from: jsonData)
+            print("✅ [ClaudeAPI Phase1] Successfully parsed")
+            return phase1Response
+        } catch {
+            print("❌ [ClaudeAPI Phase1] JSON parsing error: \(error)")
+            throw APIError.invalidResponseFormat
+        }
     }
 
     private func buildRequest(base64Image: String) throws -> URLRequest {
