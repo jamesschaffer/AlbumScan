@@ -170,7 +170,7 @@ class ClaudeAPIService {
                 ],
                 [
                     "role": "assistant",
-                    "content": "{\"success\":"
+                    "content": "{\"success\":true,\"artistName\":"
                 ]
             ]
         ]
@@ -186,7 +186,7 @@ class ClaudeAPIService {
         }
 
         // Prepend the prefill text to complete the JSON
-        let fullResponse = "{\"success\":" + textContent
+        let fullResponse = "{\"success\":true,\"artistName\":" + textContent
         print("📝 [ClaudeAPI Phase1] Raw response:\n\(fullResponse)")
 
         // Strip markdown code fences if present
