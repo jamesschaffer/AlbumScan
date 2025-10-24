@@ -60,46 +60,34 @@ struct ScanHistoryView: View {
                 }
             }
 
-            // SCAN button overlaid at bottom
+            // Camera button overlaid at bottom right
             VStack {
                 Spacer()
 
-                // SCAN button styled like camera view
-                HStack(alignment: .center, spacing: 0) {
-                    // Left placeholder
-                    Color.clear.frame(width: 64, height: 64)
-
+                HStack {
                     Spacer()
 
-                    // Center - SCAN button
                     Button(action: {
                         dismiss()
                     }) {
                         HStack(alignment: .center, spacing: 0) {
-                            Text("SCAN")
-                                .font(.custom("Bungee", size: 28))
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(.white)
                         }
-                        .padding(.horizontal, 40)
-                        .padding(.vertical, 26)
-                        .frame(width: 201, alignment: .center)
+                        .frame(width: 64, height: 64)
                         .background(.black.opacity(0.6))
-                        .cornerRadius(42)
+                        .cornerRadius(999)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 42)
+                            RoundedRectangle(cornerRadius: 999)
                                 .inset(by: 2)
                                 .stroke(brandGreen, lineWidth: 4)
                         )
                     }
                     .buttonStyle(PressedButtonStyle())
-
-                    Spacer()
-
-                    // Right placeholder
-                    Color.clear.frame(width: 64, height: 64)
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 22)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 22)
             }
 
             // Logo container fixed at top with black semi-transparent background
