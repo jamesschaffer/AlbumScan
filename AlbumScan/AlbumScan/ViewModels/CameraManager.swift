@@ -15,7 +15,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var albumArtwork: UIImage?
 
     // Feature flag: toggle between old single-tier and new two-tier flow
-    var useTwoTierFlow = false
+    var useTwoTierFlow = true
 
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
