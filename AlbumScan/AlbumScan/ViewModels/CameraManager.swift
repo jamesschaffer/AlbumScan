@@ -353,18 +353,41 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             // Brief transition delay (0.5s minimum)
             try await Task.sleep(nanoseconds: 500_000_000)
 
+            // Check cache for existing album with completed Phase 2
+            let cachedAlbum = self.checkCachedAlbum(artistName: artistName, albumTitle: albumTitle)
+            let shouldSkipPhase2 = cachedAlbum?.phase2Completed == true
+
             // PHASE 2 & ARTWORK IN PARALLEL
             await MainActor.run {
                 self.scanState = .loadingReview
             }
 
-            async let phase2Task = self.executePhase2(
-                artistName: artistName,
-                albumTitle: albumTitle,
-                releaseYear: phase1Response.releaseYear ?? "Unknown",
-                genres: phase1Response.genres ?? [],
-                recordLabel: phase1Response.recordLabel ?? "Unknown"
-            )
+            async let phase2Task: (response: Phase2Response?, failed: Bool) = {
+                if shouldSkipPhase2, let cached = cachedAlbum {
+                    print("✅ [CACHE] Using cached Phase 2 data, skipping API call")
+                    // Build Phase2Response from cached data
+                    let cachedResponse = Phase2Response(
+                        contextSummary: cached.contextSummary,
+                        contextBullets: cached.contextBulletPoints,
+                        rating: cached.rating,
+                        recommendation: cached.recommendation,
+                        keyTracks: cached.keyTracks
+                    )
+                    await MainActor.run {
+                        self.phase2Data = cachedResponse
+                    }
+                    return (cachedResponse, false)
+                } else {
+                    // Cache miss or Phase 2 failed previously - call API
+                    return await self.executePhase2(
+                        artistName: artistName,
+                        albumTitle: albumTitle,
+                        releaseYear: phase1Response.releaseYear ?? "Unknown",
+                        genres: phase1Response.genres ?? [],
+                        recordLabel: phase1Response.recordLabel ?? "Unknown"
+                    )
+                }
+            }()
 
             async let artworkTask = self.executeArtworkFetch(
                 artistName: artistName,
@@ -517,5 +540,34 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         print("✅ [TWO-TIER Save] Saved successfully")
 
         return album
+    }
+
+    // MARK: - Caching Helper
+
+    private func checkCachedAlbum(artistName: String, albumTitle: String) -> Album? {
+        let context = PersistenceController.shared.container.viewContext
+        let fetchRequest: NSFetchRequest<Album> = Album.fetchRequest()
+
+        // Match on artist name and album title (case-insensitive)
+        fetchRequest.predicate = NSPredicate(
+            format: "artistName ==[c] %@ AND albumTitle ==[c] %@",
+            artistName,
+            albumTitle
+        )
+        fetchRequest.fetchLimit = 1
+
+        do {
+            let results = try context.fetch(fetchRequest)
+            if let existing = results.first {
+                print("📦 [CACHE] Found existing album: \(albumTitle) by \(artistName)")
+                print("📦 [CACHE] Phase2 completed: \(existing.phase2Completed), Phase2 failed: \(existing.phase2Failed)")
+                return existing
+            }
+        } catch {
+            print("❌ [CACHE] Error checking cache: \(error.localizedDescription)")
+        }
+
+        print("📦 [CACHE] No cached album found")
+        return nil
     }
 }
