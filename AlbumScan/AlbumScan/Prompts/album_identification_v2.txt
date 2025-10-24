@@ -1,6 +1,6 @@
-Identify the album in this image and respond with a JSON object containing: artist name, album title, release year, genres, and record label.
+Identify the album in this image.
 
-Response format: Return only raw JSON (no markdown, no explanations). Use one of these structures:
+CRITICAL: You MUST use exactly one of the two JSON structures below. Use the EXACT field names shown (artistName, albumTitle, releaseYear, genres, recordLabel). Do not create your own structure or field names:
 
 SUCCESS:
 {
@@ -19,7 +19,7 @@ ERROR:
 }
 
 Guidelines:
-- If you can confidently identify the album, return success
+- If you can confidently identify the album, return value true for the success attribute, otherwise false
 - If the image is not an album cover or you cannot identify it, return an error
 - Use the most common/recognized album title
 - For genres, list 1-3 most accurate genres
