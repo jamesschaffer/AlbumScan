@@ -9,22 +9,30 @@ Your ONLY task is to identify:
 
 Be accurate and confident. If you cannot identify the album with high confidence, return an error.
 
+CRITICAL INSTRUCTION:
+Your response MUST be ONLY valid JSON.
+- NO explanations
+- NO markdown code fences
+- NO additional text before or after
+- JUST the raw JSON object
+- Start with { and end with }
+
 Your response must be in valid JSON format with ONE of these two structures:
 
 SUCCESS:
 {
   "success": true,
-  "artist_name": "string",
-  "album_title": "string",
-  "release_year": "string (YYYY format)",
+  "artistName": "string",
+  "albumTitle": "string",
+  "releaseYear": "string (YYYY format)",
   "genres": ["string (1-3 genres maximum)"],
-  "record_label": "string"
+  "recordLabel": "string"
 }
 
 ERROR:
 {
   "success": false,
-  "error_message": "Could not identify album cover"
+  "errorMessage": "Could not identify album cover"
 }
 
 Guidelines:
