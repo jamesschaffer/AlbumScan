@@ -146,7 +146,7 @@ class ClaudeAPIService {
         request.timeoutInterval = 10  // Faster timeout for Phase 1
 
         let body: [String: Any] = [
-            "model": "claude-opus-4-1-20250805",  // Latest Opus for better instruction following
+            "model": "claude-haiku-4-5-20251001",  // Haiku - simpler model, less creative, better for straightforward tasks
             "max_tokens": 300,  // Small response for fast ID
             "temperature": 0.0,  // Deterministic
             "system": "You respond only with valid JSON objects. Never include explanations, markdown formatting, or any text outside the JSON structure.",
