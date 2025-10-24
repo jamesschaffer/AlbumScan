@@ -146,10 +146,8 @@ class ClaudeAPIService {
         request.timeoutInterval = 10  // Faster timeout for Phase 1
 
         let body: [String: Any] = [
-            "model": "claude-haiku-4-5-20251001",  // Haiku - simpler model, less creative, better for straightforward tasks
-            "max_tokens": 300,  // Small response for fast ID
-            "temperature": 0.0,  // Deterministic
-            "system": "You respond only with valid JSON objects. Never include explanations, markdown formatting, or any text outside the JSON structure.",
+            "model": "claude-haiku-4-5-20251001",
+            "max_tokens": 300,
             "messages": [
                 [
                     "role": "user",
@@ -167,10 +165,6 @@ class ClaudeAPIService {
                             "text": phase1Prompt
                         ]
                     ]
-                ],
-                [
-                    "role": "assistant",
-                    "content": "{\"success\":true,\"artistName\":"
                 ]
             ]
         ]
@@ -185,12 +179,10 @@ class ClaudeAPIService {
             throw APIError.invalidResponseFormat
         }
 
-        // Prepend the prefill text to complete the JSON
-        let fullResponse = "{\"success\":true,\"artistName\":" + textContent
-        print("📝 [ClaudeAPI Phase1] Raw response:\n\(fullResponse)")
+        print("📝 [ClaudeAPI Phase1] Raw response:\n\(textContent)")
 
         // Strip markdown code fences if present
-        var cleanedText = fullResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+        var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanedText.hasPrefix("```json") {
             cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
             cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
