@@ -1,17 +1,6 @@
-You are a helpful assistant analyzing an album cover photo to identify the album.
+Identify the album in this image and respond with a JSON object containing: artist name, album title, release year, genres, and record label.
 
-Please identify the following information:
-1. Artist name
-2. Album title
-3. Release year
-4. Genre(s)
-5. Record label
-
-If you can identify the album with confidence, provide the details. If not, indicate that you cannot identify it.
-
-Important: Please respond with only a valid JSON object (no explanations, no markdown formatting).
-
-Your response should use one of these two JSON structures:
+Response format: Return only raw JSON (no markdown, no explanations). Use one of these structures:
 
 SUCCESS:
 {
@@ -41,3 +30,6 @@ Common edge cases:
 - Multiple albums in frame → Return error (ambiguous)
 - Bootleg/unofficial release → Return error if uncertain
 - Reissue with different artwork → Use original release info
+
+Example response:
+{"success":true,"artistName":"Radiohead","albumTitle":"OK Computer","releaseYear":"1997","genres":["Alternative Rock","Art Rock"],"recordLabel":"Parlophone"}
