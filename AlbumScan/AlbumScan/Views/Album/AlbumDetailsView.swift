@@ -274,6 +274,7 @@ struct AlbumDetailsView: View {
                 }
             }
         }
+        .preferredColorScheme(.light)
     }
 
     private func recommendationColor(for recommendation: String) -> Color {
