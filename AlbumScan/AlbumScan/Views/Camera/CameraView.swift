@@ -118,9 +118,35 @@ struct CameraView: View {
                 }
             }
 
-            // Loading overlay
-            if cameraManager.isProcessing {
-                SearchPreLoaderView(currentStage: $cameraManager.loadingStage)
+            // Loading overlay - choose based on flow type
+            if cameraManager.useTwoTierFlow {
+                // Two-tier flow: display screens based on scanState
+                switch cameraManager.scanState {
+                case .identifying:
+                    Phase1LoadingView()
+                case .identified:
+                    if let phase1 = cameraManager.phase1Data {
+                        Phase1TransitionView(
+                            albumTitle: phase1.albumTitle ?? "Unknown Album",
+                            artistName: phase1.artistName ?? "Unknown Artist"
+                        )
+                    }
+                case .loadingReview:
+                    if let phase1 = cameraManager.phase1Data {
+                        Phase2LoadingView(
+                            albumTitle: phase1.albumTitle ?? "Unknown Album",
+                            artistName: phase1.artistName ?? "Unknown Artist",
+                            albumArtwork: cameraManager.albumArtwork
+                        )
+                    }
+                case .idle, .complete, .identificationFailed, .reviewFailed:
+                    EmptyView()
+                }
+            } else {
+                // Old single-tier flow: use existing loading screen
+                if cameraManager.isProcessing {
+                    SearchPreLoaderView(currentStage: $cameraManager.loadingStage)
+                }
             }
         }
         .fullScreenCover(isPresented: $showingHistory) {
