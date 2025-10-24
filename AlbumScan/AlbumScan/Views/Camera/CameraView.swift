@@ -135,6 +135,11 @@ struct CameraView: View {
         .onDisappear {
             cameraManager.stopSession()
         }
+        .onChange(of: cameraManager.scannedAlbum) { _, newAlbum in
+            if newAlbum != nil {
+                appState.albumScanned()
+            }
+        }
     }
 }
 
