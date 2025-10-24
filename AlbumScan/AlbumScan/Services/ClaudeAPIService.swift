@@ -146,7 +146,7 @@ class ClaudeAPIService {
         request.timeoutInterval = 10  // Faster timeout for Phase 1
 
         let body: [String: Any] = [
-            "model": "claude-sonnet-4-5-20250929",  // Use Sonnet for Phase 1
+            "model": "claude-3-opus-20240229",  // Try Opus for better instruction following
             "max_tokens": 300,  // Small response for fast ID
             "temperature": 0.0,  // Deterministic
             "system": "You respond only with valid JSON objects. Never include explanations, markdown formatting, or any text outside the JSON structure.",
@@ -170,7 +170,7 @@ class ClaudeAPIService {
                 ],
                 [
                     "role": "assistant",
-                    "content": "{"
+                    "content": "{\"success\":"
                 ]
             ]
         ]
@@ -185,8 +185,8 @@ class ClaudeAPIService {
             throw APIError.invalidResponseFormat
         }
 
-        // Prepend the opening brace from our prefill
-        let fullResponse = "{" + textContent
+        // Prepend the prefill text to complete the JSON
+        let fullResponse = "{\"success\":" + textContent
         print("📝 [ClaudeAPI Phase1] Raw response:\n\(fullResponse)")
 
         // Strip markdown code fences if present
