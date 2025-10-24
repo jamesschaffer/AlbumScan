@@ -204,6 +204,114 @@ class ClaudeAPIService {
         }
     }
 
+    // MARK: - Phase 2: Deep Review Generation
+
+    func generateReviewPhase2(artistName: String, albumTitle: String, releaseYear: String, genres: [String], recordLabel: String) async throws -> Phase2Response {
+        print("🔑 [ClaudeAPI Phase2] Starting review generation...")
+
+        guard !apiKey.isEmpty else {
+            print("❌ [ClaudeAPI Phase2] API key is missing!")
+            throw APIError.missingAPIKey
+        }
+
+        // Build metadata string for Phase 2
+        let genresString = genres.joined(separator: ", ")
+        let metadataPrompt = phase2Prompt
+            .replacingOccurrences(of: "{artist_name}", with: artistName)
+            .replacingOccurrences(of: "{album_title}", with: albumTitle)
+            .replacingOccurrences(of: "{release_year}", with: releaseYear)
+            .replacingOccurrences(of: "{genres}", with: genresString)
+            .replacingOccurrences(of: "{record_label}", with: recordLabel)
+
+        // Build Phase 2 request (with web search)
+        let request = try buildPhase2Request(prompt: metadataPrompt)
+
+        // Make API call
+        print("📡 [ClaudeAPI Phase2] Sending request...")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        print("📡 [ClaudeAPI Phase2] Received response (\(data.count) bytes)")
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        print("📡 [ClaudeAPI Phase2] HTTP Status: \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 else {
+            if let responseBody = String(data: data, encoding: .utf8) {
+                print("❌ [ClaudeAPI Phase2] Error: \(responseBody)")
+            }
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        // Parse response
+        let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
+        return try parsePhase2Response(from: apiResponse)
+    }
+
+    private func buildPhase2Request(prompt: String) throws -> URLRequest {
+        guard let url = URL(string: apiURL) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.timeoutInterval = 15  // Longer timeout for web search
+
+        let body: [String: Any] = [
+            "model": "claude-sonnet-4-5-20250929",  // Use Sonnet for Phase 2
+            "max_tokens": 1500,  // Larger response for review
+            "temperature": 0.3,  // Slightly creative
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "text",
+                            "text": prompt
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        return request
+    }
+
+    private func parsePhase2Response(from apiResponse: ClaudeAPIResponse) throws -> Phase2Response {
+        guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
+            print("❌ [ClaudeAPI Phase2] No text content found")
+            throw APIError.invalidResponseFormat
+        }
+
+        print("📝 [ClaudeAPI Phase2] Raw response:\n\(textContent)")
+
+        // Strip markdown code fences if present
+        var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanedText.hasPrefix("```json") {
+            cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
+            cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
+            cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        guard let jsonData = cleanedText.data(using: .utf8) else {
+            throw APIError.invalidResponseFormat
+        }
+
+        do {
+            let phase2Response = try JSONDecoder().decode(Phase2Response.self, from: jsonData)
+            print("✅ [ClaudeAPI Phase2] Successfully parsed")
+            return phase2Response
+        } catch {
+            print("❌ [ClaudeAPI Phase2] JSON parsing error: \(error)")
+            throw APIError.invalidResponseFormat
+        }
+    }
+
     private func buildRequest(base64Image: String) throws -> URLRequest {
         guard let url = URL(string: apiURL) else {
             throw APIError.invalidURL
