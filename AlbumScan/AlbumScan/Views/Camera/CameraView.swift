@@ -120,26 +120,17 @@ struct CameraView: View {
 
             // Loading overlay - choose based on flow type
             if cameraManager.useTwoTierFlow {
-                // Two-tier flow: display screens based on scanState
+                // Two-tier flow: unified loading view handles all states
                 switch cameraManager.scanState {
-                case .identifying:
-                    Phase1LoadingView()
-                case .identified:
-                    if let phase1 = cameraManager.phase1Data {
-                        Phase1TransitionView(
-                            albumTitle: phase1.albumTitle ?? "Unknown Album",
-                            artistName: phase1.artistName ?? "Unknown Artist"
-                        )
-                    }
-                case .loadingReview:
-                    if let phase1 = cameraManager.phase1Data {
-                        Phase2LoadingView(
-                            albumTitle: phase1.albumTitle ?? "Unknown Album",
-                            artistName: phase1.artistName ?? "Unknown Artist",
-                            albumArtwork: cameraManager.albumArtwork
-                        )
-                    }
-                case .idle, .complete, .identificationFailed, .reviewFailed:
+                case .identifying, .identified, .loadingReview, .complete:
+                    // Keep loading screen visible during .complete to prevent camera flash
+                    // during fullScreenCover slide-up animation
+                    LoadingView(
+                        scanState: cameraManager.scanState,
+                        phase1Data: cameraManager.phase1Data,
+                        albumArtwork: cameraManager.albumArtwork
+                    )
+                case .idle, .identificationFailed, .reviewFailed:
                     EmptyView()
                 }
             } else {
@@ -152,8 +143,12 @@ struct CameraView: View {
         .fullScreenCover(isPresented: $showingHistory) {
             ScanHistoryView()
         }
-        .fullScreenCover(item: $cameraManager.scannedAlbum) { album in
-            AlbumDetailsView(album: album)
+        .fullScreenCover(item: $cameraManager.scannedAlbum, onDismiss: {
+            // Reset state when album details is manually dismissed
+            cameraManager.scanState = .idle
+            cameraManager.isProcessing = false
+        }) { album in
+            AlbumDetailsView(album: album, cameraManager: cameraManager)
         }
         .onAppear {
             cameraManager.startSession()

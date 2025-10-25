@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AlbumDetailsView: View {
     let album: Album
+    var cameraManager: CameraManager? = nil
     @Environment(\.dismiss) var dismiss
 
     // MARK: - Typography Settings (Adjust these values to customize fonts)
@@ -309,6 +310,16 @@ struct AlbumDetailsView: View {
             }
         }
         .preferredColorScheme(.light)
+        .onAppear {
+            // Wait for fullScreenCover slide-up animation to complete (~0.6s)
+            // Then hide the loading screen underneath
+            // Only needed when coming from camera scan (not from history)
+            if let manager = cameraManager {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    manager.scanState = .idle
+                }
+            }
+        }
     }
 
     private func recommendationColor(for recommendation: String) -> Color {

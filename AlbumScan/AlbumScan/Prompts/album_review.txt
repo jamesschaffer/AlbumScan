@@ -35,7 +35,7 @@ Your response must be in valid JSON format with the following structure:
   "context_bullets": ["string (3-5 ONE-sentence bullet points with specific evidence: impact examples, critical reception with ratings/scores if notable, specific songs or innovations, reputation evolution, commercial success/failure, influence on other artists/genres)"],
   "rating": number (0-10, one decimal place),
   "recommendation": "ESSENTIAL|RECOMMENDED|SKIP|AVOID",
-  "key_tracks": ["string (3-5 most significant tracks)"]
+  "key_tracks": ["string (1-5 most streamed/popular tracks on the album by listener engagement)"]
 }
 
 Critical Guidelines:

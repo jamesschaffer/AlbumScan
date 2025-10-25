@@ -113,8 +113,20 @@ class CameraManager: NSObject, ObservableObject {
             }
 
             DispatchQueue.main.async {
+                // Clear all previous state before starting new scan
+                print("🧹 [CAPTURE] Clearing previous scan state...")
+                self.scannedAlbum = nil
+                self.phase1Data = nil
+                self.phase2Data = nil
+                self.albumArtwork = nil
+                self.capturedImage = nil
+                self.error = nil
+                self.scanState = .idle
+
+                // Start new scan
+                print("📸 [CAPTURE] Starting new scan...")
                 self.isProcessing = true
-                self.loadingStage = .callingAPI // Reset to first stage
+                self.loadingStage = .callingAPI
             }
 
             let settings = AVCapturePhotoSettings()
@@ -344,60 +356,66 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             print("✅ [TWO-TIER Phase1] Identified: \(albumTitle) by \(artistName)")
 
-            // Store Phase 1 data
+            // Store Phase 1 data (but keep scanState as .identifying until artwork ready)
             await MainActor.run {
                 self.phase1Data = phase1Response
-                self.scanState = .identified
             }
-
-            // Brief transition delay (0.5s minimum)
-            try await Task.sleep(nanoseconds: 500_000_000)
 
             // Check cache for existing album with completed Phase 2
             let cachedAlbum = self.checkCachedAlbum(artistName: artistName, albumTitle: albumTitle)
             let shouldSkipPhase2 = cachedAlbum?.phase2Completed == true
 
-            // PHASE 2 & ARTWORK IN PARALLEL
+            // Fetch artwork FIRST (don't show transition screen until artwork is ready)
+            print("🎨 [TWO-TIER] Fetching artwork before showing transition...")
+            let artworkFetchStart = Date()
+            let artworkResult = await self.executeArtworkFetch(
+                artistName: artistName,
+                albumTitle: albumTitle
+            )
+            let artworkTime = Date().timeIntervalSince(artworkFetchStart)
+            print("⏱️ [TIMING] Artwork fetch took: \(String(format: "%.2f", artworkTime))s")
+
+            // NOW transition to .identified (artwork is ready)
+            await MainActor.run {
+                self.scanState = .identified
+            }
+
+            // Brief display before starting Phase 2
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+
+            // Start Phase 2 in background
             await MainActor.run {
                 self.scanState = .loadingReview
             }
 
-            async let phase2Task: (response: Phase2Response?, failed: Bool) = {
-                if shouldSkipPhase2, let cached = cachedAlbum {
-                    print("✅ [CACHE] Using cached Phase 2 data, skipping API call")
-                    // Build Phase2Response from cached data
-                    let cachedResponse = Phase2Response(
-                        contextSummary: cached.contextSummary,
-                        contextBullets: cached.contextBulletPoints,
-                        rating: cached.rating,
-                        recommendation: cached.recommendation,
-                        keyTracks: cached.keyTracks
-                    )
-                    await MainActor.run {
-                        self.phase2Data = cachedResponse
-                    }
-                    return (cachedResponse, false)
-                } else {
-                    // Cache miss or Phase 2 failed previously - call API
-                    return await self.executePhase2(
-                        artistName: artistName,
-                        albumTitle: albumTitle,
-                        releaseYear: phase1Response.releaseYear ?? "Unknown",
-                        genres: phase1Response.genres ?? [],
-                        recordLabel: phase1Response.recordLabel ?? "Unknown"
-                    )
+            // Execute Phase 2 (artwork already fetched above)
+            let phase2Result: (response: Phase2Response?, failed: Bool)
+            if shouldSkipPhase2, let cached = cachedAlbum {
+                print("✅ [CACHE] Using cached Phase 2 data, skipping API call")
+                // Build Phase2Response from cached data
+                let cachedResponse = Phase2Response(
+                    contextSummary: cached.contextSummary,
+                    contextBullets: cached.contextBulletPoints,
+                    rating: cached.rating,
+                    recommendation: cached.recommendation,
+                    keyTracks: cached.keyTracks
+                )
+                await MainActor.run {
+                    self.phase2Data = cachedResponse
                 }
-            }()
+                phase2Result = (cachedResponse, false)
+            } else {
+                // Cache miss or Phase 2 failed previously - call API
+                phase2Result = await self.executePhase2(
+                    artistName: artistName,
+                    albumTitle: albumTitle,
+                    releaseYear: phase1Response.releaseYear ?? "Unknown",
+                    genres: phase1Response.genres ?? [],
+                    recordLabel: phase1Response.recordLabel ?? "Unknown"
+                )
+            }
 
-            async let artworkTask = self.executeArtworkFetch(
-                artistName: artistName,
-                albumTitle: albumTitle
-            )
-
-            // Wait for both to complete
-            let (phase2Result, artworkResult) = await (phase2Task, artworkTask)
-
-            // Save to CoreData
+            // Save to CoreData (artwork result from earlier fetch)
             let savedAlbum = try await self.saveTwoTierAlbum(
                 phase1: phase1Response,
                 phase2: phase2Result.response,
@@ -411,6 +429,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             await MainActor.run {
                 let totalTime = Date().timeIntervalSince(totalStart)
                 print("⏱️ [TIMING] ========== TWO-TIER TOTAL: \(String(format: "%.2f", totalTime))s ==========")
+                print("✅ [TWO-TIER] Setting scannedAlbum to: \(savedAlbum.albumTitle ?? "Unknown") by \(savedAlbum.artistName ?? "Unknown")")
                 self.scanState = .complete
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false

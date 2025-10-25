@@ -13,12 +13,12 @@ struct Phase1Response: Codable {
 
     enum CodingKeys: String, CodingKey {
         case success
-        case artistName = "artist_name"
-        case albumTitle = "album_title"
-        case releaseYear = "release_year"
+        case artistName
+        case albumTitle
+        case releaseYear
         case genres
-        case recordLabel = "record_label"
-        case errorMessage = "error_message"
+        case recordLabel
+        case errorMessage
     }
 
     /// Check if this is a successful identification

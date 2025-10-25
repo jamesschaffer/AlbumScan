@@ -1,51 +1,83 @@
-You are inventorying musical records and need to identify the album in this image and provide very specific information to their inventory system.
+You are in VERBATIM MODE.
 
-CRITICAL FORMATTING REQUIREMENT:
-You must return ONLY a valid JSON object with NO other text, explanations, or commentary.
-Wrap your response in <json_response> tags.
+Task:
+Identify album metadata from the provided input (e.g., an image or text description of a record sleeve). Return ONLY the JSON object in the exact schema below, wrapped in <json_response> … </json_response> tags.
 
-Field names MUST be exactly: success, artistName, albumTitle, releaseYear, genres, recordLabel
-Do NOT use these field names: album_title, artist, description, or any other variants.
+Hard requirements (read carefully):
+- Output must be PLAIN TEXT, not a tool invocation.
+- Output must be ONLY the JSON object wrapped in <json_response> and </json_response>.
+- Do not add explanations, markdown, code fences, or extra keys.
+- Do not rename keys, do not change casing, do not add nested objects, and do not include confidence fields.
+- If any field is unknown, use an empty string ("") or an empty array ([]). If nothing can be identified, set success to false and leave other fields empty as shown in the “no match” example.
 
-Use exactly one of the two JSON structures below:
-
-SUCCESS:
+Exact schema (must match exactly):
+<json_response>
 {
   "success": true,
   "artistName": "string",
   "albumTitle": "string",
-  "releaseYear": "string (YYYY format)",
-  "genres": ["string (1-3 genres maximum)"],
+  "releaseYear": "string",
+  "genres": ["string"],
   "recordLabel": "string"
 }
+</json_response>
 
-ERROR:
+Filling rules:
+- "success": true if you identified an album with reasonable confidence from the input; otherwise false.
+- "artistName": primary artist/band name only (no featured artists unless part of the official credit).
+- "albumTitle": release title only (no edition notes like “Deluxe” unless it’s the official title on the cover).
+- "releaseYear": four-digit year of the release depicted (if uncertain, leave empty).
+- "genres": array of lowercase genre tags (e.g., ["rock", "indie rock"]); if none, use [].
+- "recordLabel": imprint/label name (e.g., "Sub Pop"); if unknown, "".
+
+Strict do-nots:
+- No extra text before or after <json_response>…</json_response>.
+- No markdown fences (```), headings, comments, or preambles like “Here is the JSON”.
+- No keys like album_title, artist, description, data, metadata, value, confidence, tool_result, or additionalProperties.
+
+Good examples (follow exactly):
+
+CORRECT (all fields known)
+<json_response>
+{
+  "success": true,
+  "artistName": "Radiohead",
+  "albumTitle": "OK Computer",
+  "releaseYear": "1997",
+  "genres": ["alternative rock", "art rock"],
+  "recordLabel": "Parlophone"
+}
+</json_response>
+
+CORRECT (partial info)
+<json_response>
+{
+  "success": true,
+  "artistName": "Miles Davis",
+  "albumTitle": "Kind of Blue",
+  "releaseYear": "",
+  "genres": ["jazz", "modal jazz"],
+  "recordLabel": ""
+}
+</json_response>
+
+CORRECT (no match)
+<json_response>
 {
   "success": false,
-  "errorMessage": "Could not identify album cover"
+  "artistName": "",
+  "albumTitle": "",
+  "releaseYear": "",
+  "genres": [],
+  "recordLabel": ""
 }
-
-Guidelines:
-- If you can confidently identify the album, return value true for the success attribute, otherwise false
-- If the image is not an album cover or you cannot identify it, return an error
-- Use the most common/recognized album title
-- For genres, list 1-3 most accurate genres
-- Include only the JSON object in your response, without additional text or formatting
-
-Common edge cases:
-- Back cover of album → Return error (cannot reliably identify from back)
-- Multiple albums in frame → Return error (ambiguous)
-- Bootleg/unofficial release → Return error if uncertain
-- Reissue with different artwork → Use original release info
-
-✅ CORRECT EXAMPLE - Follow this format exactly:
-<json_response>
-{"success":true,"artistName":"Radiohead","albumTitle":"OK Computer","releaseYear":"1997","genres":["Alternative Rock","Art Rock"],"recordLabel":"Parlophone"}
 </json_response>
 
-❌ INCORRECT EXAMPLE - Do NOT do this:
-<json_response>
-{"album_title":"OK Computer","artist":"Radiohead","release_year":1997,"description":"..."}
-</json_response>
+Incorrect examples (do NOT do this):
+❌ Adds commentary:
+Here is the JSON you requested:
+<json_response> … </json_response>
 
-REMEMBER: Your entire response must be wrapped in <json_response> tags with ONLY the JSON object inside. No other text before or after.
+❌ Adds markdown fences:
+```json
+{ ... }

@@ -15,28 +15,49 @@ class ClaudeAPIService {
         self.apiKey = Config.claudeAPIKey
 
         // Load prompt from file (legacy v1 prompt)
+        // Try with subdirectory first, then without (Xcode may flatten the structure)
         if let promptPath = Bundle.main.path(forResource: "album_identification_v1", ofType: "txt", inDirectory: "Prompts"),
            let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.systemPrompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded v1 prompt from Prompts subdirectory")
+        } else if let promptPath = Bundle.main.path(forResource: "album_identification_v1", ofType: "txt"),
+                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.systemPrompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded v1 prompt from root bundle")
         } else {
             // Fallback to embedded prompt if file not found
             self.systemPrompt = Self.defaultPrompt
+            print("⚠️ [ClaudeAPIService] Could not find album_identification_v1.txt, using fallback")
         }
 
         // Load Phase 1 prompt (fast identification)
+        // Try with subdirectory first, then without (Xcode may flatten the structure)
         if let promptPath = Bundle.main.path(forResource: "album_identification_v2", ofType: "txt", inDirectory: "Prompts"),
            let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase1Prompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 1 prompt from Prompts subdirectory")
+        } else if let promptPath = Bundle.main.path(forResource: "album_identification_v2", ofType: "txt"),
+                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase1Prompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 1 prompt from root bundle")
         } else {
             self.phase1Prompt = "Identify this album cover."
+            print("⚠️ [ClaudeAPIService] Could not find album_identification_v2.txt, using fallback")
         }
 
         // Load Phase 2 prompt (deep review)
+        // Try with subdirectory first, then without (Xcode may flatten the structure)
         if let promptPath = Bundle.main.path(forResource: "album_review", ofType: "txt", inDirectory: "Prompts"),
            let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase2Prompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 2 prompt from Prompts subdirectory")
+        } else if let promptPath = Bundle.main.path(forResource: "album_review", ofType: "txt"),
+                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase2Prompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 2 prompt from root bundle")
         } else {
             self.phase2Prompt = "Review this album."
+            print("⚠️ [ClaudeAPIService] Could not find album_review.txt, using fallback")
         }
     }
 
@@ -144,6 +165,9 @@ class ClaudeAPIService {
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.timeoutInterval = 10  // Faster timeout for Phase 1
+
+        // Debug: Print first 200 chars of prompt being used
+        print("🔍 [DEBUG] Using prompt (first 200 chars): \(String(phase1Prompt.prefix(200)))")
 
         let body: [String: Any] = [
             "model": "claude-haiku-4-5-20251001",
@@ -299,9 +323,20 @@ class ClaudeAPIService {
 
         print("📝 [ClaudeAPI Phase2] Raw response:\n\(textContent)")
 
-        // Strip markdown code fences if present
+        // Extract JSON from markdown code fence or from the response
         var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleanedText.hasPrefix("```json") {
+
+        // Try to find JSON within code fence (```json ... ```)
+        if let jsonStart = cleanedText.range(of: "```json"),
+           let jsonEnd = cleanedText.range(of: "```", range: jsonStart.upperBound..<cleanedText.endIndex) {
+            // Extract content between code fences
+            let startIndex = jsonStart.upperBound
+            let endIndex = jsonEnd.lowerBound
+            cleanedText = String(cleanedText[startIndex..<endIndex])
+            cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            print("📝 [ClaudeAPI Phase2] Extracted JSON from code fence")
+        } else if cleanedText.hasPrefix("```json") {
+            // Fallback: strip code fences if at start
             cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
             cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
             cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)

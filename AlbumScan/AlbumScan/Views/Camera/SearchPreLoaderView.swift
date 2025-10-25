@@ -32,22 +32,40 @@ struct SearchPreLoaderView: View {
             Color.black
                 .ignoresSafeArea()
 
-            // Stage text with animated dots
-            VStack(alignment: .leading, spacing: 0) {
-                (Text(displayedStage.text)
-                    .foregroundColor(.white) +
-                 Text(String(repeating: ".", count: dotCount))
-                    .foregroundColor(greenColor))
-                    .font(.system(size: 28))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
+            // Main content
+            VStack(spacing: 0) {
+                // Logo at top (same position as other pages)
+                HStack {
+                    Spacer()
+                    Image("album-scan-logo-simple-white")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 185)
+                    Spacer()
+                }
+                .padding(.top, 20)
+
+                Spacer()
+
+                // Stage text with animated dots (left aligned)
+                VStack(alignment: .leading, spacing: 0) {
+                    (Text(displayedStage.text)
+                        .foregroundColor(.white) +
+                     Text(String(repeating: ".", count: dotCount))
+                        .foregroundColor(greenColor))
+                        .font(.system(size: 22))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 30)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing),
+                    removal: .move(edge: .leading)
+                ))
+                .id(displayedStage.rawValue) // Force view recreation on stage change
+
+                Spacer()
             }
-            .padding(.horizontal, 30)
-            .transition(.asymmetric(
-                insertion: .move(edge: .trailing),
-                removal: .move(edge: .leading)
-            ))
-            .id(displayedStage.rawValue) // Force view recreation on stage change
         }
         .onAppear {
             startDotAnimation()
