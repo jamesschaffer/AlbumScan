@@ -171,7 +171,7 @@ class ClaudeAPIService {
 
         let body: [String: Any] = [
             "model": "claude-haiku-4-5-20251001",
-            "max_tokens": 300,
+            "max_tokens": 1500,  // Match old single-tier for accuracy
             "messages": [
                 [
                     "role": "user",
