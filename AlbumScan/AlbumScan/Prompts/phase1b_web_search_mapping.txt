@@ -1,0 +1,36 @@
+You are identifying an album based on extracted cover information.
+
+Extracted Text: "{extractedText}"
+Cover Description: "{albumDescription}"
+
+Search the web to determine:
+1. Artist name (full, proper spelling)
+2. Album title (full, proper title - not acronyms)
+3. Release year
+4. Primary genre(s)
+5. Record label
+
+**Important disambiguation rules:**
+- Resolve acronyms to full names (e.g., "TVOTR" → "TV on the Radio")
+- Match visual descriptions to known album artwork
+- Use web search to verify and disambiguate
+- Prefer exact matches over similar albums
+- If multiple versions exist, choose the original/main release
+
+Return JSON:
+{
+  "success": true,
+  "artistName": "string",
+  "albumTitle": "string",
+  "releaseYear": "string",
+  "genres": ["string"],
+  "recordLabel": "string"
+}
+
+If you cannot find a match after searching, return:
+{
+  "success": false,
+  "errorMessage": "Could not find album matching the provided metadata"
+}
+
+Return ONLY valid JSON, no other text.

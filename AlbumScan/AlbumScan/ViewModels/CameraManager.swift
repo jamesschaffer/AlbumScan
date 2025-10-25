@@ -330,31 +330,42 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         print("⏱️ [TWO-TIER] ========== STARTING TWO-TIER IDENTIFICATION ==========")
 
         do {
-            // PHASE 1: Fast Identification
+            // PHASE 1A: Vision Extraction (NO web search)
             await MainActor.run {
                 self.scanState = .identifying
             }
 
-            let phase1Start = Date()
-            print("🔑 [TWO-TIER Phase1] Starting fast identification...")
-            let phase1Response = try await ClaudeAPIService.shared.identifyAlbumPhase1(image: image)
-            let phase1Time = Date().timeIntervalSince(phase1Start)
-            print("⏱️ [TIMING] Phase 1 took: \(String(format: "%.2f", phase1Time))s")
+            let phase1AStart = Date()
+            print("🔍 [FOUR-PHASE 1A] Starting vision extraction...")
+            let phase1AResponse = try await ClaudeAPIService.shared.executePhase1A(image: image)
+            let phase1ATime = Date().timeIntervalSince(phase1AStart)
+            print("⏱️ [TIMING] Phase 1A took: \(String(format: "%.2f", phase1ATime))s")
+            print("📝 [FOUR-PHASE 1A] Extracted text: \"\(phase1AResponse.extractedText)\"")
+            print("📝 [FOUR-PHASE 1A] Description: \"\(phase1AResponse.albumDescription.prefix(100))...\"")
 
-            // Check if Phase 1 succeeded
-            guard phase1Response.isSuccess,
+            // PHASE 1B: Web Search Mapping (WITH web search)
+            let phase1BStart = Date()
+            print("🔍 [FOUR-PHASE 1B] Starting web search mapping...")
+            let phase1Response = try await ClaudeAPIService.shared.executePhase1B(phase1AData: phase1AResponse)
+            let phase1BTime = Date().timeIntervalSince(phase1BStart)
+            print("⏱️ [TIMING] Phase 1B took: \(String(format: "%.2f", phase1BTime))s")
+
+            // Check if Phase 1B succeeded
+            guard phase1Response.success,
                   let artistName = phase1Response.artistName,
                   let albumTitle = phase1Response.albumTitle else {
-                print("❌ [TWO-TIER Phase1] Identification failed")
+                print("❌ [FOUR-PHASE 1B] Identification failed")
                 await MainActor.run {
                     self.scanState = .identificationFailed
-                    self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: phase1Response.displayError])
+                    self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: "Could not identify album"])
                     self.isProcessing = false
                 }
                 return
             }
 
-            print("✅ [TWO-TIER Phase1] Identified: \(albumTitle) by \(artistName)")
+            let totalPhase1Time = Date().timeIntervalSince(phase1AStart)
+            print("✅ [FOUR-PHASE 1A+1B] Identified: \(albumTitle) by \(artistName)")
+            print("⏱️ [TIMING] Total Phase 1A+1B: \(String(format: "%.2f", totalPhase1Time))s")
 
             // Store Phase 1 data (but keep scanState as .identifying until artwork ready)
             await MainActor.run {
@@ -388,32 +399,10 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.scanState = .loadingReview
             }
 
-            // Execute Phase 2 (artwork already fetched above)
-            let phase2Result: (response: Phase2Response?, failed: Bool)
-            if shouldSkipPhase2, let cached = cachedAlbum {
-                print("✅ [CACHE] Using cached Phase 2 data, skipping API call")
-                // Build Phase2Response from cached data
-                let cachedResponse = Phase2Response(
-                    contextSummary: cached.contextSummary,
-                    contextBullets: cached.contextBulletPoints,
-                    rating: cached.rating,
-                    recommendation: cached.recommendation,
-                    keyTracks: cached.keyTracks
-                )
-                await MainActor.run {
-                    self.phase2Data = cachedResponse
-                }
-                phase2Result = (cachedResponse, false)
-            } else {
-                // Cache miss or Phase 2 failed previously - call API
-                phase2Result = await self.executePhase2(
-                    artistName: artistName,
-                    albumTitle: albumTitle,
-                    releaseYear: phase1Response.releaseYear ?? "Unknown",
-                    genres: phase1Response.genres ?? [],
-                    recordLabel: phase1Response.recordLabel ?? "Unknown"
-                )
-            }
+            // ========== PHASE 2 DISABLED FOR TESTING ==========
+            // Skip Phase 2 review generation to isolate Phase 1 accuracy testing
+            print("⏭️ [TWO-TIER Phase2] DISABLED - Skipping review generation for testing")
+            let phase2Result: (response: Phase2Response?, failed: Bool) = (nil, false)
 
             // Save to CoreData (artwork result from earlier fetch)
             let savedAlbum = try await self.saveTwoTierAlbum(

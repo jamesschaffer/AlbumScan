@@ -7,43 +7,19 @@ class ClaudeAPIService {
     private let apiKey: String
     private let apiURL = "https://api.anthropic.com/v1/messages"
     private let systemPrompt: String
-    private let phase1Prompt: String
     private let phase2Prompt: String
+
+    // Four-Phase Architecture Prompts
+    private let phase1APrompt: String  // Vision extraction (no web search)
+    private let phase1BPrompt: String  // Web search mapping
+    private let phase3Prompt: String   // Review generation
 
     private init() {
         // Load API key from Config (which reads from Secrets.plist or environment)
         self.apiKey = Config.claudeAPIKey
 
-        // Load prompt from file (legacy v1 prompt)
-        // Try with subdirectory first, then without (Xcode may flatten the structure)
-        if let promptPath = Bundle.main.path(forResource: "album_identification_v1", ofType: "txt", inDirectory: "Prompts"),
-           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
-            self.systemPrompt = promptContent
-            print("✅ [ClaudeAPIService] Loaded v1 prompt from Prompts subdirectory")
-        } else if let promptPath = Bundle.main.path(forResource: "album_identification_v1", ofType: "txt"),
-                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
-            self.systemPrompt = promptContent
-            print("✅ [ClaudeAPIService] Loaded v1 prompt from root bundle")
-        } else {
-            // Fallback to embedded prompt if file not found
-            self.systemPrompt = Self.defaultPrompt
-            print("⚠️ [ClaudeAPIService] Could not find album_identification_v1.txt, using fallback")
-        }
-
-        // Load Phase 1 prompt (fast identification)
-        // Try with subdirectory first, then without (Xcode may flatten the structure)
-        if let promptPath = Bundle.main.path(forResource: "album_identification_v2", ofType: "txt", inDirectory: "Prompts"),
-           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
-            self.phase1Prompt = promptContent
-            print("✅ [ClaudeAPIService] Loaded Phase 1 prompt from Prompts subdirectory")
-        } else if let promptPath = Bundle.main.path(forResource: "album_identification_v2", ofType: "txt"),
-                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
-            self.phase1Prompt = promptContent
-            print("✅ [ClaudeAPIService] Loaded Phase 1 prompt from root bundle")
-        } else {
-            self.phase1Prompt = "Identify this album cover."
-            print("⚠️ [ClaudeAPIService] Could not find album_identification_v2.txt, using fallback")
-        }
+        // Legacy system prompt (using fallback for old flow)
+        self.systemPrompt = Self.defaultPrompt
 
         // Load Phase 2 prompt (deep review)
         // Try with subdirectory first, then without (Xcode may flatten the structure)
@@ -58,6 +34,48 @@ class ClaudeAPIService {
         } else {
             self.phase2Prompt = "Review this album."
             print("⚠️ [ClaudeAPIService] Could not find album_review.txt, using fallback")
+        }
+
+        // Load Phase 1A prompt (vision extraction)
+        if let promptPath = Bundle.main.path(forResource: "phase1a_vision_extraction", ofType: "txt", inDirectory: "Prompts"),
+           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase1APrompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 1A prompt from Prompts subdirectory")
+        } else if let promptPath = Bundle.main.path(forResource: "phase1a_vision_extraction", ofType: "txt"),
+                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase1APrompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 1A prompt from root bundle")
+        } else {
+            self.phase1APrompt = "Extract text and describe the album cover."
+            print("⚠️ [ClaudeAPIService] Could not find phase1a_vision_extraction.txt, using fallback")
+        }
+
+        // Load Phase 1B prompt (web search mapping)
+        if let promptPath = Bundle.main.path(forResource: "phase1b_web_search_mapping", ofType: "txt", inDirectory: "Prompts"),
+           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase1BPrompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 1B prompt from Prompts subdirectory")
+        } else if let promptPath = Bundle.main.path(forResource: "phase1b_web_search_mapping", ofType: "txt"),
+                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase1BPrompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 1B prompt from root bundle")
+        } else {
+            self.phase1BPrompt = "Identify the album using web search."
+            print("⚠️ [ClaudeAPIService] Could not find phase1b_web_search_mapping.txt, using fallback")
+        }
+
+        // Load Phase 3 prompt (review generation)
+        if let promptPath = Bundle.main.path(forResource: "phase3_review_generation", ofType: "txt", inDirectory: "Prompts"),
+           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase3Prompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 3 prompt from Prompts subdirectory")
+        } else if let promptPath = Bundle.main.path(forResource: "phase3_review_generation", ofType: "txt"),
+                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
+            self.phase3Prompt = promptContent
+            print("✅ [ClaudeAPIService] Loaded Phase 3 prompt from root bundle")
+        } else {
+            self.phase3Prompt = "Write a review for this album."
+            print("⚠️ [ClaudeAPIService] Could not find phase3_review_generation.txt, using fallback")
         }
     }
 
@@ -110,92 +128,7 @@ class ClaudeAPIService {
         return try parseAlbumResponse(from: apiResponse)
     }
 
-    // MARK: - Phase 1: Fast Album Identification
-
-    func identifyAlbumPhase1(image: UIImage) async throws -> Phase1Response {
-        print("🔑 [ClaudeAPI Phase1] Starting fast identification...")
-
-        guard !apiKey.isEmpty else {
-            print("❌ [ClaudeAPI Phase1] API key is missing!")
-            throw APIError.missingAPIKey
-        }
-
-        // Convert image to base64
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            print("❌ [ClaudeAPI Phase1] Failed to convert image to JPEG")
-            throw APIError.imageProcessingFailed
-        }
-        let base64Image = imageData.base64EncodedString()
-        print("✅ [ClaudeAPI Phase1] Image converted to base64 (\(imageData.count) bytes)")
-
-        // Build Phase 1 request (no web search, fast)
-        let request = try buildPhase1Request(base64Image: base64Image)
-
-        // Make API call
-        print("📡 [ClaudeAPI Phase1] Sending request...")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        print("📡 [ClaudeAPI Phase1] Received response (\(data.count) bytes)")
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-
-        print("📡 [ClaudeAPI Phase1] HTTP Status: \(httpResponse.statusCode)")
-
-        guard httpResponse.statusCode == 200 else {
-            if let responseBody = String(data: data, encoding: .utf8) {
-                print("❌ [ClaudeAPI Phase1] Error: \(responseBody)")
-            }
-            throw APIError.httpError(statusCode: httpResponse.statusCode)
-        }
-
-        // Parse response
-        let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
-        return try parsePhase1Response(from: apiResponse)
-    }
-
-    private func buildPhase1Request(base64Image: String) throws -> URLRequest {
-        guard let url = URL(string: apiURL) else {
-            throw APIError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.timeoutInterval = 10  // Faster timeout for Phase 1
-
-        // Debug: Print first 200 chars of prompt being used
-        print("🔍 [DEBUG] Using prompt (first 200 chars): \(String(phase1Prompt.prefix(200)))")
-
-        let body: [String: Any] = [
-            "model": "claude-haiku-4-5-20251001",
-            "max_tokens": 1500,  // Match old single-tier for accuracy
-            "messages": [
-                [
-                    "role": "user",
-                    "content": [
-                        [
-                            "type": "image",
-                            "source": [
-                                "type": "base64",
-                                "media_type": "image/jpeg",
-                                "data": base64Image
-                            ]
-                        ],
-                        [
-                            "type": "text",
-                            "text": phase1Prompt
-                        ]
-                    ]
-                ]
-            ]
-        ]
-
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        return request
-    }
+    // MARK: - Shared Phase 1 Response Parser
 
     private func parsePhase1Response(from apiResponse: ClaudeAPIResponse) throws -> Phase1Response {
         guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
@@ -292,7 +225,7 @@ class ClaudeAPIService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.timeoutInterval = 15  // Longer timeout for web search
+        request.timeoutInterval = 15  // Longer timeout for Phase 2 review
 
         let body: [String: Any] = [
             "model": "claude-sonnet-4-5-20250929",  // Use Sonnet for Phase 2
@@ -513,4 +446,178 @@ Recommendation Categories (use emojis in your reasoning):
 
 Return only the JSON object, no additional text.
 """
+
+    // MARK: - Four-Phase API Methods
+
+    /// Phase 1A: Vision Extraction (NO web search)
+    /// Extracts observable text and visual description from album cover
+    /// Uses: Haiku 4.5, NO web search, fast (1-2s)
+    func executePhase1A(image: UIImage) async throws -> Phase1AResponse {
+        print("🔍 [ClaudeAPI Phase1A] Starting vision extraction...")
+
+        // Convert image to base64
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            throw APIError.imageProcessingFailed
+        }
+        let base64Image = imageData.base64EncodedString()
+        print("✅ [ClaudeAPI Phase1A] Image converted to base64 (\(imageData.count) bytes)")
+
+        // Build request
+        let request = try buildPhase1ARequest(base64Image: base64Image)
+
+        // Make API call
+        print("📡 [ClaudeAPI Phase1A] Sending request...")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        print("📡 [ClaudeAPI Phase1A] Received response (\(data.count) bytes)")
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        print("📡 [ClaudeAPI Phase1A] HTTP Status: \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 else {
+            if let responseBody = String(data: data, encoding: .utf8) {
+                print("❌ [ClaudeAPI Phase1A] Error: \(responseBody)")
+            }
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        // Parse response
+        let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
+        return try parsePhase1AResponse(from: apiResponse)
+    }
+
+    /// Phase 1B: Web Search Mapping (WITH web search)
+    /// Uses extracted data to identify album via web search
+    /// Uses: Haiku 4.5, web search enabled, 1-2s
+    func executePhase1B(phase1AData: Phase1AResponse) async throws -> Phase1Response {
+        print("🔍 [ClaudeAPI Phase1B] Starting web search mapping...")
+
+        // Build prompt with extracted data
+        let prompt = phase1BPrompt
+            .replacingOccurrences(of: "{extractedText}", with: phase1AData.extractedText)
+            .replacingOccurrences(of: "{albumDescription}", with: phase1AData.albumDescription)
+
+        // Build request with web search enabled
+        let request = try buildPhase1BRequest(prompt: prompt)
+
+        // Make API call
+        print("📡 [ClaudeAPI Phase1B] Sending request...")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        print("📡 [ClaudeAPI Phase1B] Received response (\(data.count) bytes)")
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        print("📡 [ClaudeAPI Phase1B] HTTP Status: \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 else {
+            if let responseBody = String(data: data, encoding: .utf8) {
+                print("❌ [ClaudeAPI Phase1B] Error: \(responseBody)")
+            }
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        // Parse response (same format as existing Phase1Response)
+        let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
+        return try parsePhase1Response(from: apiResponse)
+    }
+
+    // MARK: - Request Builders
+
+    private func buildPhase1ARequest(base64Image: String) throws -> URLRequest {
+        guard let url = URL(string: apiURL) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.timeoutInterval = 10  // Fast timeout for Phase 1A
+
+        let body: [String: Any] = [
+            "model": "claude-haiku-4-5-20251001",  // Haiku 4.5 for speed
+            "max_tokens": 200,  // Small response
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "image",
+                            "source": [
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": base64Image
+                            ]
+                        ],
+                        [
+                            "type": "text",
+                            "text": phase1APrompt
+                        ]
+                    ]
+                ]
+            ]
+            // NO web search - pure vision extraction
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        return request
+    }
+
+    private func buildPhase1BRequest(prompt: String) throws -> URLRequest {
+        guard let url = URL(string: apiURL) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.timeoutInterval = 15  // Longer for web search
+
+        let body: [String: Any] = [
+            "model": "claude-haiku-4-5-20251001",  // Haiku 4.5 for speed + cost
+            "max_tokens": 300,  // Small response
+            "messages": [
+                [
+                    "role": "user",
+                    "content": prompt
+                ]
+            ],
+            // Enable web search for album identification
+            "tools": [[
+                "type": "web_search_20250305",
+                "name": "web_search",
+                "max_uses": 5
+            ]]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        return request
+    }
+
+    // MARK: - Response Parsers
+
+    private func parsePhase1AResponse(from apiResponse: ClaudeAPIResponse) throws -> Phase1AResponse {
+        guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
+            print("❌ [ClaudeAPI Phase1A] No text content in response")
+            throw APIError.invalidResponseFormat
+        }
+
+        print("📝 [ClaudeAPI Phase1A] Raw response:\n\(textContent)")
+
+        // Parse JSON from response
+        guard let jsonData = textContent.data(using: .utf8) else {
+            throw APIError.invalidResponseFormat
+        }
+
+        let phase1AResponse = try JSONDecoder().decode(Phase1AResponse.self, from: jsonData)
+        print("✅ [ClaudeAPI Phase1A] Successfully parsed")
+        return phase1AResponse
+    }
 }

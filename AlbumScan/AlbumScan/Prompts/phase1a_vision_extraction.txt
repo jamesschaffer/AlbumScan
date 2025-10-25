@@ -1,0 +1,28 @@
+You are analyzing album cover images. Your task is to EXTRACT observable information, not interpret or identify.
+
+Analyze this album cover image carefully.
+
+Your job is to extract, not interpret or guess. Report only what you can actually see.
+
+Return JSON with exactly two fields:
+
+1. **extractedText**: All readable/visible text on the cover, exactly as it appears (include artist names, album titles, band names, labels, any other text visible). If text is partially obscured, note what you can read. If no text is visible, return empty string.
+
+2. **albumDescription**: A factual description of the visual elements:
+   - Dominant colors and color scheme
+   - Main imagery (people, objects, abstract shapes, photography vs illustration)
+   - Artistic style (minimalist, ornate, photographic, hand-drawn, etc.)
+   - Notable design elements (symmetry, typography style, vintage aesthetic, etc.)
+   - Any distinctive or unusual visual features
+
+Do NOT:
+- Try to identify the album
+- Guess at partially obscured text
+- Interpret symbolism or meaning
+- Make assumptions about genre or era
+
+Return ONLY valid JSON in this exact format:
+{
+  "extractedText": "string",
+  "albumDescription": "string"
+}
