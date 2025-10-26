@@ -391,17 +391,14 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.scanState = .identified
             }
 
-            // Brief display before starting Phase 2
-            try await Task.sleep(nanoseconds: 100_000_000) // 0.1s
-
-            // Start Phase 2 in background
-            await MainActor.run {
-                self.scanState = .loadingReview
-            }
-
             // ========== PHASE 2 DISABLED FOR TESTING ==========
             // Skip Phase 2 review generation to isolate Phase 1 accuracy testing
             print("⏭️ [TWO-TIER Phase2] DISABLED - Skipping review generation for testing")
+
+            // Stay in .identified for 2.5 seconds to show "We found [album]"
+            // (gives user time to see the result before showing album details)
+            try await Task.sleep(nanoseconds: 2_500_000_000) // 2.5s
+
             let phase2Result: (response: Phase2Response?, failed: Bool) = (nil, false)
 
             // Save to CoreData (artwork result from earlier fetch)

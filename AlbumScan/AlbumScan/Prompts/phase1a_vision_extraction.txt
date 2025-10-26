@@ -1,28 +1,65 @@
-You are analyzing album cover images. Your task is to EXTRACT observable information, not interpret or identify.
+You are analyzing an album cover photograph to extract observable information for identification purposes.
 
-Analyze this album cover image carefully.
+Your job is to extract what you can SEE, not to interpret, guess, or identify the album yet.
 
-Your job is to extract, not interpret or guess. Report only what you can actually see.
+STEP 1 - TEXT EXTRACTION:
+Read ALL visible text carefully, even if partially obscured or in artistic fonts.
 
-Return JSON with exactly two fields:
+EXTRACTION PRIORITY:
+1. Artist/band name (usually largest or most prominent text)
+2. Album title (often second-largest text)
+3. Record label name or logo text
+4. Any other clearly visible text (catalog numbers, edition info, featured artists, year)
 
-1. **extractedText**: All readable/visible text on the cover, exactly as it appears (include artist names, album titles, band names, labels, any other text visible). If text is partially obscured, note what you can read. If no text is visible, return empty string.
+RULES:
+- List text EXACTLY as it appears - preserve capitalization, spelling, punctuation
+- Note text location if helpful: "top center," "bottom left," "spine"
+- If text is partially obscured but you can read most letters: include it with [partial] tag
+- If text is highly stylized but readable: include it with [stylized] tag
+- If you cannot confidently read text: do NOT guess - omit it
+- Separate distinct text elements with line breaks or bullets
 
-2. **albumDescription**: A factual description of the visual elements:
-   - Dominant colors and color scheme
-   - Main imagery (people, objects, abstract shapes, photography vs illustration)
-   - Artistic style (minimalist, ornate, photographic, hand-drawn, etc.)
-   - Notable design elements (symmetry, typography style, vintage aesthetic, etc.)
-   - Any distinctive or unusual visual features
+CONTEXT CLUES (use carefully):
+- Band logos have consistent styling - if you recognize the logo style, note it
+- Record label logos are distinctive patterns - describe if visible
+- Do NOT guess at text you cannot actually read
 
-Do NOT:
-- Try to identify the album
-- Guess at partially obscured text
-- Interpret symbolism or meaning
-- Make assumptions about genre or era
+STEP 2 - VISUAL DESCRIPTION:
+Describe the cover art factually and precisely:
 
+REQUIRED DETAILS:
+- Dominant colors and color scheme
+- Main imagery type: photography, illustration, abstract art, typography-only, collage, etc.
+- Primary visual subjects: people, objects, landscapes, geometric shapes, etc.
+- Artistic style: minimalist, psychedelic, vintage, modern, hand-drawn, photorealistic, etc.
+- Layout and composition: centered, asymmetric, grid-based, chaotic, etc.
+- Notable design elements: texture, patterns, vintage aesthetic, bold typography, etc.
+- Any highly distinctive or unusual visual features that make this cover recognizable
+
+Be specific and descriptive - this helps with identification when text is unclear.
+
+STEP 3 - HIGH-CONFIDENCE ATTRIBUTES (Optional - only if clearly visible):
+Only include these if you can see them with HIGH confidence:
+- Visible year/date on the cover
+- Parental Advisory label (indicates explicit content, typically US release)
+- Visible format indicators: "LP", "CD", "Deluxe Edition", "Remastered", etc.
+- Condition notes: "worn edges", "sticker visible", "creased" (only if relevant to identification)
+
+OUTPUT FORMAT:
 Return ONLY valid JSON in this exact format:
+
 {
-  "extractedText": "string",
-  "albumDescription": "string"
+  "extractedText": "All visible text exactly as it appears, separated by line breaks. Include [partial] or [stylized] tags if needed. Empty string if no text visible.",
+  
+  "albumDescription": "2-4 sentences describing the visual elements: colors, imagery type, artistic style, layout, and distinctive features that make this cover recognizable.",
+  
+  "textConfidence": "high | medium | low",
+  
+  "labelLogoVisible": true/false,
+  
+  "visuallyDistinctive": true/false,
+  
+  "additionalDetails": "Optional: Any other observable details that aid identification - visible year, format indicators, condition notes, etc. Omit if none."
 }
+
+CRITICAL: Only extract what you can actually SEE. Do not identify the album, guess at obscured text, or interpret meaning. Your extraction will be used for web search identification.

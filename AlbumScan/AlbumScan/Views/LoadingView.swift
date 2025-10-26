@@ -30,7 +30,7 @@ struct LoadingView: View {
 
     // Computed property: should we show the album found section?
     private var shouldShowAlbumSection: Bool {
-        return scanState == .identified || scanState == .loadingReview
+        return scanState == .identified || scanState == .loadingReview || scanState == .complete
     }
 
     var body: some View {

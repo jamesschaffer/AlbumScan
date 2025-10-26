@@ -451,7 +451,7 @@ Return only the JSON object, no additional text.
 
     /// Phase 1A: Vision Extraction (NO web search)
     /// Extracts observable text and visual description from album cover
-    /// Uses: Haiku 4.5, NO web search, fast (1-2s)
+    /// Uses: Sonnet 4.5, NO web search, 2048 tokens, temp 0.2
     func executePhase1A(image: UIImage) async throws -> Phase1AResponse {
         print("🔍 [ClaudeAPI Phase1A] Starting vision extraction...")
 
@@ -490,7 +490,7 @@ Return only the JSON object, no additional text.
 
     /// Phase 1B: Web Search Mapping (WITH web search)
     /// Uses extracted data to identify album via web search
-    /// Uses: Haiku 4.5, web search enabled, 1-2s
+    /// Uses: Sonnet 4.5, web search enabled, 2048 tokens, temp 0.2
     func executePhase1B(phase1AData: Phase1AResponse) async throws -> Phase1Response {
         print("🔍 [ClaudeAPI Phase1B] Starting web search mapping...")
 
@@ -537,11 +537,12 @@ Return only the JSON object, no additional text.
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.timeoutInterval = 10  // Fast timeout for Phase 1A
+        request.timeoutInterval = 30  // Longer timeout for Sonnet
 
         let body: [String: Any] = [
-            "model": "claude-haiku-4-5-20251001",  // Haiku 4.5 for speed
-            "max_tokens": 200,  // Small response
+            "model": "claude-sonnet-4-5-20250929",  // Sonnet 4.5 for accuracy
+            "max_tokens": 2048,
+            "temperature": 0.2,
             "messages": [
                 [
                     "role": "user",
@@ -578,11 +579,12 @@ Return only the JSON object, no additional text.
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.timeoutInterval = 15  // Longer for web search
+        request.timeoutInterval = 30  // Longer for web search + Sonnet
 
         let body: [String: Any] = [
-            "model": "claude-haiku-4-5-20251001",  // Haiku 4.5 for speed + cost
-            "max_tokens": 300,  // Small response
+            "model": "claude-sonnet-4-5-20250929",  // Sonnet 4.5 for accuracy
+            "max_tokens": 2048,
+            "temperature": 0.2,
             "messages": [
                 [
                     "role": "user",
@@ -611,13 +613,36 @@ Return only the JSON object, no additional text.
 
         print("📝 [ClaudeAPI Phase1A] Raw response:\n\(textContent)")
 
-        // Parse JSON from response
-        guard let jsonData = textContent.data(using: .utf8) else {
+        // Clean up response - strip markdown code fences and XML tags
+        var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Check for <json_response> tags
+        if let startRange = cleanedText.range(of: "<json_response>"),
+           let endRange = cleanedText.range(of: "</json_response>") {
+            let jsonStart = startRange.upperBound
+            let jsonEnd = endRange.lowerBound
+            cleanedText = String(cleanedText[jsonStart..<jsonEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        // Strip markdown code fences if present
+        if cleanedText.hasPrefix("```json") {
+            cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
+            cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
+            cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        // Parse JSON from cleaned response
+        guard let jsonData = cleanedText.data(using: .utf8) else {
             throw APIError.invalidResponseFormat
         }
 
-        let phase1AResponse = try JSONDecoder().decode(Phase1AResponse.self, from: jsonData)
-        print("✅ [ClaudeAPI Phase1A] Successfully parsed")
-        return phase1AResponse
+        do {
+            let phase1AResponse = try JSONDecoder().decode(Phase1AResponse.self, from: jsonData)
+            print("✅ [ClaudeAPI Phase1A] Successfully parsed")
+            return phase1AResponse
+        } catch {
+            print("❌ [ClaudeAPI Phase1A] JSON parsing error: \(error)")
+            throw APIError.invalidResponseFormat
+        }
     }
 }
