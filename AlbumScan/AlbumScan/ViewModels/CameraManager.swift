@@ -192,13 +192,9 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         DispatchQueue.main.async {
             self.capturedImage = processedImage
 
-            // Send to API (choose flow based on feature flag)
+            // Send to API (two-tier flow)
             Task {
-                if self.useTwoTierFlow {
-                    await self.identifyAlbumTwoTier(image: processedImage)
-                } else {
-                    await self.identifyAlbum(image: processedImage)
-                }
+                await self.identifyAlbumTwoTier(image: processedImage)
             }
         }
     }
@@ -325,6 +321,9 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         }
     }
 
+    // OLD SINGLE-TIER FLOW - Disabled (useTwoTierFlow = true)
+    // Kept for reference only
+    /*
     private func identifyAlbum(image: UIImage) async {
         let totalStart = Date()
         print("⏱️ [TIMING] ========== STARTING ALBUM IDENTIFICATION ==========")
@@ -438,6 +437,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             }
         }
     }
+    */
 
     // MARK: - Two-Tier Flow (New)
 
@@ -453,7 +453,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             let phase1AStart = Date()
             print("🔍 [FOUR-PHASE 1A] Starting vision extraction...")
-            let phase1AResponse = try await ClaudeAPIService.shared.executePhase1A(image: image)
+            let phase1AResponse = try await LLMServiceFactory.getService().executePhase1A(image: image)
             let phase1ATime = Date().timeIntervalSince(phase1AStart)
             print("⏱️ [TIMING] Phase 1A took: \(String(format: "%.2f", phase1ATime))s")
             print("📝 [FOUR-PHASE 1A] Extracted text: \"\(phase1AResponse.extractedText)\"")
@@ -462,7 +462,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             // PHASE 1B: Web Search Mapping (WITH web search)
             let phase1BStart = Date()
             print("🔍 [FOUR-PHASE 1B] Starting web search mapping...")
-            let phase1Response = try await ClaudeAPIService.shared.executePhase1B(phase1AData: phase1AResponse)
+            let phase1Response = try await LLMServiceFactory.getService().executePhase1B(phase1AData: phase1AResponse)
             let phase1BTime = Date().timeIntervalSince(phase1BStart)
             print("⏱️ [TIMING] Phase 1B took: \(String(format: "%.2f", phase1BTime))s")
 
@@ -562,7 +562,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         print("🔑 [TWO-TIER Phase2] Starting review generation...")
 
         do {
-            let phase2Response = try await ClaudeAPIService.shared.generateReviewPhase2(
+            let phase2Response = try await LLMServiceFactory.getService().generateReviewPhase2(
                 artistName: artistName,
                 albumTitle: albumTitle,
                 releaseYear: releaseYear,

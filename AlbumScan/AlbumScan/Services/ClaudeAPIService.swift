@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-class ClaudeAPIService {
+class ClaudeAPIService: LLMService {
     static let shared = ClaudeAPIService()
 
     private let apiKey: String

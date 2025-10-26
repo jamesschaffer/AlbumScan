@@ -1,6 +1,25 @@
 import Foundation
 
+// MARK: - LLM Provider Selection
+
+enum LLMProvider: Int {
+    case claude = 1
+    case openAI = 2
+
+    var name: String {
+        switch self {
+        case .claude: return "Claude"
+        case .openAI: return "OpenAI"
+        }
+    }
+}
+
 enum Config {
+    // MARK: - LLM Configuration
+
+    /// Current LLM provider (1 = Claude, 2 = OpenAI)
+    static let currentProvider: LLMProvider = .claude
+
     // MARK: - API Configuration
 
     static var claudeAPIKey: String {
@@ -13,6 +32,23 @@ enum Config {
 
         // Fallback to environment variable (for Xcode scheme settings)
         if let envKey = ProcessInfo.processInfo.environment["CLAUDE_API_KEY"], !envKey.isEmpty {
+            return envKey
+        }
+
+        // If no key found, return empty (will trigger error in API service)
+        return ""
+    }
+
+    static var openAIAPIKey: String {
+        // First try to get from Secrets.plist (recommended for local development)
+        if let path = Bundle.main.path(forResource: "Secrets", ofType: "plist"),
+           let secrets = NSDictionary(contentsOfFile: path),
+           let apiKey = secrets["OPENAI_API_KEY"] as? String, !apiKey.isEmpty {
+            return apiKey
+        }
+
+        // Fallback to environment variable (for Xcode scheme settings)
+        if let envKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !envKey.isEmpty {
             return envKey
         }
 

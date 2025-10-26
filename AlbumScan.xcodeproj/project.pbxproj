@@ -11,6 +11,9 @@
 		210597C02EABDD27001CDE4F /* Phase2Response.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597BD2EABDD27001CDE4F /* Phase2Response.swift */; };
 		210597C12EABDD27001CDE4F /* Phase1Response.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597BC2EABDD27001CDE4F /* Phase1Response.swift */; };
 		210597CD2EAC4CCB001CDE4F /* File.txt in Resources */ = {isa = PBXBuildFile; fileRef = 210597CC2EAC4CCB001CDE4F /* File.txt */; };
+		210597D12EAE9633001CDE4F /* OpenAIAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597D02EAE9633001CDE4F /* OpenAIAPIService.swift */; };
+		210597D22EAE9633001CDE4F /* LLMServiceFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597CF2EAE9633001CDE4F /* LLMServiceFactory.swift */; };
+		210597D32EAE9633001CDE4F /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597CE2EAE9633001CDE4F /* LLMService.swift */; };
 		21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8E2EA58A5C009C895F /* AppState.swift */; };
 		21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A842EA58A5C009C895F /* Album.swift */; };
 		21AB8AAE2EA58A5C009C895F /* SearchPreLoaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A952EA58A5C009C895F /* SearchPreLoaderView.swift */; };
@@ -53,6 +56,9 @@
 		210597BD2EABDD27001CDE4F /* Phase2Response.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase2Response.swift; sourceTree = "<group>"; };
 		210597BE2EABDD27001CDE4F /* ScanState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanState.swift; sourceTree = "<group>"; };
 		210597CC2EAC4CCB001CDE4F /* File.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = File.txt; sourceTree = "<group>"; };
+		210597CE2EAE9633001CDE4F /* LLMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMService.swift; sourceTree = "<group>"; };
+		210597CF2EAE9633001CDE4F /* LLMServiceFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMServiceFactory.swift; sourceTree = "<group>"; };
+		210597D02EAE9633001CDE4F /* OpenAIAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIAPIService.swift; sourceTree = "<group>"; };
 		21914B312EA955D60039D3CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		21AB8A2E2EA58A02009C895F /* AlbumScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlbumScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21AB8A842EA58A5C009C895F /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
@@ -148,6 +154,9 @@
 		21AB8A8B2EA58A5C009C895F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				210597CE2EAE9633001CDE4F /* LLMService.swift */,
+				210597CF2EAE9633001CDE4F /* LLMServiceFactory.swift */,
+				210597D02EAE9633001CDE4F /* OpenAIAPIService.swift */,
 				21AB8AC92EA6DB9D009C895F /* CoverArtService.swift */,
 				21AB8ACA2EA6DB9D009C895F /* MusicBrainzService.swift */,
 				21AB8A892EA58A5C009C895F /* ClaudeAPIService.swift */,
@@ -375,6 +384,9 @@
 				21AB8AAE2EA58A5C009C895F /* SearchPreLoaderView.swift in Sources */,
 				21AB8AAF2EA58A5C009C895F /* Config.swift in Sources */,
 				21AB8AB02EA58A5C009C895F /* ScanErrorView.swift in Sources */,
+				210597D12EAE9633001CDE4F /* OpenAIAPIService.swift in Sources */,
+				210597D22EAE9633001CDE4F /* LLMServiceFactory.swift in Sources */,
+				210597D32EAE9633001CDE4F /* LLMService.swift in Sources */,
 				21AB8AB12EA58A5C009C895F /* CameraPreview.swift in Sources */,
 				21AB8AB22EA58A5C009C895F /* CameraManager.swift in Sources */,
 				21AB8AB32EA58A5C009C895F /* ContentView.swift in Sources */,
