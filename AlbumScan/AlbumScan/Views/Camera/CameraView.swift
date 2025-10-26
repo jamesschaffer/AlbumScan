@@ -16,6 +16,7 @@ struct CameraView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var cameraManager = CameraManager()
     @State private var showingHistory = false
+    @State private var showErrorBanner = false
 
     let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
 
@@ -139,6 +140,27 @@ struct CameraView: View {
                     SearchPreLoaderView(currentStage: $cameraManager.loadingStage)
                 }
             }
+
+            // Error banner for identification failures
+            if showErrorBanner {
+                VStack {
+                    Spacer()
+                        .frame(height: 100)
+
+                    Text("Unable to identify this cover art")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(Color.red.opacity(0.9))
+                        .cornerRadius(12)
+                        .shadow(radius: 10)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+
+                    Spacer()
+                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showErrorBanner)
+            }
         }
         .fullScreenCover(isPresented: $showingHistory) {
             ScanHistoryView()
@@ -169,6 +191,18 @@ struct CameraView: View {
         .onChange(of: cameraManager.scannedAlbum) { _, newAlbum in
             if newAlbum != nil {
                 appState.albumScanned()
+            }
+        }
+        .onChange(of: cameraManager.scanState) { _, newState in
+            if newState == .identificationFailed {
+                // Show error banner
+                showErrorBanner = true
+
+                // Auto-dismiss after 3 seconds and reset state
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    showErrorBanner = false
+                    cameraManager.scanState = .idle
+                }
             }
         }
     }
