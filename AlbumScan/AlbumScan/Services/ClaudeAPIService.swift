@@ -7,7 +7,6 @@ class ClaudeAPIService {
     private let apiKey: String
     private let apiURL = "https://api.anthropic.com/v1/messages"
     private let systemPrompt: String
-    private let phase2Prompt: String
 
     // Four-Phase Architecture Prompts
     private let phase1APrompt: String  // Vision extraction (no web search)
@@ -20,21 +19,6 @@ class ClaudeAPIService {
 
         // Legacy system prompt (using fallback for old flow)
         self.systemPrompt = Self.defaultPrompt
-
-        // Load Phase 2 prompt (deep review)
-        // Try with subdirectory first, then without (Xcode may flatten the structure)
-        if let promptPath = Bundle.main.path(forResource: "album_review", ofType: "txt", inDirectory: "Prompts"),
-           let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
-            self.phase2Prompt = promptContent
-            print("✅ [ClaudeAPIService] Loaded Phase 2 prompt from Prompts subdirectory")
-        } else if let promptPath = Bundle.main.path(forResource: "album_review", ofType: "txt"),
-                  let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
-            self.phase2Prompt = promptContent
-            print("✅ [ClaudeAPIService] Loaded Phase 2 prompt from root bundle")
-        } else {
-            self.phase2Prompt = "Review this album."
-            print("⚠️ [ClaudeAPIService] Could not find album_review.txt, using fallback")
-        }
 
         // Load Phase 1A prompt (vision extraction)
         if let promptPath = Bundle.main.path(forResource: "phase1a_vision_extraction", ofType: "txt", inDirectory: "Prompts"),
