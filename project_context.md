@@ -1,8 +1,8 @@
 # PROJECT_CONTEXT.md
 # AlbumScan - Music Album Discovery iOS App - Complete Development Guide
 
-**Version:** 1.1 (Two-Tier API Architecture)
-**Last Updated:** October 24, 2025  
+**Version:** 1.2 (Four-Phase API Architecture)
+**Last Updated:** October 25, 2025  
 **Platform:** iOS (Minimum iOS 16+)  
 **Development Stack:** Swift + SwiftUI  
 
@@ -15,7 +15,7 @@
 4. [Core Features](#core-features)
 5. [User Flows](#user-flows)
 6. [Screen Architecture](#screen-architecture)
-7. [Two-Tier API Architecture](#two-tier-api-architecture)
+7. [Four-Phase API Architecture](#four-phase-api-architecture)
 8. [Technical Stack](#technical-stack)
 9. [API Integration Details](#api-integration-details)
 10. [Data Model](#data-model)
@@ -29,7 +29,7 @@
 ## PROJECT OVERVIEW
 
 - **App Name:** AlbumScan
-- **Version:** 1.1 (Two-Tier API Refactor)
+- **Version:** 1.2 (Four-Phase API Architecture)
 - **Purpose:** A music discovery companion that reveals the cultural significance and artistic merit of albums through photo identification
 - **Target Audience:** Music collectors, vinyl enthusiasts, record store browsers who prioritize artistic value over financial value
 - **Platform:** iOS (minimum iOS 16+)
@@ -44,12 +44,14 @@ This iOS application celebrates the joy of music discovery by helping collectors
 
 **This app is deliberately NOT about pricing, pressing values, or financial collectibility.** Instead, this app focuses on the artistic and cultural dimensions of music discovery - helping users find albums that matter because of their sound, innovation, influence, and artistry.
 
-**Key Innovation: Two-Tier API Strategy**
-The app now uses a progressive two-tier approach that separates fast identification from deep analysis:
-- **Phase 1 (2-4 seconds):** Quick album identification - fails fast if album can't be identified
-- **Phase 2 (3-6 seconds):** Deep cultural analysis and review generation - only runs after successful identification
+**Key Innovation: Four-Phase API Strategy**
+The app uses a sequential four-phase approach that optimizes for accuracy, speed, and cost:
+- **Phase 1A (1-2 seconds):** Vision extraction - Extract visible text and describe cover artwork
+- **Phase 1B (1-2 seconds):** Web search mapping - Identify album using extracted data + web search
+- **Phase 2 (2-3 seconds):** Artwork retrieval - Fetch high-resolution album art from MusicBrainz
+- **Phase 3 (3-5 seconds):** Review generation - Generate cultural analysis and buying recommendation
 
-This architecture optimizes for speed, cost, and user experience. Users get immediate feedback on whether the scan worked, and only pay for expensive review generation when identification succeeds.
+This architecture ensures accurate album identification (Phases 1A/1B handle edge cases like acronyms and minimal text), confirms the match with users (2-second preview), then generates expensive review content only after successful identification.
 
 The app uses AI-powered album identification (Claude API) to provide instant context about why an album matters musically. It's like having a passionate music historian in your pocket who can instantly tell you "this is the album that invented shoegaze" or "this obscure funk record was sampled by dozens of hip-hop producers."
 
@@ -102,28 +104,31 @@ The app uses AI-powered album identification (Claude API) to provide instant con
 - **Acceptance Criteria:**
   - Camera View shows live camera feed immediately upon load (optimized for speed)
   - User taps "SCAN" button to capture photo (no review/retake - immediate send)
-  - Photo is processed via two-tier API approach:
-    - Phase 1: Identification (2-4 seconds)
-    - Phase 2: Review generation (3-6 seconds, runs in background)
-  - App displays album name and artist upon successful Phase 1 completion
-  - If Phase 1 fails, displays "Couldn't find a match" message with "Try Again" button
-  - Phase 2 runs in background while artwork loads
-  - Works with various cover conditions (worn, angled, partially visible)
-  - Stores only the album cover art, NOT the user's original photo
+  - Photo is processed via four-phase API approach:
+    - Phase 1A: Vision extraction (1-2 seconds)
+    - Phase 1B: Web search mapping (1-2 seconds)
+    - Phase 2: Artwork retrieval (2-3 seconds)
+    - Phase 3: Review generation (3-5 seconds)
+  - App displays album name, artist, and artwork after Phase 2 completion (2-second confirmation screen)
+  - If Phases 1A/1B/2 fail, displays "Couldn't find a match" message with "Try Again" button
+  - Phase 3 runs after 2-second confirmation screen
+  - If Phase 3 fails, shows album details with "Review temporarily unavailable" + retry button
+  - Works with various cover conditions (worn, angled, partially visible, minimal text, acronyms)
+  - Stores only the album cover art from MusicBrainz, NOT the user's original photo
 
 #### Sub-Feature 1A: High-Resolution Album Artwork Retrieval
 - **Priority:** MUST-HAVE (Required for Feature 3 display)
-- **Description:** After Claude API identifies an album (Phase 1), retrieve high-resolution album artwork from MusicBrainz + Cover Art Archive
-- **Technical Approach:** Sequential API calls using artist + album metadata, runs in parallel with Phase 2
+- **Description:** After Phase 1B identifies album metadata, retrieve high-resolution album artwork from MusicBrainz + Cover Art Archive (Phase 2)
+- **Technical Approach:** Sequential API calls using artist + album metadata from Phase 1B
 - **User Story:** "As a user, I want to see high-quality album artwork so that I can visually identify and appreciate the album"
 - **Acceptance Criteria:**
-  - After Phase 1 returns album identification, immediately initiate MusicBrainz artwork search (parallel with Phase 2)
+  - After Phase 1B returns album identification, immediately initiate MusicBrainz artwork search (Phase 2)
   - Search MusicBrainz API using artist name and album title to find release MBID (MusicBrainz ID)
   - Use MBID to query Cover Art Archive API for album artwork
   - Retrieve highest quality artwork available (prefer "front" cover image)
   - If Cover Art Archive returns no results, fall back to placeholder: "Album art unavailable"
   - Cache retrieved artwork locally (both thumbnail for history and high-res for detail view)
-  - Total artwork retrieval should complete within 2-3 seconds after album identification
+  - Total artwork retrieval should complete within 2-3 seconds
   - Handle multiple release variants by selecting the first matching result (prefer original/main release)
   - Artwork URLs should be stored in Album entity for offline reference
   - If MusicBrainz search returns no matches, still display album details with placeholder artwork
@@ -133,8 +138,10 @@ The app uses AI-powered album identification (Claude API) to provide instant con
 - **Priority:** MUST-HAVE (Core differentiator)
 - **Description:** AI-powered concise album review providing critical assessment, cultural significance, and buying recommendation - explicitly NOT financial value or pricing information
 - **User Story:** "As a record store browser, I want a quick, honest assessment of why an album matters musically and whether I should buy it, so I can make informed decisions while flipping through bins"
-- **Architecture:** Generated in Phase 2 (after successful identification), uses web search for current information
+- **Architecture:** Generated in Phase 3 (after successful identification and artwork retrieval), uses web search for current information
+- **Input:** Receives clean metadata from Phase 1B (artist name, album title, release year, genres, record label)
 - **Acceptance Criteria:**
+  - Phase 3 prompt receives ONLY metadata (no album identification task)
   - Displays 2-3 sentence opening summary capturing the album's core essence and importance
   - Provides 3-5 bullet points (formatted as actual bullets •) with specific evidence:
     - Critical reception (scores from Pitchfork, Rolling Stone, Metacritic when available)
@@ -153,9 +160,9 @@ The app uses AI-powered album identification (Claude API) to provide instant con
   - Evaluates albums purely on musical merit - artist's personal controversies or social issues may be mentioned for context but do NOT devalue their musical contributions or impact
   - Explicitly avoids any language about "investment," "value," "rare," "pressing details," or "collectibility"
   - NEVER mentions price, monetary value, or market considerations
-  - All content generated via Claude API Phase 2 using web search for research
+  - All content generated via Claude API Phase 3 using web search for research
   - Shows cached content if album has been scanned before (avoids redundant API calls)
-  - If Phase 2 fails, displays "Review temporarily unavailable" with retry option
+  - If Phase 3 fails, displays album details with "Review temporarily unavailable" + retry button (retry only calls Phase 3, not full scan)
 
 ### Feature 3: Album Information Display
 - **Priority:** MUST-HAVE
@@ -163,22 +170,24 @@ The app uses AI-powered album identification (Claude API) to provide instant con
 - **User Story:** "As a music enthusiast, I want to see complete album information so that I can learn about the album before listening"
 - **Acceptance Criteria:**
   - Content displays in the following order:
-    1. Album artwork (high resolution) - sourced from Cover Art Archive via MusicBrainz
-    2. Artist name and album title
-    3. Recommendation badge (ESSENTIAL/RECOMMENDED/SKIP/AVOID with emoji)
-    4. Cultural context summary (from Feature 2, Phase 2)
-    5. Bullet points (3-5) with evidence
-    6. Rating out of 10
-    7. Key Tracks section - Lists most popular/significant tracks from the album
-  - Also displays: Release year, genre(s), record label (from Phase 1)
+    1. Album artwork (high resolution) - sourced from Cover Art Archive via MusicBrainz (Phase 2)
+    2. Artist name and album title (from Phase 1B)
+    3. Recommendation badge (ESSENTIAL/RECOMMENDED/SKIP/AVOID with emoji) (from Phase 3)
+    4. Cultural context summary (from Feature 2, Phase 3)
+    5. Bullet points (3-5) with evidence (from Phase 3)
+    6. Rating out of 10 (from Phase 3)
+    7. Key Tracks section - Lists most popular/significant tracks from the album (from Phase 3)
+  - Also displays: Release year, genre(s), record label (from Phase 1B)
+  - Loads instantly from cache if previously scanned (offline access for historical albums)
+  - NO pricing information, pressing details, or market value anywhere
   - Loads progressively:
-    - Phase 1 data (artist, title, year, genre) appears first
-    - Artwork loads in parallel with Phase 2
-    - Review content appears when Phase 2 completes
+    - Phase 1B data (artist, title, year, genre, label) appears in Loading Screen 2
+    - Phase 2 artwork loads in Loading Screen 2
+    - Phase 3 review content appears in Album Details Screen
   - Loads instantly from cache if previously scanned (offline access for historical albums)
   - Handles partial failures gracefully:
-    - If artwork fails: Show placeholder, display all text
-    - If Phase 2 fails: Show basic info + "Review temporarily unavailable" with retry button
+    - If Phase 2 (artwork) fails: Show placeholder, display all text
+    - If Phase 3 fails: Show basic info + "Review temporarily unavailable" with retry button
   - NO pricing information, pressing details, or market value anywhere
 
 ### Feature 4: Scan History
@@ -206,58 +215,68 @@ The app uses AI-powered album identification (Claude API) to provide instant con
 Launch App (First Time) → Welcome Screen → Camera Permission Request → Camera View (Screen 1)
 ```
 
-### Flow 2: Primary Use Case - Album Scan & Musical Discovery (Two-Tier)
+### Flow 2: Primary Use Case - Album Scan & Musical Discovery (Four-Phase)
 ```
-Launch App → Camera View (Screen 1) → Tap "SCAN" Button 
-  → Screen 2: Identification Loading (Phase 1, 2-4 sec)
-  → Screen 2B: Album Identified Transition (0.5 sec)
-  → Screen 2C: Review Loading (Phase 2 + Artwork, 3-6 sec)
-  → Album Details (Screen 3) 
+Launch App → Camera View 
+  → Tap "SCAN" Button 
+  → Loading Screen 1: "Flipping through every record bin in existence..." 
+     (Runs Phase 1A: Vision Extraction + Phase 1B: Web Search Mapping + Phase 2: Artwork Retrieval, ~4-6 sec)
+  → Loading Screen 2: Shows album artwork + "We found {Album Title} by {Artist Name}" 
+     (2-second confirmation hold)
+  → Loading Screen 3: "Writing a review that's somehow both pretentious and correct..." 
+     (Runs Phase 3: Review Generation, ~3-5 sec)
+  → Album Details Screen (Full review display) 
   → Auto-saved to History 
-  → Tap "X" → Camera View (Screen 1)
+  → Tap "X" → Camera View
 ```
 
-### Flow 3: Album Scan - Phase 1 Failure (Identification Failed)
+### Flow 3: Album Scan - Phase 1A/1B/2 Failure (Identification Failed)
 ```
-Launch App → Camera View (Screen 1) → Tap "SCAN" Button 
-  → Screen 2: Identification Loading (Phase 1)
-  → Scan Error (Screen 5: "Couldn't find a match") 
-  → Tap "TRY AGAIN" → Camera View (Screen 1)
+Launch App → Camera View 
+  → Tap "SCAN" Button 
+  → Loading Screen 1: "Flipping through every record bin in existence..." 
+     (Phase 1A/1B/2 fail)
+  → Scan Error Screen: "Couldn't find a match" 
+  → Tap "TRY AGAIN" → Camera View
 ```
 
-### Flow 4: Album Scan - Phase 2 Failure (Review Generation Failed)
+### Flow 4: Album Scan - Phase 3 Failure (Review Generation Failed)
 ```
-Launch App → Camera View (Screen 1) → Tap "SCAN" Button 
-  → Screen 2: Identification Loading (Phase 1, succeeds)
-  → Screen 2B: Album Identified Transition
-  → Screen 2C: Review Loading (Phase 2 fails)
-  → Album Details (Screen 3) with basic info + "Review temporarily unavailable"
-  → User taps "Retry Review" → Re-runs Phase 2 only
+Launch App → Camera View 
+  → Tap "SCAN" Button 
+  → Loading Screen 1: "Flipping through every record bin in existence..." 
+     (Phase 1A/1B/2 succeed)
+  → Loading Screen 2: Shows album artwork + "We found {Album Title} by {Artist Name}" 
+     (2-second confirmation)
+  → Loading Screen 3: "Writing a review that's somehow both pretentious and correct..." 
+     (Phase 3 fails)
+  → Album Details Screen with basic info + artwork + "Review temporarily unavailable"
+  → User taps "Retry Review" → Re-runs Phase 3 only
   → Review appears on success
 ```
 
 ### Flow 5: Review Scan History
 ```
-Launch App → Camera View (Screen 1) → Tap History Icon 
-  → Scan History (Screen 4) 
-  → Tap Album → Album Details (Screen 3) 
-  → Tap "X" → Scan History (Screen 4)
+Launch App → Camera View → Tap History Icon 
+  → Scan History Screen 
+  → Tap Album → Album Details Screen 
+  → Tap "X" → Scan History Screen
 ```
 
 ### Flow 6: Scan from History View
 ```
-Scan History (Screen 4) → Tap "SCAN" Button → Camera View (Screen 1) 
+Scan History Screen → Tap "SCAN" Button → Camera View 
   → Tap "SCAN" Button → [Follow Flow 2]
 ```
 
 ### Flow 7: Delete Album from History
 ```
-Scan History (Screen 4) → Swipe Left on Album → Tap Delete → Album Removed from List
+Scan History Screen → Swipe Left on Album → Tap Delete → Album Removed from List
 ```
 
 ### Flow 8: Re-scan Existing Album (Duplicate Allowed)
 ```
-Camera View (Screen 1) → Tap "SCAN" Button → [Follow Flow 2]
+Camera View → Tap "SCAN" Button → [Follow Flow 2]
 ```
 **Note:** All scans are saved to history, including duplicates. Users manage duplicates by swiping to delete.
 
@@ -265,7 +284,7 @@ Camera View (Screen 1) → Tap "SCAN" Button → [Follow Flow 2]
 ```
 Launch App (First Time) → Welcome Screen → Camera Permission Request → User Denies 
   → Permission Error Screen → "Open Settings" Button → iOS Settings 
-  → User Grants Permission → Return to App → Camera View (Screen 1)
+  → User Grants Permission → Return to App → Camera View
 ```
 
 ---
@@ -289,75 +308,73 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
   - History icon → Scan History (Screen 4)
   - SCAN button → Screen 2 (Identification Loading)
 
-### Screen 2: Identification Loading State (Phase 1)
-- **Purpose:** Indicates album identification in progress
+### Loading Screen 1: Combined Identification + Artwork Retrieval
+- **Purpose:** Indicates album identification and artwork retrieval in progress
+- **Phases Running:** Phase 1A (Vision Extraction) + Phase 1B (Web Search Mapping) + Phase 2 (Artwork Retrieval)
 - **Key Elements:**
   - "ALBUM SCAN" header (top, white text)
   - Animated text with trailing ellipsis (...): "Flipping through every record bin in existence..."
   - Text animation: ellipsis cycles through 1, 2, 3 dots
-  - Minimum display time: 1 second (even if API responds faster)
+  - Minimum display time: 1 second (even if all phases complete faster)
   - No cancel button
   - Black background, white text
-- **Duration:** 2-4 seconds (target: 3 seconds average)
+- **Duration:** ~4-6 seconds total (Phase 1A: 1-2s, Phase 1B: 1-2s, Phase 2: 2-3s)
 - **Navigation:** 
-  - Success → Screen 2B (Album Identified Transition)
-  - Failure → Scan Error (Screen 5)
+  - Success (all three phases complete) → Loading Screen 2 (Album Identified Confirmation)
+  - Failure (any phase fails) → Scan Error Screen
 
-### Screen 2B: Album Identified Transition (NEW)
-- **Purpose:** Shows successful identification while initiating Phase 2 and artwork fetch
+### Loading Screen 2: Album Identified Confirmation
+- **Purpose:** Shows user the album we matched with 2-second confirmation hold
+- **Phases Complete:** Phase 1A, 1B, 2 (identification + artwork retrieval complete)
 - **Key Elements:**
-  - "ALBUM SCAN" header (top)
-  - Album title and artist name (prominent, centered, white text)
-  - Small loading indicator below album info
-  - Text: "Loading details..."
-  - Background: Black
-- **Duration:** 0.5-1 second (brief confirmation before transitioning)
-- **Behavior:** 
-  - Triggers Phase 2 (review generation) immediately
-  - Triggers artwork fetch (MusicBrainz + Cover Art Archive) in parallel
-- **Navigation:** 
-  - Automatically transitions to Screen 2C (Review Loading)
-
-### Screen 2C: Review Loading State (Phase 2 + Artwork)
-- **Purpose:** Shows album artwork while review generates in background
-- **Key Elements:**
-  - Album artwork displayed (high-res from Cover Art Archive, or placeholder if unavailable)
-  - Artist name and album title visible at top
-  - Loading indicator in review area (below artwork)
-  - Animated text: "Writing a review that's somehow both pretentious and correct..."
-  - Text animation: ellipsis cycles through 1, 2, 3 dots
-  - Minimum display time: 1 second
+  - Album artwork (high-resolution from Cover Art Archive, or placeholder if unavailable)
+  - Text: "We found {Album Title} by {Artist Name}"
+  - Clean, centered layout
+  - No loading animation (static screen)
   - Black background
-- **Duration:** 3-6 seconds (while Phase 2 processes)
+- **Duration:** Exactly 2 seconds (fixed hold time)
+- **Purpose:** Allows user to visually confirm correct album match before review loads
 - **Navigation:** 
-  - Success → Album Details (Screen 3) with full review
-  - Phase 2 fails → Album Details (Screen 3) with "Review temporarily unavailable" message
+  - After 2 seconds → Automatically transitions to Loading Screen 3 (Review Generation)
 
-### Screen 3: Album Details
+### Loading Screen 3: Review Generation
+- **Purpose:** Indicates review generation in progress after user has confirmed album match
+- **Phase Running:** Phase 3 (Review Generation)
+- **Key Elements:**
+  - Animated text with trailing ellipsis (...): "Writing a review that's somehow both pretentious and correct..."
+  - Text animation: ellipsis cycles through 1, 2, 3 dots
+  - Minimum display time: 1 second (even if Phase 3 completes faster)
+  - Black background, white text
+- **Duration:** ~3-5 seconds (while Phase 3 review generation processes)
+- **Navigation:** 
+  - Success → Album Details Screen (full review display)
+  - Failure → Album Details Screen with "Review temporarily unavailable" + retry button
+
+### Album Details Screen
 - **Purpose:** Display album information and cultural context
 - **Key Elements:**
   - High-res album artwork from Cover Art Archive (minimum 500x500px when available, scales up to full width of screen)
   - If artwork unavailable: Display centered placeholder with text "Album art unavailable" on neutral gray background
   - Artwork should fill width of screen with appropriate aspect ratio (typically square for albums)
-  - Artist name and album title (prominent)
-  - Recommendation badge with emoji (ESSENTIAL/RECOMMENDED/SKIP/AVOID)
-  - Cultural context summary (2-3 sentences) - from Phase 2
-  - Bullet points (3-5) with evidence - from Phase 2
-  - Rating out of 10 - from Phase 2
-  - Key Tracks section - from Phase 2
-  - Release year, genre(s), record label - from Phase 1
+  - Artist name and album title (prominent) - from Phase 1B
+  - Recommendation badge with emoji (ESSENTIAL/RECOMMENDED/SKIP/AVOID) - from Phase 3
+  - Cultural context summary (2-3 sentences) - from Phase 3
+  - Bullet points (3-5) with evidence - from Phase 3
+  - Rating out of 10 - from Phase 3
+  - Key Tracks section - from Phase 3
+  - Release year, genre(s), record label - from Phase 1B
   - "X" button (top right)
   - History icon (top right, next to X)
 - **Partial Failure States:**
-  - If artwork fails: Show placeholder, display all text content
-  - If Phase 2 fails: Show artwork (if available) + basic metadata + "Review temporarily unavailable" message with "Retry Review" button
-  - "Retry Review" button re-runs only Phase 2 (not Phase 1 or artwork fetch)
+  - If artwork fails (Phase 2): Show placeholder, display all text content from Phase 1B and Phase 3
+  - If Phase 3 fails: Show artwork (from Phase 2) + basic metadata (from Phase 1B) + "Review temporarily unavailable" message with "Retry Review" button
+  - "Retry Review" button re-runs only Phase 3 (not Phase 1A/1B or Phase 2)
 - **Navigation:** 
   - X button → Returns to previous screen (Camera View or Scan History)
-  - History icon → Scan History (Screen 4)
-  - "Retry Review" button (if Phase 2 failed) → Re-runs Phase 2, updates display on success
+  - History icon → Scan History Screen
+  - "Retry Review" button (if Phase 3 failed) → Re-runs Phase 3, updates display on success
 
-### Screen 4: Scan History
+### Scan History Screen
 - **Purpose:** Chronological list of all scanned albums
 - **Key Elements:**
   - Scrollable list (newest first)
@@ -367,19 +384,19 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
   - "SCAN" button (bottom)
   - Empty state: "Scan your first album to begin"
 - **Navigation:** 
-  - Tap album → Album Details (Screen 3)
-  - SCAN button → Camera View (Screen 1)
-  - History icon → Returns to Camera View (Screen 1)
+  - Tap album → Album Details Screen
+  - SCAN button → Camera View
+  - History icon → Returns to Camera View
 
-### Screen 5: Scan Error (Phase 1 Failure)
-- **Purpose:** Handle failed identification attempts
+### Scan Error Screen
+- **Purpose:** Handle failed identification or artwork retrieval attempts (Phase 1A/1B/2 failures)
 - **Key Elements:**
   - Error icon
   - Message: "Couldn't find a match"
   - Optional hint text: "Make sure the front of the album cover is clear and fills the frame"
   - "TRY AGAIN" button
 - **Navigation:** 
-  - TRY AGAIN → Camera View (Screen 1)
+  - TRY AGAIN → Camera View
 
 ### Welcome Screen (First-time only)
 - **Purpose:** App introduction and branding
@@ -388,7 +405,7 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
   - Tagline: "Discover music that matters"
   - "Get Started" button
 - **Navigation:** 
-  - Get Started → Camera Permission Request → Camera View (Screen 1)
+  - Get Started → Camera Permission Request → Camera View
 
 ### Permission Error Screen (Edge case)
 - **Purpose:** Handle camera permission denial
@@ -399,53 +416,93 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
   - Brief explanation of why camera permission is needed
 - **Navigation:** 
   - Open Settings → iOS Settings app
-  - User returns after granting permission → Camera View (Screen 1)
+  - User returns after granting permission → Camera View
 
 ---
 
-## TWO-TIER API ARCHITECTURE
+## FOUR-PHASE API ARCHITECTURE
 
 ### Overview
-AlbumScan uses a progressive two-tier API strategy that separates fast identification from deep analysis, optimizing for speed, cost, and user experience.
+AlbumScan uses a sequential four-phase API strategy that optimizes for identification accuracy, speed, cost, and user experience.
 
 **Key Benefits:**
-1. **Fail Fast:** Users know within 3 seconds if scan worked
-2. **Lower Cost on Failures:** Failed IDs cost ~$0.03-0.05 instead of $0.20-0.30
-3. **Progressive Disclosure:** Users see results incrementally (feels faster)
-4. **Better Error Handling:** Can show partial results if review fails
-5. **Optimization Opportunities:** Can cache Phase 1 results separately
-6. **Future-Proof:** Could add alternative review sources without re-identifying
+1. **Accurate Identification:** Separate vision extraction from web search mapping handles edge cases (acronyms, minimal text, visual-only covers)
+2. **Fail Fast:** Users know within 6 seconds if scan worked (Phases 1A/1B/2)
+3. **Lower Cost on Failures:** Failed IDs cost ~$0.04-0.05 instead of $0.20-0.30
+4. **User Confirmation:** 2-second hold shows matched album before expensive review generation
+5. **Progressive Disclosure:** Users see results incrementally (feels faster)
+6. **Better Error Handling:** Can show partial results if review fails
+7. **Optimization Opportunities:** Can cache each phase independently
+8. **Future-Proof:** Could add alternative review sources without re-identifying
 
 ---
 
-### Phase 1: Fast Identification (2-4 seconds)
+### Phase 1A: Vision Extraction (1-2 seconds)
 
-**Purpose:** Quickly identify the album with minimal processing
+**Purpose:** Extract observable text and visual information from album cover (NO identification)
 
 **API Call Details:**
-- **Endpoint:** Anthropic Claude API (Vision + Text)
+- **Endpoint:** Anthropic Claude API (Vision)
 - **Model:** Claude Sonnet 4.5
 - **Input:** Album cover photo (JPEG, 1024x1024, 1-2MB)
-- **Prompt:** See `phase1_album_identification_prompt.txt`
+- **Prompt:** See `phase1a_vision_extraction.txt`
 - **Key Characteristics:**
-  - Minimal prompt focused purely on identification
-  - NO web search enabled (speed critical)
-  - NO cultural analysis
-  - NO review generation
+  - Extract text exactly as it appears (including acronyms, band names, labels)
+  - Describe visual elements (colors, imagery, artistic style)
+  - NO interpretation or identification
+  - NO web search (pure vision extraction)
+  - Small, focused response
+- **Expected Response Time:** 1-2 seconds
+- **Cost:** ~$0.03 per call
+- **Max Tokens:** 200 (small response)
+
+**Response JSON:**
+```json
+{
+  "extractedText": "TVOTR, Seeds",
+  "albumDescription": "Bold red background with white geometric typography. Minimalist design with seed pod imagery in corners. Modern sans-serif font."
+}
+```
+
+**On Success:**
+- Pass extracted data to Phase 1B immediately
+- No user-facing state change (Loading Screen 1 continues)
+
+**On Failure:**
+- Route to Scan Error Screen
+- User taps "TRY AGAIN" → Camera View
+- Total cost of failure: ~$0.03
+
+---
+
+### Phase 1B: Web Search Mapping (1-2 seconds)
+
+**Purpose:** Use extracted text + visual description to identify album via web search
+
+**API Call Details:**
+- **Endpoint:** Anthropic Claude API (Text only, no vision)
+- **Model:** Claude Sonnet 4.5
+- **Input:** JSON from Phase 1A (extractedText + albumDescription)
+- **Prompt:** See `phase1b_web_search_mapping.txt`
+- **Key Characteristics:**
+  - Web search ENABLED (critical for disambiguation)
+  - Resolve acronyms to full names (TVOTR → TV on the Radio)
+  - Match visual descriptions to known album artwork
+  - Return clean, structured metadata
   - Binary outcome: success or error
-- **Expected Response Time:** 2-4 seconds
-- **Cost:** ~$0.03-0.05 per call
+- **Expected Response Time:** 1-2 seconds
+- **Cost:** ~$0.01-0.02 per call (text + web search)
 - **Max Tokens:** 300 (small response)
 
 **Success Response JSON:**
 ```json
 {
   "success": true,
-  "artist_name": "Radiohead",
-  "album_title": "OK Computer",
-  "release_year": "1997",
-  "genres": ["Alternative Rock", "Art Rock"],
-  "record_label": "Parlophone"
+  "artistName": "TV on the Radio",
+  "albumTitle": "Seeds",
+  "releaseYear": "2014",
+  "genres": ["Indie Rock", "Art Rock"],
+  "recordLabel": "Harvest Records"
 }
 ```
 
@@ -453,94 +510,39 @@ AlbumScan uses a progressive two-tier API strategy that separates fast identific
 ```json
 {
   "success": false,
-  "error_message": "Could not identify album cover"
+  "reason": "Could not find album matching the provided metadata"
 }
 ```
 
-**Phase 1 Error Scenarios (All return error):**
-- Image is not an album cover (random object, person, etc.)
-- Image is back cover of album
-- Image is too blurry/out of focus to identify
-- Image is too zoomed in (partial view) or too far out (detail too small)
-- Multiple albums in frame (ambiguous)
-- Bootleg/unofficial release with uncertain identity
-- Claude has low confidence in identification
+**Phase 1B Error Scenarios:**
+- Web search finds no matching albums
+- Multiple ambiguous matches with no clear winner
+- Extracted text too minimal or unclear to search effectively
+- Claude has low confidence in match after web search
 
 **On Success:**
-- Display album title + artist immediately (Screen 2B)
-- Trigger MusicBrainz artwork fetch (parallel with Phase 2)
-- Trigger Phase 2 review generation
-- Transition to Screen 2C
+- Pass clean metadata to Phase 2 (artwork retrieval)
+- Loading Screen 1 continues (user sees no transition yet)
 
 **On Failure:**
-- Route to Scan Error (Screen 5)
-- User taps "TRY AGAIN" → Camera View
-- No Phase 2 call made (save cost)
-- Total cost of failure: ~$0.03-0.05
+- Route to Scan Error Screen
+- Total cost of Phase 1A + 1B failure: ~$0.04-0.05
+- User taps "TRY AGAIN" → Camera View (restarts from Phase 1A)
 
 ---
 
-### Phase 2: Deep Review Generation (3-6 seconds)
+### Phase 2: Album Artwork Retrieval (2-3 seconds)
 
-**Purpose:** Generate comprehensive cultural context and review using web research
-
-**API Call Details:**
-- **Endpoint:** Anthropic Claude API (Text only, no vision)
-- **Model:** Claude Sonnet 4.5
-- **Input:** Album metadata from Phase 1 (text string: "Artist: {artist}, Album: {album}, Year: {year}, Genre: {genres}, Label: {label}")
-- **Prompt:** See `phase2_review_generation_prompt.txt`
-- **Key Characteristics:**
-  - Full review prompt with web search ENABLED
-  - Research current album information
-  - Generate ratings, recommendations, key tracks, bullets
-  - No image input (uses metadata only)
-- **Expected Response Time:** 3-6 seconds
-- **Cost:** ~$0.15-0.25 per call
-- **Max Tokens:** 1500 (larger response)
-
-**Success Response JSON:**
-```json
-{
-  "context_summary": "OK Computer is Radiohead's landmark 1997 album that captured millennial anxiety through experimental rock. It transformed alternative music by proving ambitious art-rock could achieve both critical and commercial success. The album's influence on indie and electronic music remains profound nearly three decades later.",
-  "context_bullets": [
-    "Acclaimed as one of the greatest albums ever made, with a 9.1 from Pitchfork and consistent top-10 rankings in all-time lists.",
-    "Hit #1 in the UK and went triple-platinum in the US, proving experimental rock could be commercially viable.",
-    "Pioneered the use of electronic textures in rock, directly influencing bands like Muse, Coldplay, and The National.",
-    "Features iconic tracks 'Paranoid Android,' 'Karma Police,' and 'No Surprises' that remain alternative radio staples.",
-    "Won the 1998 Grammy for Best Alternative Music Album and was added to the Library of Congress's National Recording Registry in 2015."
-  ],
-  "rating": 9.5,
-  "recommendation": "ESSENTIAL",
-  "key_tracks": ["Paranoid Android", "Karma Police", "No Surprises", "Exit Music (For a Film)", "Let Down"]
-}
-```
-
-**On Success:**
-- Display full review in Album Details (Screen 3)
-- Save complete album data to CoreData
-- Cache review for future scans of same album
-
-**On Failure:**
-- Still display Album Details (Screen 3) with:
-  - Album artwork (already fetched in parallel)
-  - Basic metadata (from Phase 1)
-  - Error message: "Review temporarily unavailable"
-  - "Retry Review" button that re-triggers only Phase 2 (doesn't re-identify)
-- User can retry Phase 2 without re-scanning or paying for Phase 1 again
-
----
-
-### Parallel Process: Artwork Retrieval (1-3 seconds)
-
-**Runs concurrently with Phase 2 review generation**
+**Purpose:** Fetch high-resolution album artwork using clean metadata from Phase 1B
 
 **Sequence:**
 1. **MusicBrainz Search** (0.5-1 second)
-   - Trigger immediately after Phase 1 success
-   - Query using artist + album from Phase 1 metadata
+   - Trigger immediately after Phase 1B success
+   - Query using artist + album from Phase 1B metadata
    - Retrieve MBID (MusicBrainz ID)
    - Endpoint: `https://musicbrainz.org/ws/2/release`
-   - Query: `artist:{artist_name} AND release:{album_title}`
+   - Query: `artist:{artistName} AND release:{albumTitle}`
+   - User-Agent header REQUIRED: `AlbumScan/1.0 (james@jamesschaffer.com)`
    
 2. **Cover Art Archive** (0.5-1 second)
    - Query using MBID from MusicBrainz
@@ -550,15 +552,77 @@ AlbumScan uses a progressive two-tier API strategy that separates fast identific
 3. **Cache & Display** (0.5-1 second)
    - Generate 200px thumbnail for history
    - Cache both sizes locally (CoreData)
-   - Display in Screen 2C and Screen 3
+   - Display in Loading Screen 2 and Album Details Screen
 
-**Total artwork time:** 1-3 seconds (completes before or during Phase 2)
+**Total artwork retrieval time:** 2-3 seconds
+
+**Cost:** $0 (free APIs)
 
 **Artwork Failure Handling:**
-- MusicBrainz returns no results → Use placeholder
-- Cover Art Archive returns 404 → Use placeholder
-- Network timeout → Use placeholder
+- MusicBrainz returns no results → Use placeholder, continue to Loading Screen 2
+- Cover Art Archive returns 404 → Use placeholder, continue to Loading Screen 2
+- Network timeout → Use placeholder, continue to Loading Screen 2
 - All artwork failures are non-blocking (album info still displays)
+
+**On Success:**
+- Transition to Loading Screen 2 (2-second confirmation hold)
+- Display artwork + "We found {Album Title} by {Artist Name}"
+- After 2 seconds → Transition to Loading Screen 3 (Phase 3 begins)
+
+**On Failure:**
+- Still transition to Loading Screen 2 with placeholder artwork
+- Continue normal flow (Phase 3 runs after 2-second hold)
+
+---
+
+### Phase 3: Album Review Generation (3-5 seconds)
+
+**Purpose:** Generate comprehensive cultural context and review using web research
+
+**API Call Details:**
+- **Endpoint:** Anthropic Claude API (Text only, no vision)
+- **Model:** Claude Sonnet 4.5
+- **Input:** Clean metadata from Phase 1B (text string: "Artist: {artistName}, Album: {albumTitle}, Year: {releaseYear}, Genre: {genres}, Label: {recordLabel}")
+- **Prompt:** See `phase3_review_generation.txt`
+- **Key Characteristics:**
+  - Full review prompt with web search ENABLED
+  - Research current album information (critical reception, chart performance, influence)
+  - Generate ratings, recommendations, key tracks, bullets
+  - NO image input (uses metadata only)
+  - NO identification task (already complete)
+- **Expected Response Time:** 3-5 seconds
+- **Cost:** ~$0.05-0.10 per call
+- **Max Tokens:** 1500 (larger response)
+
+**Success Response JSON:**
+```json
+{
+  "contextSummary": "OK Computer is Radiohead's landmark 1997 album that captured millennial anxiety through experimental rock. It transformed alternative music by proving ambitious art-rock could achieve both critical and commercial success. The album's influence on indie and electronic music remains profound nearly three decades later.",
+  "contextBullets": [
+    "Acclaimed as one of the greatest albums ever made, with a 9.1 from Pitchfork and consistent top-10 rankings in all-time lists.",
+    "Hit #1 in the UK and went triple-platinum in the US, proving experimental rock could be commercially viable.",
+    "Pioneered the use of electronic textures in rock, directly influencing bands like Muse, Coldplay, and The National.",
+    "Features iconic tracks 'Paranoid Android,' 'Karma Police,' and 'No Surprises' that remain alternative radio staples.",
+    "Won the 1998 Grammy for Best Alternative Music Album and was added to the Library of Congress's National Recording Registry in 2015."
+  ],
+  "rating": 9.5,
+  "recommendation": "ESSENTIAL",
+  "keyTracks": ["Paranoid Android", "Karma Police", "No Surprises", "Exit Music (For a Film)", "Let Down"]
+}
+```
+
+**On Success:**
+- Display full review in Album Details Screen
+- Save complete album data to CoreData (metadata from Phase 1B + artwork from Phase 2 + review from Phase 3)
+- Cache review for future scans of same album
+
+**On Failure:**
+- Still display Album Details Screen with:
+  - Album artwork (already fetched in Phase 2)
+  - Basic metadata (from Phase 1B: artist, album, year, genres, label)
+  - Error message: "Review temporarily unavailable"
+  - "Retry Review" button that re-triggers only Phase 3
+- User can retry Phase 3 without re-scanning or paying for Phase 1A/1B/2 again
 
 ---
 
@@ -567,37 +631,23 @@ AlbumScan uses a progressive two-tier API strategy that separates fast identific
 ```
 User taps SCAN
 ↓
-[0-4s] Phase 1: Identification
-Screen 2: "Flipping through every record bin in existence..."
+Loading Screen 1: "Flipping through every record bin in existence..."
+[1-2s] Phase 1A: Vision Extraction (extract text + describe visuals)
+[1-2s] Phase 1B: Web Search Mapping (identify album via web search)
+[2-3s] Phase 2: Artwork Retrieval (MusicBrainz → Cover Art Archive)
 ↓
-SUCCESS → Phase 1 complete
+SUCCESS → All three phases complete (4-6 seconds total)
 ↓
-[0.5s] Screen 2B: "OK Computer by Radiohead" (brief confirmation)
+Loading Screen 2: Shows artwork + "We found {Album Title} by {Artist Name}"
+[2s] User confirmation hold (static, no loading)
 ↓
-[PARALLEL EXECUTION BEGINS]
-├─ [1-3s] MusicBrainz → Cover Art Archive → Display artwork
-└─ [3-6s] Phase 2: Review generation
+Loading Screen 3: "Writing a review that's somehow both pretentious and correct..."
+[3-5s] Phase 3: Review Generation (web search + cultural analysis)
 ↓
-Screen 2C: Shows artwork + "Writing a review that's somehow both pretentious and correct..."
+Album Details Screen: Full review display
 ↓
-[BOTH COMPLETE]
-↓
-Screen 3: Full Album Details (artwork + review)
+Auto-saved to History
 ```
-
-**Total Time:** 5-10 seconds from scan to complete display
-**Perceived Time:** ~3 seconds to know if scan worked + background loading
-
-**Cost Breakdown:**
-- Phase 1 (ID): ~$0.03-0.05
-- Phase 2 (Review): ~$0.15-0.25
-- **Total per successful scan:** ~$0.18-0.30
-- **Cost per failed scan:** ~$0.03-0.05 (Phase 1 only)
-
-**Cost Comparison to Single-Tier:**
-- Old approach: $0.20-0.30 per scan (success or failure)
-- New approach: $0.03-0.05 for failures, $0.18-0.30 for successes
-- **Savings:** 80-85% cost reduction on failed scans
 
 ---
 
@@ -606,39 +656,47 @@ Screen 3: Full Album Details (artwork + review)
 **SwiftUI State Enum:**
 ```swift
 enum ScanState {
-    case idle                    // Camera view, ready to scan
-    case identifying             // Phase 1 in progress
-    case identified              // Phase 1 success, brief transition
-    case loadingReview           // Phase 2 + artwork in progress
-    case complete                // Both phases done
-    case identificationFailed    // Phase 1 failed
-    case reviewFailed            // Phase 1 worked, Phase 2 failed
+    case idle                          // Camera view, ready to scan
+    case phase1AInProgress             // Vision extraction running
+    case phase1BInProgress             // Web search mapping running
+    case phase2InProgress              // Artwork retrieval running
+    case identificationComplete        // Phases 1A/1B/2 complete, showing Loading Screen 2 (2-sec hold)
+    case phase3InProgress              // Review generation running
+    case complete                      // All phases done, showing Album Details
+    case identificationFailed          // Phase 1A/1B/2 failed
+    case reviewFailed                  // Phases 1A/1B/2 worked, Phase 3 failed
 }
 ```
 
 **Album Data Structure:**
 ```swift
 struct AlbumScanData {
-    // Phase 1 data (identification)
+    // Phase 1A data (vision extraction)
+    var extractedText: String?
+    var albumDescription: String?
+    var phase1ACompleted: Bool = false
+    
+    // Phase 1B data (identification metadata)
     var artistName: String?
     var albumTitle: String?
     var releaseYear: String?
     var genres: [String]?
     var recordLabel: String?
-    var phase1Completed: Bool = false
+    var phase1BCompleted: Bool = false
     
-    // Artwork data (parallel with Phase 2)
+    // Phase 2 data (artwork)
     var albumArtwork: UIImage?
     var artworkLoaded: Bool = false
     var musicbrainzID: String?
+    var phase2Completed: Bool = false
     
-    // Phase 2 data (review)
+    // Phase 3 data (review)
     var contextSummary: String?
     var contextBullets: [String]?
     var rating: Double?
     var recommendation: String?
     var keyTracks: [String]?
-    var phase2Completed: Bool = false
+    var phase3Completed: Bool = false
     
     // Error tracking
     var phase1Error: String?
@@ -648,58 +706,50 @@ struct AlbumScanData {
 
 ---
 
-### Error Handling in Two-Tier System
+### Error Handling in Four-Phase System
 
-**Scenario 1: Phase 1 Fails (Identification)**
-- User Experience: Screen 5 (Scan Error) - "Couldn't find a match"
+**Scenario 1: Phase 1A/1B/2 Fails (Identification or Artwork)**
+- User Experience: Scan Error Screen - "Couldn't find a match"
 - User Action: Tap "TRY AGAIN" → Camera View
-- Cost Impact: ~$0.03-0.05 (no Phase 2 call)
-- System Behavior: Phase 2 never triggered
+- Cost Impact: ~$0.04-0.05 (no Phase 3 call)
+- System Behavior: Phase 3 never triggered
 
-**Scenario 2: Phase 1 Succeeds, Artwork Fails**
-- User Experience: Album Details with placeholder artwork
-- Review displays normally
-- All text data visible
-- Non-blocking error
-- Cost Impact: Full cost (~$0.18-0.30)
-
-**Scenario 3: Phase 1 Succeeds, Phase 2 Fails**
-- User Experience: Album Details with:
-  - Real artwork (if available, otherwise placeholder)
-  - Basic metadata (artist, title, year, genre, label)
+**Scenario 2: Phase 1A/1B/2 Succeeds, Phase 3 Fails**
+- User Experience: Album Details Screen with:
+  - Album artwork (from Phase 2, or placeholder if Phase 2 failed)
+  - Basic metadata (artist, title, year, genre, label from Phase 1B)
   - Error in review area: "Review temporarily unavailable"
-  - "Retry Review" button (only re-runs Phase 2)
-- Cost Impact: Phase 1 cost (~$0.03-0.05) initially, Phase 2 cost (~$0.15-0.25) on retry
+  - "Retry Review" button (only re-runs Phase 3)
+- Cost Impact: Phase 1A/1B (~$0.04-0.05) initially, Phase 3 cost (~$0.05-0.10) on retry
 - System Behavior: Partial success is better than total failure
 
-**Scenario 4: Both Artwork and Phase 2 Fail**
-- User Experience: Album Details with:
+**Scenario 3: Phase 2 Artwork Fails, Everything Else Succeeds**
+- User Experience: Album Details Screen with:
   - Placeholder artwork
-  - Basic metadata (from Phase 1)
-  - "Review temporarily unavailable"
-  - "Retry Review" button
-- Still Useful: User knows what album it is
-- Cost Impact: Phase 1 cost only (~$0.03-0.05)
+  - Full review from Phase 3
+  - All metadata visible
+- Non-blocking error: Review displays normally
+- Cost Impact: Full cost (~$0.09-0.15)
 
-**Scenario 5: Network Failure Mid-Process**
-- If Phase 1 in progress: Show error, retry from beginning
-- If Phase 2 in progress: Show partial results with retry option
-- If artwork in progress: Show placeholder, continue with review
+**Scenario 4: Network Failure Mid-Process**
+- If Phase 1A/1B/2 in progress: Show error, retry from beginning (Scan Error Screen)
+- If Phase 3 in progress: Show partial results (artwork + metadata) with "Retry Review" button
+- Network recovery: User can retry without re-scanning
 
 ---
 
-### Caching Strategy for Two-Tier System
+### Caching Strategy for Four-Phase System
 
-**Phase 1 Cache (Identification):**
-- **Decision:** Do NOT cache Phase 1 results by image
+**Phase 1A/1B Cache (Identification):**
+- **Decision:** Do NOT cache Phase 1A/1B results by image
 - **Reasoning:** 
   - Image hashing is expensive
-  - Phase 1 is fast (2-4s) and cheap ($0.03-0.05)
+  - Phase 1A/1B is fast (2-4s total) and cheap ($0.04-0.05)
   - User rarely scans exact same photo twice
   - Not worth the complexity
 
-**Phase 2 Cache (Review):**
-- **Cache Key:** `"{artist_name}_{album_title}".lowercased().replacingOccurrences(of: " ", with: "_")`
+**Phase 3 Cache (Review):**
+- **Cache Key:** `"{artistName}_{albumTitle}".lowercased().replacingOccurrences(of: " ", with: "_")`
 - **Cache Location:** CoreData (part of Album entity)
 - **Cache Duration:** Never expires (reviews don't change)
 - **Cache Check:** Before Phase 2 API call:
@@ -791,7 +841,7 @@ let (artwork, review) = await (artworkTask, reviewTask)
   - NSCache for in-memory caching (20-30 recent images)
   - CoreData for persistent disk cache (unlimited, never expires)
 - **Image Loading:** SwiftUI AsyncImage with custom caching layer
-- **Async/Await:** Modern Swift concurrency for two-tier API calls and parallel execution
+- **Async/Await:** Modern Swift concurrency for sequential four-phase API calls
 - **Image Formats:** JPEG (primary), PNG (fallback)
 
 ### Data Persistence
@@ -959,49 +1009,53 @@ Album {
   // Primary Key
   id: UUID (primary key)
   
-  // Phase 1 Data (Identification)
+  // Phase 1A Data (Vision Extraction) - Not stored, only used for Phase 1B
+  // extractedText and albumDescription are temporary, not persisted
+  
+  // Phase 1B Data (Identification Metadata)
   artistName: String
   albumTitle: String
   releaseYear: String?
   genres: [String]  // Array stored as JSON or comma-separated
   recordLabel: String?
-  phase1Completed: Bool  // Track if Phase 1 succeeded
+  phase1BCompleted: Bool  // Track if identification succeeded
   
-  // Artwork Data (Parallel with Phase 2)
+  // Phase 2 Data (Artwork)
   musicbrainzID: String?  // MBID for future reference
   albumArtURL: String?  // Cover Art Archive URL (large/500px)
   albumArtThumbnailData: Data?  // Cached 200x200 JPEG for history
   albumArtHighResData: Data?  // Cached 500px JPEG for detail view
   albumArtRetrievalFailed: Bool  // Track if artwork lookup failed
-  artworkLoaded: Bool  // Track if artwork fetch completed
+  phase2Completed: Bool  // Track if artwork fetch completed
   
-  // Phase 2 Data (Review)
+  // Phase 3 Data (Review)
   contextSummary: String?  // 2-3 sentence opening
   contextBulletPoints: [String]  // 3-5 bullets, stored as JSON or comma-separated
   rating: Double?  // 0-10
   recommendation: String?  // ESSENTIAL/RECOMMENDED/SKIP/AVOID
   keyTracks: [String]  // Stored as JSON or comma-separated
-  phase2Completed: Bool  // Track if Phase 2 succeeded
-  phase2Failed: Bool  // Track if Phase 2 needs retry
-  phase2LastAttempt: Date?  // When we last tried Phase 2 (for retry logic)
+  phase3Completed: Bool  // Track if Phase 3 succeeded
+  phase3Failed: Bool  // Track if Phase 3 needs retry
+  phase3LastAttempt: Date?  // When we last tried Phase 3 (for retry logic)
   
   // Metadata
   scannedDate: Date  // When user first scanned this
   lastViewedDate: Date?  // Last time user opened this album in history
   
   // Raw API Responses (Optional, for debugging)
-  rawPhase1Response: String?
-  rawPhase2Response: String?
+  rawPhase1AResponse: String?  // Vision extraction JSON
+  rawPhase1BResponse: String?  // Identification JSON
+  rawPhase3Response: String?  // Review JSON
 }
 ```
 
 ### Storage Strategy
 
 **Auto-save Policy:**
-- Phase 1 success: Immediately save to CoreData with basic metadata
-- Artwork fetch: Update existing record with artwork data
-- Phase 2 success: Update existing record with review data
-- This allows partial saves (can show basic info even if Phase 2 fails)
+- Phase 1B success: Immediately save to CoreData with basic metadata (artist, album, year, genres, label)
+- Phase 2 (artwork fetch): Update existing record with artwork data
+- Phase 3 success: Update existing record with review data
+- This allows partial saves (can show basic info even if Phase 3 fails)
 
 **Duplicates:**
 - Duplicates ARE allowed - every scan creates new entry
@@ -1010,9 +1064,9 @@ Album {
 
 **Caching:**
 - Review content cached indefinitely (reviews don't change)
-- Before Phase 2 call, check CoreData for existing album with matching artist + title
-- If exists: Skip Phase 2 API call, use cached review
-- If not exists: Make Phase 2 API call, cache result
+- Before Phase 3 call, check CoreData for existing album with matching artist + title
+- If exists: Skip Phase 3 API call, use cached review, show Album Details immediately after Loading Screen 2
+- If not exists: Make Phase 3 API call, cache result
 
 **Offline Access:**
 - All scanned albums viewable without internet
@@ -1333,17 +1387,20 @@ User taps SCAN
 - Permission denied → Settings screen
 
 **API Integration Tests:**
-- Phase 1 with real Claude API (using test images)
-- Phase 2 with real Claude API (using test metadata)
+- Phase 1A with real Claude API (using test images)
+- Phase 1B with real Claude API (using Phase 1A output)
+- Phase 2 with real MusicBrainz + Cover Art Archive (using Phase 1B metadata)
+- Phase 3 with real Claude API (using Phase 1B metadata)
 - MusicBrainz search → Parse MBID
 - Cover Art Archive query → Download image
-- Full two-tier flow with real APIs
+- Full four-phase sequential flow with real APIs
 
-**Parallel Execution Tests:**
-- Artwork and Phase 2 run in parallel
-- Both complete, display together
-- Artwork fails, Phase 2 succeeds
-- Artwork succeeds, Phase 2 fails
+**Sequential Execution Tests:**
+- Phase 1A → 1B → 2 complete sequentially during Loading Screen 1
+- Loading Screen 2 displays for exactly 2 seconds
+- Phase 3 runs during Loading Screen 3
+- Phase 1A/1B/2 fails → Scan Error Screen
+- Phase 3 fails → Album Details with retry
 - Both fail, show partial results
 
 ---
@@ -1553,27 +1610,30 @@ Before App Store submission, create privacy policy explaining:
 ### Artwork Retrieval Priority
 
 **Speed is Critical:**
-- Users should see album info + artwork within 5-10 seconds total
-- Phase 1: 2-4 seconds
-- Artwork + Phase 2 (parallel): 3-6 seconds
-- Total: 5-10 seconds
+- Users should see album confirmation within 4-6 seconds (Loading Screen 1)
+- Phase 1A: 1-2 seconds (vision extraction)
+- Phase 1B: 1-2 seconds (web search mapping)
+- Phase 2: 2-3 seconds (artwork retrieval)
+- Loading Screen 2: 2 seconds (confirmation hold)
+- Phase 3: 3-5 seconds (review generation)
+- Total: 9-13 seconds
 
-**Parallel Execution:**
-- Artwork retrieval runs concurrently with Phase 2 review generation
-- Both processes start immediately after Phase 1 success
-- Whichever finishes first displays immediately
-- Screen 2C shows artwork while review generates
+**Sequential Execution:**
+- Phase 1A → Phase 1B → Phase 2 run sequentially during Loading Screen 1
+- After all three complete, transition to Loading Screen 2 (2-second hold)
+- Phase 3 runs during Loading Screen 3 (after confirmation)
+- User sees matched album + artwork before review generation begins
 
 **Non-Blocking:**
 - Never block album information display waiting for artwork
-- If artwork fails, show placeholder immediately
-- If Phase 2 fails, show artwork + basic metadata immediately
+- If Phase 2 artwork fails, show placeholder in Loading Screen 2
+- If Phase 3 fails, show Album Details with artwork + basic metadata immediately
 
 **Aggressive Timeout:**
-- 5 seconds max for entire artwork retrieval process
-- MusicBrainz: 5 seconds
-- Cover Art Archive: 5 seconds (query + download)
-- After timeout, use placeholder and continue
+- 5 seconds max for Phase 2 artwork retrieval process
+- MusicBrainz: 3 seconds
+- Cover Art Archive: 3 seconds (query + download)
+- After timeout, use placeholder and continue to Loading Screen 2
 
 ---
 
@@ -1602,10 +1662,10 @@ Before App Store submission, create privacy policy explaining:
 - If not: Fetch from MusicBrainz + Cover Art Archive, cache in CoreData
 
 **Review Cache:**
-- Phase 2 reviews cached indefinitely (reviews don't change)
-- Before Phase 2 call, check CoreData for existing album
-- If review exists: Skip Phase 2 API call, use cached review
-- If not: Make Phase 2 API call, cache result in CoreData
+- Phase 3 reviews cached indefinitely (reviews don't change)
+- Before Phase 3 call, check CoreData for existing album
+- If review exists: Skip Phase 3 API call, use cached review, show Album Details immediately after Loading Screen 2
+- If not: Make Phase 3 API call, cache result in CoreData
 
 ---
 
@@ -1662,8 +1722,11 @@ Include this header in ALL MusicBrainz API requests.
 ### Prompt Management
 
 **Prompt Files:**
-- Phase 1: `phase1_album_identification_prompt.txt`
-- Phase 2: `phase2_review_generation_prompt.txt`
+- Phase 1A: `phase1a_vision_extraction.txt`
+- Phase 1B: `phase1b_web_search_mapping.txt`
+- Phase 3: `phase3_review_generation.txt`
+
+**Note:** No Phase 2 prompt file (Phase 2 is MusicBrainz + Cover Art Archive API calls only)
 
 **Prompt Loading:**
 - Store prompts in app bundle (as text files)
@@ -1679,6 +1742,7 @@ Include this header in ALL MusicBrainz API requests.
 - Independent iteration on prompt quality
 - No need to recompile app to test new prompts
 - Clear separation of concerns (product vs engineering)
+- Each phase's prompt can be optimized independently
 
 ---
 
@@ -1699,8 +1763,8 @@ Include this header in ALL MusicBrainz API requests.
 - From History: Returns to Camera View via History icon
 
 **Error Navigation:**
-- Single "TRY AGAIN" action for all Phase 1 errors (keep it simple)
-- "Retry Review" button for Phase 2 errors (only retries review, not identification)
+- Single "TRY AGAIN" action for all Phase 1A/1B/2 errors (returns to Camera View)
+- "Retry Review" button for Phase 3 errors (only retries Phase 3, not identification or artwork)
 
 **Default Home Screen:**
 - Camera View is the default home screen (not History)
@@ -1733,7 +1797,7 @@ Include this header in ALL MusicBrainz API requests.
 
 ---
 
-**Document Version:** 1.1 (Two-Tier API Architecture)
-**Last Updated:** October 24, 2025  
-**Status:** Ready for two-tier refactoring  
-**Next Steps:** Implement two-tier API architecture in Swift/SwiftUI
+**Document Version:** 1.2 (Four-Phase API Architecture)
+**Last Updated:** October 25, 2025  
+**Status:** Ready for four-phase refactoring  
+**Next Steps:** Implement four-phase API architecture in Swift/SwiftUI
