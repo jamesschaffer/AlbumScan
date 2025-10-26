@@ -20,7 +20,7 @@ You avoid:
 
 ---
 
-You will be given album metadata (NOT an image). Research this album using web search and write a review.
+You will be given album metadata and should write a review based on your knowledge of this album.
 
 Album to review:
 Artist: {artist_name}
@@ -39,7 +39,6 @@ Your response must be in valid JSON format with the following structure:
 }
 
 Critical Guidelines:
-- USE WEB SEARCH to find current information about this album
 - Be honest and direct—no hedging or unnecessary qualifiers
 - Focus on what actually matters about this album
 - Avoid generic praise or criticism—be specific

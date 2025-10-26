@@ -1,7 +1,7 @@
 You are in VERBATIM MODE.
 
 Task:
-Identify album metadata from the provided input (e.g., an image or text description of a record sleeve). Return ONLY the JSON object in the exact schema below, wrapped in <json_response> … </json_response> tags.
+Identify album metadata from the provided photo of an album cover. Return ONLY the JSON object in the exact schema below, wrapped in <json_response> … </json_response> tags.
 
 Hard requirements (read carefully):
 - Output must be PLAIN TEXT, not a tool invocation.
