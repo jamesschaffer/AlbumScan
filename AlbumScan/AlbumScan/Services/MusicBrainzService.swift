@@ -8,11 +8,12 @@ struct MusicBrainzSearchResponse: Codable {
 }
 
 struct MusicBrainzRelease: Codable {
-    let id: String // This is the MBID we need
+    let id: String // Release MBID
     let title: String
     let artistCredit: [ArtistCredit]?
     let date: String?
     let country: String?
+    let releaseGroup: ReleaseGroup? // NEW: Release group for better artwork
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -20,7 +21,13 @@ struct MusicBrainzRelease: Codable {
         case artistCredit = "artist-credit"
         case date
         case country
+        case releaseGroup = "release-group"
     }
+}
+
+struct ReleaseGroup: Codable {
+    let id: String // Release-group MBID (preferred for artwork)
+    let title: String?
 }
 
 struct ArtistCredit: Codable {
@@ -43,6 +50,7 @@ class MusicBrainzService {
     private init() {}
 
     /// Search for an album and return the MusicBrainz ID (MBID)
+    /// Tries multiple candidates until one with artwork is found
     func searchAlbum(artist: String, album: String) async throws -> String? {
         print("🔍 [MusicBrainz] Searching for: \(artist) - \(album)")
 
@@ -59,7 +67,7 @@ class MusicBrainzService {
         components.queryItems = [
             URLQueryItem(name: "query", value: query),
             URLQueryItem(name: "fmt", value: "json"),
-            URLQueryItem(name: "limit", value: "5")
+            URLQueryItem(name: "limit", value: "10")  // Increased from 5 to 10 for more candidates
         ]
 
         guard let url = components.url else {
@@ -98,8 +106,8 @@ class MusicBrainzService {
                 let searchResponse = try JSONDecoder().decode(MusicBrainzSearchResponse.self, from: data)
                 print("🔍 [MusicBrainz] Found \(searchResponse.count) results")
 
-                // Find the best match
-                return findBestMatch(in: searchResponse.releases, searchArtist: artist, searchAlbum: album)
+                // Find the best match - try multiple candidates until we find one with artwork
+                return await findBestMatchWithArtwork(in: searchResponse.releases, searchArtist: artist, searchAlbum: album)
 
             } catch let error as NSError where error.domain == NSURLErrorDomain {
                 // Network error - retry once
@@ -123,8 +131,83 @@ class MusicBrainzService {
         return nil
     }
 
-    /// Find the best matching release from search results
-    private func findBestMatch(in releases: [MusicBrainzRelease], searchArtist: String, searchAlbum: String) -> String? {
+    /// Find the best matching release that has artwork available
+    /// Tries multiple candidates until one with artwork is found
+    private func findBestMatchWithArtwork(in releases: [MusicBrainzRelease], searchArtist: String, searchAlbum: String) async -> String? {
+        // Get sorted candidates using existing logic
+        let sortedCandidates = getSortedCandidates(in: releases, searchArtist: searchArtist, searchAlbum: searchAlbum)
+
+        if sortedCandidates.isEmpty {
+            print("❌ [MusicBrainz] No matching results")
+            return nil
+        }
+
+        print("🔍 [MusicBrainz] Trying \(min(sortedCandidates.count, 5)) candidates for artwork...")
+
+        // Try up to 5 candidates to find one with artwork
+        for (index, release) in sortedCandidates.prefix(5).enumerated() {
+            let rgMbid = release.releaseGroup?.id
+            print("🔍 [MusicBrainz] Candidate \(index + 1): release=\(release.id), release-group=\(rgMbid ?? "none") (country: \(release.country ?? "unknown"), date: \(release.date ?? "unknown"))")
+
+            // Check if this release (or its release-group) has artwork
+            if await hasArtwork(releaseMbid: release.id, releaseGroupMbid: rgMbid) {
+                // Return release-group MBID if available (preferred), otherwise release MBID
+                let preferredMbid = rgMbid ?? release.id
+                print("✅ [MusicBrainz] Found MBID with artwork: \(preferredMbid) (type: \(rgMbid != nil ? "release-group" : "release"))")
+                return preferredMbid
+            }
+        }
+
+        // If no candidate has artwork, return the first one anyway as fallback
+        if let firstCandidate = sortedCandidates.first {
+            let fallbackMbid = firstCandidate.releaseGroup?.id ?? firstCandidate.id
+            print("⚠️ [MusicBrainz] No candidates have artwork, using first result: \(fallbackMbid)")
+            return fallbackMbid
+        }
+
+        return nil
+    }
+
+    /// Check if artwork exists, preferring release-group over release
+    /// Uses fast HEAD requests for quick checks
+    private func hasArtwork(releaseMbid: String, releaseGroupMbid: String?) async -> Bool {
+        // Strategy: Try release-group first (community-chosen representative cover)
+        // then fall back to release-level artwork
+
+        // Priority 1: Try release-group/front (most popular/representative)
+        if let rgMbid = releaseGroupMbid {
+            if await checkArtworkExists(type: "release-group", mbid: rgMbid) {
+                return true
+            }
+        }
+
+        // Priority 2: Fall back to release/front
+        return await checkArtworkExists(type: "release", mbid: releaseMbid)
+    }
+
+    /// Quick HEAD request to check if artwork exists
+    private func checkArtworkExists(type: String, mbid: String) async -> Bool {
+        guard let url = URL(string: "https://coverartarchive.org/\(type)/\(mbid)/front") else {
+            return false
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD"  // HEAD is faster than GET
+        request.timeoutInterval = 3.0
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                return httpResponse.statusCode == 200 || httpResponse.statusCode == 307 // 307 = redirect to image
+            }
+            return false
+        } catch {
+            return false
+        }
+    }
+
+    /// Get sorted candidates using existing matching logic (extracted for reuse)
+    private func getSortedCandidates(in releases: [MusicBrainzRelease], searchArtist: String, searchAlbum: String) -> [MusicBrainzRelease] {
         // Filter releases that match the artist name
         let matchingReleases = releases.filter { release in
             guard let artistCredit = release.artistCredit?.first else { return false }
@@ -163,19 +246,8 @@ class MusicBrainzService {
             return false
         }
 
-        if let bestMatch = sortedReleases.first {
-            print("✅ [MusicBrainz] Found MBID: \(bestMatch.id) (country: \(bestMatch.country ?? "unknown"), date: \(bestMatch.date ?? "unknown"))")
-            return bestMatch.id
-        }
-
-        // If no matching releases, try first result as fallback
-        if let firstResult = releases.first {
-            print("⚠️ [MusicBrainz] No exact artist match, using first result: \(firstResult.id)")
-            return firstResult.id
-        }
-
-        print("❌ [MusicBrainz] No matching results")
-        return nil
+        // Return sorted candidates (if no exact matches, return all releases sorted)
+        return sortedReleases.isEmpty ? releases : sortedReleases
     }
 
 }

@@ -10,6 +10,7 @@ struct CoverArtArchiveResponse: Codable {
 struct CoverArtImage: Codable {
     let types: [String]
     let front: Bool
+    let approved: Bool?  // NEW: Community-approved images are higher quality
     let image: String // Original full-size URL
     let thumbnails: CoverArtThumbnails
 }
@@ -29,11 +30,26 @@ class CoverArtService {
     private init() {}
 
     /// Retrieve album artwork URLs from Cover Art Archive
+    /// Tries both release-group and release endpoints for best results
     func getArtworkURLs(mbid: String) async throws -> (largeURL: String, thumbnailURL: String)? {
         print("🎨 [CoverArt] Fetching artwork for MBID: \(mbid)")
 
-        guard let url = URL(string: "\(baseURL)/\(mbid)") else {
-            throw CoverArtError.invalidURL
+        // Try release-group first (community-chosen representative), then release
+        // The MBID could be either type, so we try both
+        for endpoint in ["release-group", "release"] {
+            if let urls = try await fetchFromEndpoint(endpoint: endpoint, mbid: mbid) {
+                return urls
+            }
+        }
+
+        print("⚠️ [CoverArt] No artwork found in either release-group or release")
+        return nil
+    }
+
+    /// Fetch artwork from a specific CAA endpoint
+    private func fetchFromEndpoint(endpoint: String, mbid: String) async throws -> (largeURL: String, thumbnailURL: String)? {
+        guard let url = URL(string: "https://coverartarchive.org/\(endpoint)/\(mbid)") else {
+            return nil
         }
 
         var request = URLRequest(url: url)
@@ -43,39 +59,48 @@ class CoverArtService {
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw CoverArtError.invalidResponse
+                return nil
             }
 
-            print("🎨 [CoverArt] Response status: \(httpResponse.statusCode)")
-
-            // 404 is common for obscure releases
+            // 404 means this endpoint doesn't have artwork for this MBID
             if httpResponse.statusCode == 404 {
-                print("⚠️ [CoverArt] No artwork found (404)")
+                print("🎨 [CoverArt] No artwork at /\(endpoint)/\(mbid) (404)")
                 return nil
             }
 
             guard httpResponse.statusCode == 200 else {
-                throw CoverArtError.httpError(httpResponse.statusCode)
+                return nil
             }
 
             let coverArtResponse = try JSONDecoder().decode(CoverArtArchiveResponse.self, from: data)
 
-            // Find the front cover image
-            let frontImage = coverArtResponse.images.first { $0.front && $0.types.contains("Front") }
-                ?? coverArtResponse.images.first { $0.front }
-                ?? coverArtResponse.images.first
+            // Find the best front cover image using community best practices:
+            // 1. Prefer approved images (community quality-checked)
+            // 2. Must be front=true
+            // 3. Should have "Front" in types
+            let frontImage = coverArtResponse.images.first { image in
+                image.front && image.approved == true && image.types.contains("Front")
+            } ?? coverArtResponse.images.first { image in
+                image.front && image.approved == true
+            } ?? coverArtResponse.images.first { image in
+                image.front && image.types.contains("Front")
+            } ?? coverArtResponse.images.first { image in
+                image.front
+            } ?? coverArtResponse.images.first
 
             guard let artwork = frontImage else {
-                print("⚠️ [CoverArt] No images in response")
+                print("⚠️ [CoverArt] No images in response from /\(endpoint)/\(mbid)")
                 return nil
             }
 
-            print("✅ [CoverArt] Found artwork URLs")
-            return (largeURL: artwork.thumbnails.large, thumbnailURL: artwork.thumbnails.small)
+            print("✅ [CoverArt] Found artwork at /\(endpoint)/\(mbid) (approved: \(artwork.approved == true))")
+
+            // Use original "image" URL for highest quality, not just thumbnails
+            // Fall back to large thumbnail if original is unavailable
+            return (largeURL: artwork.image, thumbnailURL: artwork.thumbnails.large)
 
         } catch {
-            // Don't throw on network errors - just return nil so app can show placeholder
-            print("⚠️ [CoverArt] Error fetching artwork: \(error.localizedDescription)")
+            print("🎨 [CoverArt] Error fetching from /\(endpoint)/\(mbid): \(error.localizedDescription)")
             return nil
         }
     }
