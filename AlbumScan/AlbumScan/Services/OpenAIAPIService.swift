@@ -16,22 +16,38 @@ class OpenAIAPIService: LLMService {
         self.apiKey = Config.openAIAPIKey
 
         // Load prompts from bundle (same prompts as Claude)
-        guard let phase1AURL = Bundle.main.url(forResource: "phase1a_vision_extraction", withExtension: "txt", subdirectory: "Prompts"),
-              let phase1BURL = Bundle.main.url(forResource: "phase1b_web_search_mapping", withExtension: "txt", subdirectory: "Prompts"),
-              let phase2URL = Bundle.main.url(forResource: "phase2_review_generation", withExtension: "txt", subdirectory: "Prompts"),
-              let phase1AContent = try? String(contentsOf: phase1AURL),
-              let phase1BContent = try? String(contentsOf: phase1BURL),
-              let phase2Content = try? String(contentsOf: phase2URL) else {
-            fatalError("Could not load OpenAI prompts from bundle")
+        // Note: Files are in bundle root, not in subdirectory (group vs folder reference)
+        guard let phase1AURL = Bundle.main.url(forResource: "phase1a_vision_extraction", withExtension: "txt") else {
+            fatalError("❌ Could not find phase1a_vision_extraction.txt in bundle")
+        }
+
+        guard let phase1BURL = Bundle.main.url(forResource: "phase1b_web_search_mapping", withExtension: "txt") else {
+            fatalError("❌ Could not find phase1b_web_search_mapping.txt in bundle")
+        }
+
+        guard let phase2URL = Bundle.main.url(forResource: "phase3_review_generation", withExtension: "txt") else {
+            fatalError("❌ Could not find phase3_review_generation.txt in bundle")
+        }
+
+        guard let phase1AContent = try? String(contentsOf: phase1AURL) else {
+            fatalError("❌ Could not read phase1a_vision_extraction.txt")
+        }
+
+        guard let phase1BContent = try? String(contentsOf: phase1BURL) else {
+            fatalError("❌ Could not read phase1b_web_search_mapping.txt")
+        }
+
+        guard let phase2Content = try? String(contentsOf: phase2URL) else {
+            fatalError("❌ Could not read phase3_review_generation.txt")
         }
 
         self.phase1APrompt = phase1AContent
         self.phase1BPrompt = phase1BContent
         self.phase2Prompt = phase2Content
 
-        print("✅ [OpenAIAPIService] Loaded Phase 1A prompt from root bundle")
-        print("✅ [OpenAIAPIService] Loaded Phase 1B prompt from root bundle")
-        print("✅ [OpenAIAPIService] Loaded Phase 2 prompt from root bundle")
+        print("✅ [OpenAIAPIService] Loaded Phase 1A prompt from bundle")
+        print("✅ [OpenAIAPIService] Loaded Phase 1B prompt from bundle")
+        print("✅ [OpenAIAPIService] Loaded Phase 2 prompt from bundle")
     }
 
     // MARK: - Phase 1A: Vision Extraction (NO web search)
@@ -220,9 +236,9 @@ class OpenAIAPIService: LLMService {
         request.timeoutInterval = 30
 
         let body: [String: Any] = [
-            "model": "gpt-4o",
+            "model": "gpt-4o-search-preview",  // Search-enabled model (web search built-in)
             "max_tokens": 500,
-            "temperature": 0.0,
+            // Note: temperature not supported by gpt-4o-search-preview
             "messages": [
                 [
                     "role": "system",
@@ -232,14 +248,9 @@ class OpenAIAPIService: LLMService {
                     "role": "user",
                     "content": prompt
                 ]
-            ],
-            // Enable web search (OpenAI's equivalent of Claude's web search)
-            "tools": [[
-                "type": "web_search",
-                "web_search": [
-                    "search_context_size": "medium"  // low, medium, or high
-                ]
-            ]]
+            ]
+            // Note: Web search is automatic with gpt-4o-search-preview in Chat Completions API
+            // No tools parameter needed - the model searches the web when needed
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -258,22 +269,17 @@ class OpenAIAPIService: LLMService {
         request.timeoutInterval = 30
 
         let body: [String: Any] = [
-            "model": "gpt-4o",
+            "model": "gpt-4o-search-preview",  // Search-enabled model (web search built-in)
             "max_tokens": 1500,
-            "temperature": 0.3,
+            // Note: temperature not supported by gpt-4o-search-preview
             "messages": [
                 [
                     "role": "user",
                     "content": prompt
                 ]
-            ],
-            // Enable web search for Phase 2
-            "tools": [[
-                "type": "web_search",
-                "web_search": [
-                    "search_context_size": "medium"
-                ]
-            ]]
+            ]
+            // Note: Web search is automatic with gpt-4o-search-preview in Chat Completions API
+            // No tools parameter needed - the model searches the web when needed
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)

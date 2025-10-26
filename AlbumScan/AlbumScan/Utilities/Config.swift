@@ -2,9 +2,9 @@ import Foundation
 
 // MARK: - LLM Provider Selection
 
-enum LLMProvider: Int {
-    case claude = 1
-    case openAI = 2
+enum LLMProvider {
+    case claude
+    case openAI
 
     var name: String {
         switch self {
@@ -17,8 +17,8 @@ enum LLMProvider: Int {
 enum Config {
     // MARK: - LLM Configuration
 
-    /// Current LLM provider (1 = Claude, 2 = OpenAI)
-    static let currentProvider: LLMProvider = .claude
+    /// Current LLM provider - switch between .claude or .openAI
+    static let currentProvider: LLMProvider = .openAI
 
     // MARK: - API Configuration
 
