@@ -4,6 +4,14 @@
 <dict>
     <key>NSCameraUsageDescription</key>
     <string>AlbumScan needs access to your camera to identify album covers and help you discover music.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>AlbumScan needs permission to save debug images to your Photos library for troubleshooting.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>AlbumScan needs permission to save debug images to your Photos library for troubleshooting.</string>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
     <key>UILaunchScreen</key>
     <dict>
         <key>UIColorName</key>

@@ -152,6 +152,16 @@ struct CameraView: View {
         }
         .onAppear {
             cameraManager.startSession()
+
+            // Setup guide coordinates (use a small delay to ensure preview layer is sized)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let screenSize = UIScreen.main.bounds.size
+                // Preview layer fills the entire screen with .resizeAspectFill
+                cameraManager.setupFramingGuide(
+                    screenSize: screenSize,
+                    previewBounds: screenSize
+                )
+            }
         }
         .onDisappear {
             cameraManager.stopSession()

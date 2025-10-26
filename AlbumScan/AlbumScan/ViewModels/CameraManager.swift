@@ -8,6 +8,35 @@ class CameraManager: NSObject, ObservableObject {
     @Published var capturedImage: UIImage?
     @Published var error: Error?
     @Published var scannedAlbum: Album?
+
+    // Store framing guide coordinates for cropping
+    var capturedGuideFrame: CGRect = .zero
+    var previewLayerSize: CGSize = .zero
+
+    /// Call this to store the framing guide position for later cropping
+    /// Must pass the actual preview layer bounds, not screen bounds!
+    func setupFramingGuide(screenSize: CGSize, previewBounds: CGSize) {
+        let guideMargin: CGFloat = 20
+        let guideSize = screenSize.width - (guideMargin * 2)
+
+        // VERTICAL ADJUSTMENT: Shift guide up/down to fine-tune crop alignment
+        // Use percentage of screen height to work across all devices
+        // Positive = move crop DOWN, Negative = move crop UP
+        let verticalAdjustmentPercent: CGFloat = 0.015
+        let verticalAdjustment = screenSize.height * verticalAdjustmentPercent
+
+        // Store guide frame (centered on screen with adjustment)
+        capturedGuideFrame = CGRect(
+            x: guideMargin,
+            y: (screenSize.height - guideSize) / 2 + verticalAdjustment,
+            width: guideSize,
+            height: guideSize
+        )
+
+        // Store ACTUAL preview layer size (not screen size!)
+        previewLayerSize = previewBounds
+    }
+
     @Published var loadingStage: LoadingStage = .callingAPI
     @Published var scanState: ScanState = .idle
     @Published var phase1Data: Phase1Response?
@@ -174,39 +203,126 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         }
     }
 
+    // MARK: - Image Processing Pipeline
+
+    /// Complete image processing pipeline from camera capture to API-ready image
     private func processImage(_ image: UIImage) -> UIImage {
-        // Calculate the guide size matching the UI (screen width - 40px margins)
-        let screenWidth = UIScreen.main.bounds.width
-        let guideSize = screenWidth - 40
-
-        // Calculate the ratio between guide size and image size
-        let imageWidth = image.size.width
-        let imageHeight = image.size.height
-
-        // The camera captures full screen, so we need to crop to the center square
-        // matching the guide dimensions
-        let cropSize = min(imageWidth, imageHeight)
-        let origin = CGPoint(
-            x: (imageWidth - cropSize) / 2,
-            y: (imageHeight - cropSize) / 2
-        )
-
-        let cropRect = CGRect(origin: origin, size: CGSize(width: cropSize, height: cropSize))
-
-        guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
+        // STEP 1: Fix orientation (CRITICAL - do this first!)
+        guard let orientedImage = fixImageOrientation(image: image) else {
+            print("❌ Failed to fix image orientation")
             return image
         }
 
-        let croppedImage = UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+        // STEP 2: Convert guide frame to image coordinates
+        let imageCropRect = convertGuideToImageCoordinates(
+            guideFrame: capturedGuideFrame,
+            imageSize: orientedImage.size,
+            previewLayerSize: previewLayerSize
+        )
 
-        // Resize to 512x512 for API (reduced from 1024 for faster uploads/processing)
-        let targetSize = CGSize(width: 512, height: 512)
-        let renderer = UIGraphicsImageRenderer(size: targetSize)
-        let resizedImage = renderer.image { context in
-            croppedImage.draw(in: CGRect(origin: .zero, size: targetSize))
+        // STEP 3: Crop to guide with 5px margin
+        guard let croppedImage = cropToGuide(image: orientedImage, cropRect: imageCropRect) else {
+            print("❌ Failed to crop image")
+            return orientedImage
         }
 
-        return resizedImage
+        // STEP 4: Resize to 1024×1024
+        guard let finalImage = resizeImage(image: croppedImage, targetSize: CGSize(width: 1024, height: 1024)) else {
+            print("❌ Failed to resize image")
+            return croppedImage
+        }
+
+        print("✅ Image processed: 1024×1024 square ready for API")
+        return finalImage
+    }
+
+    /// Normalizes image orientation so pixel data matches visual display
+    private func fixImageOrientation(image: UIImage) -> UIImage? {
+        // If image is already correctly oriented, return it
+        if image.imageOrientation == .up {
+            return image
+        }
+
+        // Render the image in its correct orientation
+        UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+        image.draw(in: CGRect(origin: .zero, size: image.size))
+        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        return normalizedImage
+    }
+
+    /// Converts on-screen framing guide rectangle to actual image pixel coordinates
+    private func convertGuideToImageCoordinates(
+        guideFrame: CGRect,
+        imageSize: CGSize,
+        previewLayerSize: CGSize
+    ) -> CGRect {
+        // With .resizeAspectFill, determine which dimension the preview fills by
+        let screenAspect = previewLayerSize.width / previewLayerSize.height
+        let imageAspect = imageSize.width / imageSize.height
+
+        var scale: CGFloat
+        var offsetX: CGFloat = 0
+        var offsetY: CGFloat = 0
+
+        if imageAspect > screenAspect {
+            // Image is WIDER than screen - preview fills by HEIGHT, crops left/right
+            scale = imageSize.height / previewLayerSize.height
+            let visibleImageWidth = previewLayerSize.width * scale
+            offsetX = (imageSize.width - visibleImageWidth) / 2
+        } else {
+            // Image is TALLER than screen - preview fills by WIDTH, crops top/bottom
+            scale = imageSize.width / previewLayerSize.width
+            let visibleImageHeight = previewLayerSize.height * scale
+            offsetY = (imageSize.height - visibleImageHeight) / 2
+        }
+
+        // Apply scale to guide dimensions and ADD the crop offset
+        return CGRect(
+            x: offsetX + (guideFrame.origin.x * scale),
+            y: offsetY + (guideFrame.origin.y * scale),
+            width: guideFrame.width * scale,
+            height: guideFrame.height * scale
+        )
+    }
+
+    /// Crops image to specified rectangle with 5px inward margin
+    private func cropToGuide(image: UIImage, cropRect: CGRect) -> UIImage? {
+        guard let cgImage = image.cgImage else { return nil }
+
+        // Apply 5px margin inward
+        let margin: CGFloat = 5.0
+        let adjustedRect = CGRect(
+            x: cropRect.origin.x + margin,
+            y: cropRect.origin.y + margin,
+            width: cropRect.width - (margin * 2),
+            height: cropRect.height - (margin * 2)
+        )
+
+        // Ensure crop rect is within image bounds
+        let boundedRect = adjustedRect.intersection(
+            CGRect(origin: .zero, size: image.size)
+        )
+
+        // Crop the image
+        guard let croppedCGImage = cgImage.cropping(to: boundedRect) else {
+            return nil
+        }
+
+        return UIImage(
+            cgImage: croppedCGImage,
+            scale: image.scale,
+            orientation: image.imageOrientation
+        )
+    }
+
+    /// Resizes image to target size for API upload
+    private func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage? {
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { context in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
     }
 
     private func identifyAlbum(image: UIImage) async {
