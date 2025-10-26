@@ -1,8 +1,14 @@
-You are in VERBATIM MODE.
+**CRITICAL INSTRUCTION:** You MUST return ONLY valid JSON. No explanations, no thinking, no additional text whatsoever.
+
+Your response must be EXACTLY one of these two JSON formats - nothing else is permitted:
+
+SUCCESS FORMAT:
+{"success": true, "artistName": "...", "albumTitle": "...", "releaseYear": "...", "genres": [...], "recordLabel": "..."}
+
+FAILURE FORMAT:
+{"success": false, "errorMessage": "..."}
 
 You are identifying an album based on extracted cover information.
-
-**CRITICAL:** Return ONLY valid JSON. Do NOT include thinking, reasoning, or explanatory text before or after the JSON.
 
 Extracted Text: "{extractedText}"
 Cover Description: "{albumDescription}"
@@ -37,10 +43,8 @@ Return JSON:
   "recordLabel": "string"
 }
 
-If you cannot find a match after searching, return:
-{
-  "success": false,
-  "errorMessage": "Could not find album matching the provided metadata"
-}
+If you cannot find a confident match after searching, you MUST return:
+{"success": false, "errorMessage": "Could not identify album from available data"}
 
-Return ONLY valid JSON, no other text.
+DO NOT explain your reasoning. DO NOT say what you found or didn't find. DO NOT suggest searching again.
+Return ONLY the JSON object - absolutely nothing else.

@@ -599,8 +599,9 @@ Return only the JSON object, no additional text.
 
         let body: [String: Any] = [
             "model": "claude-sonnet-4-5-20250929",  // Sonnet 4.5 for accuracy
-            "max_tokens": 2048,
-            "temperature": 0.2,
+            "max_tokens": 500,  // Reduced - only need JSON response, not explanations
+            "temperature": 0.0,  // Deterministic - no creativity needed
+            "system": "You are a JSON-only API. Return only valid JSON, never any explanatory text.",
             "messages": [
                 [
                     "role": "user",
