@@ -138,7 +138,7 @@ class ClaudeAPIService {
 
         print("📝 [ClaudeAPI Phase1] Raw response:\n\(textContent)")
 
-        // Extract JSON from <json_response> tags if present
+        // Extract JSON from response (handles thinking text, XML tags, markdown fences)
         var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Check for <json_response> tags
@@ -149,14 +149,25 @@ class ClaudeAPIService {
             cleanedText = String(cleanedText[jsonStart..<jsonEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        // Also strip markdown code fences if present
+        // Strip markdown code fences if present
         if cleanedText.hasPrefix("```json") {
             cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
             cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
             cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
+        // If still no valid JSON found, try to extract JSON object from thinking text
+        // (Claude sometimes returns thinking/reasoning before the JSON when using web search)
+        if !cleanedText.hasPrefix("{") {
+            if let firstBrace = cleanedText.firstIndex(of: "{"),
+               let lastBrace = cleanedText.lastIndex(of: "}") {
+                cleanedText = String(cleanedText[firstBrace...lastBrace])
+                print("📝 [ClaudeAPI Phase1] Extracted JSON from thinking text")
+            }
+        }
+
         guard let jsonData = cleanedText.data(using: .utf8) else {
+            print("❌ [ClaudeAPI Phase1] Could not convert to UTF8")
             throw APIError.invalidResponseFormat
         }
 
@@ -166,11 +177,12 @@ class ClaudeAPIService {
             return phase1Response
         } catch {
             print("❌ [ClaudeAPI Phase1] JSON parsing error: \(error)")
+            print("❌ [ClaudeAPI Phase1] Failed to parse: \(cleanedText.prefix(200))...")
             throw APIError.invalidResponseFormat
         }
     }
 
-    // MARK: - Phase 2: Deep Review Generation
+    // MARK: - Phase 2: Deep Review Generation (uses Phase 3 prompt)
 
     func generateReviewPhase2(artistName: String, albumTitle: String, releaseYear: String, genres: [String], recordLabel: String) async throws -> Phase2Response {
         print("🔑 [ClaudeAPI Phase2] Starting review generation...")
@@ -180,14 +192,14 @@ class ClaudeAPIService {
             throw APIError.missingAPIKey
         }
 
-        // Build metadata string for Phase 2
+        // Build metadata string for Phase 2 using Phase 3 prompt
         let genresString = genres.joined(separator: ", ")
-        let metadataPrompt = phase2Prompt
-            .replacingOccurrences(of: "{artist_name}", with: artistName)
-            .replacingOccurrences(of: "{album_title}", with: albumTitle)
-            .replacingOccurrences(of: "{release_year}", with: releaseYear)
+        let metadataPrompt = phase3Prompt
+            .replacingOccurrences(of: "{artistName}", with: artistName)
+            .replacingOccurrences(of: "{albumTitle}", with: albumTitle)
+            .replacingOccurrences(of: "{releaseYear}", with: releaseYear)
             .replacingOccurrences(of: "{genres}", with: genresString)
-            .replacingOccurrences(of: "{record_label}", with: recordLabel)
+            .replacingOccurrences(of: "{recordLabel}", with: recordLabel)
 
         // Build Phase 2 request (with web search)
         let request = try buildPhase2Request(prompt: metadataPrompt)
@@ -374,10 +386,16 @@ struct ClaudeAPIResponse: Codable {
     let content: [ContentBlock]
     let model: String
     let role: String
+    let usage: Usage?
 
     struct ContentBlock: Codable {
         let type: String
         let text: String?
+    }
+
+    struct Usage: Codable {
+        let input_tokens: Int
+        let output_tokens: Int
     }
 }
 
@@ -485,6 +503,13 @@ Return only the JSON object, no additional text.
 
         // Parse response
         let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
+
+        // Log token usage
+        if let usage = apiResponse.usage {
+            let totalTokens = usage.input_tokens + usage.output_tokens
+            print("💰 [ClaudeAPI Phase1A] Tokens: \(usage.input_tokens) input + \(usage.output_tokens) output = \(totalTokens) total")
+        }
+
         return try parsePhase1AResponse(from: apiResponse)
     }
 
@@ -522,6 +547,13 @@ Return only the JSON object, no additional text.
 
         // Parse response (same format as existing Phase1Response)
         let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
+
+        // Log token usage
+        if let usage = apiResponse.usage {
+            let totalTokens = usage.input_tokens + usage.output_tokens
+            print("💰 [ClaudeAPI Phase1B] Tokens: \(usage.input_tokens) input + \(usage.output_tokens) output = \(totalTokens) total")
+        }
+
         return try parsePhase1Response(from: apiResponse)
     }
 
@@ -591,11 +623,11 @@ Return only the JSON object, no additional text.
                     "content": prompt
                 ]
             ],
-            // Enable web search for album identification
+            // Enable web search for album identification (MusicBrainz only)
             "tools": [[
                 "type": "web_search_20250305",
                 "name": "web_search",
-                "max_uses": 5
+                "max_uses": 1
             ]]
         ]
 

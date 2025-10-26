@@ -8,13 +8,13 @@ Genre: {genres}
 Label: {recordLabel}
 
 **Your Task:**
-Generate a concise, honest assessment of this album's cultural significance and musical merit. Use web search to research current information about critical reception, influence, and reputation.
+Generate a concise, honest assessment of this album's cultural significance and musical merit based on your knowledge of music history, critical reception, influence, and cultural impact.
 
 **Required Output Structure:**
 
-1. **contextSummary** (2-3 sentences): Opening paragraph that captures the album's core essence and importance. Be specific about what makes it matter (or not).
+1. **context_summary** (2-3 sentences): Opening paragraph that captures the album's core essence and importance. Be specific about what makes it matter (or not).
 
-2. **contextBullets** (3-5 bullet points): Concrete evidence supporting your assessment:
+2. **context_bullets** (3-5 bullet points): Concrete evidence supporting your assessment:
    - Critical reception (scores from Pitchfork, Rolling Stone, Metacritic when available)
    - Concrete impact examples (chart performance, sales figures, awards)
    - Specific standout tracks and sonic qualities
@@ -29,7 +29,7 @@ Generate a concise, honest assessment of this album's cultural significance and 
    - "SKIP" - Not worth your time or money
    - "AVOID" - Actively bad; belongs in the trash
 
-5. **keyTracks** (array of strings): 3-7 most significant/popular tracks from the album.
+5. **key_tracks** (array of strings): 3-7 most significant/popular tracks from the album.
 
 **Critical Requirements:**
 - Use honest, direct language - call out mediocre or bad albums explicitly
@@ -41,9 +41,9 @@ Generate a concise, honest assessment of this album's cultural significance and 
 
 Return ONLY valid JSON in this exact format:
 {
-  "contextSummary": "string",
-  "contextBullets": ["string", "string", "string"],
+  "context_summary": "string",
+  "context_bullets": ["string", "string", "string"],
   "rating": number,
   "recommendation": "ESSENTIAL|RECOMMENDED|SKIP|AVOID",
-  "keyTracks": ["string", "string", "string"]
+  "key_tracks": ["string", "string", "string"]
 }

@@ -1,9 +1,19 @@
+You are in VERBATIM MODE.
+
 You are identifying an album based on extracted cover information.
+
+**CRITICAL:** Return ONLY valid JSON. Do NOT include thinking, reasoning, or explanatory text before or after the JSON.
 
 Extracted Text: "{extractedText}"
 Cover Description: "{albumDescription}"
 
-Search the web to determine:
+**Search Instructions:**
+Use a SINGLE targeted search on MusicBrainz to find this album:
+- Search query format: site:musicbrainz.org "{extractedText}" album
+- MusicBrainz has comprehensive album data with artist names, titles, release dates, labels, and genres
+- Extract the information directly from the MusicBrainz page
+
+Determine from the search results:
 1. Artist name (full, proper spelling)
 2. Album title (full, proper title - not acronyms)
 3. Release year
