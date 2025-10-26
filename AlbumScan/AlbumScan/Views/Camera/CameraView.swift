@@ -142,25 +142,27 @@ struct CameraView: View {
             }
 
             // Error banner for identification failures
-            if showErrorBanner {
-                VStack {
-                    Spacer()
-                        .frame(height: 100)
+            VStack(spacing: 0) {
+                if showErrorBanner {
+                    VStack(spacing: 0) {
+                        // Safe area spacer
+                        Color.clear
+                            .frame(height: geometry.safeAreaInsets.top)
 
-                    Text("Unable to identify this cover art")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
-                        .background(Color.red.opacity(0.9))
-                        .cornerRadius(12)
-                        .shadow(radius: 10)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-
-                    Spacer()
+                        // Error message
+                        Text("Unable to identify this cover art")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.red)
+                    }
+                    .transition(.move(edge: .top))
                 }
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showErrorBanner)
+
+                Spacer()
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showErrorBanner)
         }
         .fullScreenCover(isPresented: $showingHistory) {
             ScanHistoryView()
