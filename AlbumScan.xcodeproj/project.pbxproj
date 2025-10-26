@@ -14,6 +14,9 @@
 		210597D12EAE9633001CDE4F /* OpenAIAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597D02EAE9633001CDE4F /* OpenAIAPIService.swift */; };
 		210597D22EAE9633001CDE4F /* LLMServiceFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597CF2EAE9633001CDE4F /* LLMServiceFactory.swift */; };
 		210597D32EAE9633001CDE4F /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597CE2EAE9633001CDE4F /* LLMService.swift */; };
+		210597D52EAEE5C8001CDE4F /* SinglePromptResponses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597D42EAEE5C8001CDE4F /* SinglePromptResponses.swift */; };
+		210597D72EAEE5DA001CDE4F /* single_prompt_identification.txt in Resources */ = {isa = PBXBuildFile; fileRef = 210597D62EAEE5DA001CDE4F /* single_prompt_identification.txt */; };
+		210597D92EAEE5E8001CDE4F /* search_finalization.txt in Resources */ = {isa = PBXBuildFile; fileRef = 210597D82EAEE5E8001CDE4F /* search_finalization.txt */; };
 		21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8E2EA58A5C009C895F /* AppState.swift */; };
 		21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A842EA58A5C009C895F /* Album.swift */; };
 		21AB8AAE2EA58A5C009C895F /* SearchPreLoaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A952EA58A5C009C895F /* SearchPreLoaderView.swift */; };
@@ -59,6 +62,9 @@
 		210597CE2EAE9633001CDE4F /* LLMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMService.swift; sourceTree = "<group>"; };
 		210597CF2EAE9633001CDE4F /* LLMServiceFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMServiceFactory.swift; sourceTree = "<group>"; };
 		210597D02EAE9633001CDE4F /* OpenAIAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIAPIService.swift; sourceTree = "<group>"; };
+		210597D42EAEE5C8001CDE4F /* SinglePromptResponses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinglePromptResponses.swift; sourceTree = "<group>"; };
+		210597D62EAEE5DA001CDE4F /* single_prompt_identification.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = single_prompt_identification.txt; sourceTree = "<group>"; };
+		210597D82EAEE5E8001CDE4F /* search_finalization.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = search_finalization.txt; sourceTree = "<group>"; };
 		21914B312EA955D60039D3CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		21AB8A2E2EA58A02009C895F /* AlbumScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlbumScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21AB8A842EA58A5C009C895F /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
@@ -133,6 +139,7 @@
 		21AB8A872EA58A5C009C895F /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				210597D42EAEE5C8001CDE4F /* SinglePromptResponses.swift */,
 				210597BC2EABDD27001CDE4F /* Phase1Response.swift */,
 				02DD9207AC464190AC1BBD80 /* Phase1AResponse.swift */,
 				210597BD2EABDD27001CDE4F /* Phase2Response.swift */,
@@ -285,6 +292,8 @@
 		5FDE54BFF94A4D7F8F5B98D8 /* Prompts */ = {
 			isa = PBXGroup;
 			children = (
+				210597D82EAEE5E8001CDE4F /* search_finalization.txt */,
+				210597D62EAEE5DA001CDE4F /* single_prompt_identification.txt */,
 				7C4E121D146B41449A73D624 /* phase1a_vision_extraction.txt */,
 				FBD1A3CEC3004E0FBB49BF9C /* phase1b_web_search_mapping.txt */,
 				3FCE23C575394A75A62E6BF5 /* phase3_review_generation.txt */,
@@ -356,6 +365,8 @@
 				21AB8ABF2EA58A5C009C895F /* README.md in Resources */,
 				21AB8AC02EA58A5C009C895F /* FILE_STRUCTURE.md in Resources */,
 				210597CD2EAC4CCB001CDE4F /* File.txt in Resources */,
+				210597D72EAEE5DA001CDE4F /* single_prompt_identification.txt in Resources */,
+				210597D92EAEE5E8001CDE4F /* search_finalization.txt in Resources */,
 				21B910342EA9481000C6E5B7 /* Bungee-Regular.ttf in Resources */,
 				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,
 				21B910322EA91D9300C6E5B7 /* Secrets.plist in Resources */,
@@ -377,6 +388,7 @@
 			files = (
 				21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */,
 				21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */,
+				210597D52EAEE5C8001CDE4F /* SinglePromptResponses.swift in Sources */,
 				21B9102E2EA822B000C6E5B7 /* LaunchScreenView.swift in Sources */,
 				66378A241DA347A394EEEAB4 /* LoadingView.swift in Sources */,
 				21AB8ACB2EA6DB9D009C895F /* CoverArtService.swift in Sources */,

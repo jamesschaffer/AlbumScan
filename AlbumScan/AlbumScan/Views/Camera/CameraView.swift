@@ -137,7 +137,7 @@ struct CameraView: View {
             } else {
                 // Old single-tier flow: use existing loading screen
                 if cameraManager.isProcessing {
-                    SearchPreLoaderView(currentStage: $cameraManager.loadingStage)
+                    SearchPreLoaderView(currentStage: $cameraManager.loadingStage, isDeepCutSearch: $cameraManager.isDeepCutSearch)
                 }
             }
 

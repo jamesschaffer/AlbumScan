@@ -42,6 +42,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var phase1Data: Phase1Response?
     @Published var phase2Data: Phase2Response?
     @Published var albumArtwork: UIImage?
+    @Published var isDeepCutSearch: Bool = false  // Tracks when we're doing search fallback
 
     // Feature flag: toggle between old single-tier and new two-tier flow
     var useTwoTierFlow = true
@@ -192,9 +193,9 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         DispatchQueue.main.async {
             self.capturedImage = processedImage
 
-            // Send to API (two-tier flow)
+            // Send to API (single-prompt flow for OpenAI)
             Task {
-                await self.identifyAlbumTwoTier(image: processedImage)
+                await self.identifySinglePrompt(image: processedImage)
             }
         }
     }
@@ -553,6 +554,207 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.error = error
                 self.scanState = .identificationFailed
                 self.isProcessing = false
+            }
+        }
+    }
+
+    // MARK: - Single-Prompt Flow (New - OpenAI Only)
+
+    private func identifySinglePrompt(image: UIImage) async {
+        let totalStart = Date()
+        print("⏱️ [SINGLE-PROMPT] ========== STARTING SINGLE-PROMPT IDENTIFICATION ==========")
+
+        // Reset deep cut flag
+        await MainActor.run {
+            self.isDeepCutSearch = false
+        }
+
+        do {
+            // ID CALL 1: Single-prompt identification (Phase 1 + 2 internal recognition)
+            await MainActor.run {
+                self.scanState = .identifying
+            }
+
+            let call1Start = Date()
+            print("🔍 [ID Call 1] Starting single-prompt identification...")
+
+            guard let openAIService = LLMServiceFactory.getService() as? OpenAIAPIService else {
+                throw APIError.invalidResponse // Should only be used with OpenAI
+            }
+
+            let identificationResponse = try await openAIService.executeSinglePromptIdentification(image: image)
+            let call1Time = Date().timeIntervalSince(call1Start)
+            print("⏱️ [TIMING] ID Call 1 took: \(String(format: "%.2f", call1Time))s")
+
+            var finalArtistName: String
+            var finalAlbumTitle: String
+            var finalReleaseYear: String
+            var finalGenres: [String]
+            var finalRecordLabel: String
+
+            // Handle the three possible outcomes
+            switch identificationResponse {
+            case .success(let successResponse):
+                // High/Medium confidence - no search needed!
+                print("✅ [ID Call 1] Success with \(successResponse.confidence) confidence")
+                print("✅ [ID Call 1] Identified: \(successResponse.albumTitle) by \(successResponse.artistName)")
+
+                finalArtistName = successResponse.artistName
+                finalAlbumTitle = successResponse.albumTitle
+                finalReleaseYear = successResponse.releaseYear
+                finalGenres = successResponse.genres
+                finalRecordLabel = successResponse.recordLabel
+
+            case .searchNeeded(let searchRequest):
+                // Low confidence - need web search (deep cut!)
+                print("🔍 [ID Call 1] Search needed: \(searchRequest.searchRequest.reason)")
+                print("🔍 [ID Call 1] Query: \(searchRequest.searchRequest.query)")
+
+                // Trigger "deep cut" message in UI
+                await MainActor.run {
+                    self.isDeepCutSearch = true
+                }
+
+                // ID CALL 2: Search finalization
+                let call2Start = Date()
+                print("🔍 [ID Call 2] Executing search with query: \(searchRequest.searchRequest.query)")
+
+                let searchResponse = try await openAIService.executeSearchFinalization(
+                    image: image,
+                    searchRequest: searchRequest.searchRequest
+                )
+                let call2Time = Date().timeIntervalSince(call2Start)
+                print("⏱️ [TIMING] ID Call 2 took: \(String(format: "%.2f", call2Time))s")
+
+                // Handle Call 2 result
+                switch searchResponse {
+                case .success(let successResponse):
+                    print("✅ [ID Call 2] Search confirmed: \(successResponse.albumTitle) by \(successResponse.artistName)")
+
+                    finalArtistName = successResponse.artistName
+                    finalAlbumTitle = successResponse.albumTitle
+                    finalReleaseYear = successResponse.releaseYear
+                    finalGenres = successResponse.genres
+                    finalRecordLabel = successResponse.recordLabel
+
+                case .unresolved(let unresolvedResponse):
+                    print("❌ [ID Call 2] Could not resolve: \(unresolvedResponse.errorMessage)")
+                    await MainActor.run {
+                        self.scanState = .identificationFailed
+                        self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: unresolvedResponse.errorMessage])
+                        self.isProcessing = false
+                        self.isDeepCutSearch = false
+                    }
+                    return
+
+                case .searchNeeded:
+                    // This shouldn't happen in Call 2
+                    print("❌ [ID Call 2] Unexpected searchNeeded response")
+                    await MainActor.run {
+                        self.scanState = .identificationFailed
+                        self.error = NSError(domain: "CameraManager", code: -101, userInfo: [NSLocalizedDescriptionKey: "Unexpected response from search"])
+                        self.isProcessing = false
+                        self.isDeepCutSearch = false
+                    }
+                    return
+                }
+
+            case .unresolved(let unresolvedResponse):
+                // Couldn't identify even with available data
+                print("❌ [ID Call 1] Unresolved: \(unresolvedResponse.errorMessage)")
+                await MainActor.run {
+                    self.scanState = .identificationFailed
+                    self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: unresolvedResponse.errorMessage])
+                    self.isProcessing = false
+                }
+                return
+            }
+
+            let totalIDTime = Date().timeIntervalSince(call1Start)
+            print("✅ [SINGLE-PROMPT ID] Identified: \(finalAlbumTitle) by \(finalArtistName)")
+            print("⏱️ [TIMING] Total ID time: \(String(format: "%.2f", totalIDTime))s")
+
+            // Store Phase 1 data for compatibility (convert to Phase1Response format)
+            let phase1Response = Phase1Response(
+                success: true,
+                artistName: finalArtistName,
+                albumTitle: finalAlbumTitle,
+                releaseYear: finalReleaseYear,
+                genres: finalGenres,
+                recordLabel: finalRecordLabel,
+                errorMessage: nil
+            )
+
+            await MainActor.run {
+                self.phase1Data = phase1Response
+            }
+
+            // Check cache for existing album with completed Phase 2
+            let cachedAlbum = self.checkCachedAlbum(artistName: finalArtistName, albumTitle: finalAlbumTitle)
+            let shouldSkipPhase2 = cachedAlbum?.phase2Completed == true
+
+            // Fetch artwork FIRST (don't show transition screen until artwork is ready)
+            print("🎨 [SINGLE-PROMPT] Fetching artwork before showing transition...")
+            let artworkFetchStart = Date()
+            let artworkResult = await self.executeArtworkFetch(
+                artistName: finalArtistName,
+                albumTitle: finalAlbumTitle
+            )
+            let artworkTime = Date().timeIntervalSince(artworkFetchStart)
+            print("⏱️ [TIMING] Artwork fetch took: \(String(format: "%.2f", artworkTime))s")
+
+            // Reset deep cut flag and transition to .identified
+            await MainActor.run {
+                self.isDeepCutSearch = false
+                self.scanState = .identified
+            }
+
+            // Stay in .identified for 2.5 seconds to show "We found [album]"
+            try await Task.sleep(nanoseconds: 2_500_000_000) // 2.5s
+
+            // Start Phase 2 review generation
+            await MainActor.run {
+                self.scanState = .loadingReview
+            }
+
+            // PHASE 2: Review Generation (unchanged)
+            let phase2Result = await self.executePhase2(
+                artistName: finalArtistName,
+                albumTitle: finalAlbumTitle,
+                releaseYear: finalReleaseYear,
+                genres: finalGenres,
+                recordLabel: finalRecordLabel
+            )
+
+            // Save to CoreData
+            let savedAlbum = try await self.saveTwoTierAlbum(
+                phase1: phase1Response,
+                phase2: phase2Result.response,
+                phase2Failed: phase2Result.failed,
+                musicbrainzID: artworkResult.mbid,
+                artworkData: artworkResult.data,
+                artworkFailed: artworkResult.failed
+            )
+
+            // Complete
+            await MainActor.run {
+                let totalTime = Date().timeIntervalSince(totalStart)
+                print("⏱️ [TIMING] ========== SINGLE-PROMPT TOTAL: \(String(format: "%.2f", totalTime))s ==========")
+                print("✅ [SINGLE-PROMPT] Setting scannedAlbum to: \(savedAlbum.albumTitle ?? "Unknown") by \(savedAlbum.artistName ?? "Unknown")")
+                self.scanState = .complete
+                self.scannedAlbum = savedAlbum
+                self.isProcessing = false
+            }
+
+        } catch {
+            let totalTime = Date().timeIntervalSince(totalStart)
+            print("⏱️ [TIMING] ========== SINGLE-PROMPT FAILED AFTER: \(String(format: "%.2f", totalTime))s ==========")
+            print("❌ [SINGLE-PROMPT] Error: \(error.localizedDescription)")
+            await MainActor.run {
+                self.error = error
+                self.scanState = .identificationFailed
+                self.isProcessing = false
+                self.isDeepCutSearch = false
             }
         }
     }

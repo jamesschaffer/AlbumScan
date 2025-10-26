@@ -5,10 +5,10 @@ enum LoadingStage: Int, CaseIterable {
     case parsingResponse = 1
     case downloadingArtwork = 2
 
-    var text: String {
+    func text(isDeepCut: Bool) -> String {
         switch self {
         case .callingAPI:
-            return "Flipping through every record bin in existence"
+            return isDeepCut ? "Looks like you found a deep cut; doing some extra work" : "Flipping through every record bin in existence"
         case .parsingResponse:
             return "Writing a review that's somehow both pretentious and correct"
         case .downloadingArtwork:
@@ -19,6 +19,7 @@ enum LoadingStage: Int, CaseIterable {
 
 struct SearchPreLoaderView: View {
     @Binding var currentStage: LoadingStage
+    @Binding var isDeepCutSearch: Bool
     @State private var dotCount: Int = 0
     @State private var displayedStage: LoadingStage = .callingAPI
     @State private var stageStartTime: Date = Date()
@@ -49,7 +50,7 @@ struct SearchPreLoaderView: View {
 
                 // Stage text with animated dots (left aligned)
                 VStack(alignment: .leading, spacing: 0) {
-                    (Text(displayedStage.text)
+                    (Text(displayedStage.text(isDeepCut: isDeepCutSearch))
                         .foregroundColor(.white) +
                      Text(String(repeating: ".", count: dotCount))
                         .foregroundColor(greenColor))
@@ -62,7 +63,7 @@ struct SearchPreLoaderView: View {
                     insertion: .move(edge: .trailing),
                     removal: .move(edge: .leading)
                 ))
-                .id(displayedStage.rawValue) // Force view recreation on stage change
+                .id("\(displayedStage.rawValue)-\(isDeepCutSearch)") // Force view recreation on stage or deep cut change
 
                 Spacer()
             }
@@ -120,6 +121,6 @@ struct SearchPreLoaderView: View {
 
 struct SearchPreLoaderView_Previews: PreviewProvider {
     static var previews: some View {
-        SearchPreLoaderView(currentStage: .constant(.callingAPI))
+        SearchPreLoaderView(currentStage: .constant(.callingAPI), isDeepCutSearch: .constant(false))
     }
 }
