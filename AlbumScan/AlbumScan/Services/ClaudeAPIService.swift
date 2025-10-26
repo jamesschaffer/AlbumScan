@@ -507,7 +507,7 @@ Return only the JSON object, no additional text.
         let prompt = phase1BPrompt
             .replacingOccurrences(of: "{extractedText}", with: phase1AData.extractedText)
             .replacingOccurrences(of: "{albumDescription}", with: phase1AData.albumDescription)
-            .replacingOccurrences(of: "{textConfidence}", with: phase1AData.textConfidence)
+            .replacingOccurrences(of: "{textConfidence}", with: phase1AData.textConfidence ?? "medium")
 
         // Build request with web search enabled
         let request = try buildPhase1BRequest(prompt: prompt)
