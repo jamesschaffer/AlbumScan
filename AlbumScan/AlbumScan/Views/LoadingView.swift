@@ -13,6 +13,11 @@ struct LoadingView: View {
     @State private var showingReviewMessage = false
     @State private var ellipsisDots = 1
 
+    // Animation states
+    @State private var textOpacity: Double = 0
+    @State private var offsetX: CGFloat = 0
+    @State private var albumOpacity: Double = 0
+
     // MARK: - Layout Constants
 
     private let messageFontSize: CGFloat = 24
@@ -76,6 +81,7 @@ struct LoadingView: View {
                                     .frame(width: albumSize, height: albumSize)
                             }
                         }
+                        .opacity(albumOpacity)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.leading, 30)
 
@@ -87,6 +93,8 @@ struct LoadingView: View {
                     // Text content - top edge is ALWAYS at 50% screen height
                     contentText(geometry: geometry)
                         .padding(.horizontal, 30)
+                        .opacity(textOpacity)
+                        .offset(x: offsetX)
 
                     // Bottom spacer fills remaining space
                     Spacer()
@@ -94,12 +102,33 @@ struct LoadingView: View {
             }
         }
         .onChange(of: shouldShowAlbumSection) { oldValue, newValue in
-            // When we transition to showing album section, start 2-second timer
+            // When we transition to showing album section
             if !oldValue && newValue {
                 #if DEBUG
-                print("🎬 [LoadingView] Transitioning to album section, starting 2-second timer")
+                print("🎬 [LoadingView] Transitioning to album section, animating out old text")
                 #endif
-                startReviewTransitionTimer()
+
+                // Slide out left
+                withAnimation(.easeIn(duration: 0.3)) {
+                    offsetX = -UIScreen.main.bounds.width
+                }
+
+                // After slide completes, fade in album and text, then start 2-second timer
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    // Reset position and opacity
+                    self.offsetX = 0
+                    self.textOpacity = 0
+                    self.albumOpacity = 0
+
+                    // Fade in album and text together
+                    withAnimation(.easeIn(duration: 0.4)) {
+                        self.albumOpacity = 1.0
+                        self.textOpacity = 1.0
+                    }
+
+                    // Start the 2-second timer for next transition
+                    self.startReviewTransitionTimer()
+                }
             }
         }
         .onAppear {
@@ -108,11 +137,23 @@ struct LoadingView: View {
                 ellipsisDots = (ellipsisDots % 3) + 1
             }
 
-            // If already in album section when view appears (edge case), start timer
+            // Initial fade in: wait 0.5s, then fade from opacity 0 to 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                withAnimation(.easeIn(duration: 0.4)) {
+                    textOpacity = 1.0
+                }
+            }
+
+            // If already in album section when view appears (edge case), fade in album and start timer
             if shouldShowAlbumSection {
                 #if DEBUG
-                print("🎬 [LoadingView] View appeared with album section already visible, starting timer")
+                print("🎬 [LoadingView] View appeared with album section already visible, fading in album and starting timer")
                 #endif
+
+                withAnimation(.easeIn(duration: 0.4)) {
+                    albumOpacity = 1.0
+                }
+
                 startReviewTransitionTimer()
             }
         }
@@ -138,10 +179,8 @@ struct LoadingView: View {
             Group {
                 if !showingReviewMessage {
                     foundMessageView(geometry: geometry)
-                        .transition(.opacity)
                 } else {
                     reviewMessageView(geometry: geometry)
-                        .transition(.opacity)
                 }
             }
         }
@@ -180,10 +219,26 @@ struct LoadingView: View {
     // MARK: - Timer
 
     private func startReviewTransitionTimer() {
-        // After 2 seconds, fade from "We found..." to "Writing a review..."
+        // After 2 seconds, slide out "We found..." and fade in "Writing a review..."
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            withAnimation(.easeInOut(duration: transitionDuration)) {
-                showingReviewMessage = true
+            // Slide out left
+            withAnimation(.easeIn(duration: 0.3)) {
+                self.offsetX = -UIScreen.main.bounds.width
+            }
+
+            // After slide completes, fade in new text
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                // Update to review message
+                self.showingReviewMessage = true
+
+                // Reset position and opacity
+                self.offsetX = 0
+                self.textOpacity = 0
+
+                // Fade in new text (no exit animation for this one)
+                withAnimation(.easeIn(duration: 0.4)) {
+                    self.textOpacity = 1.0
+                }
             }
         }
     }

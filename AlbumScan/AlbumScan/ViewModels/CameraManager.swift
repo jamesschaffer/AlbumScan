@@ -38,15 +38,10 @@ class CameraManager: NSObject, ObservableObject {
         previewLayerSize = previewBounds
     }
 
-    @Published var loadingStage: LoadingStage = .callingAPI
     @Published var scanState: ScanState = .idle
     @Published var phase1Data: Phase1Response?
     @Published var phase2Data: Phase2Response?
     @Published var albumArtwork: UIImage?
-    @Published var isDeepCutSearch: Bool = false  // Tracks when we're doing search fallback
-
-    // Feature flag: toggle between old single-tier and new two-tier flow
-    var useTwoTierFlow = true
 
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
@@ -147,7 +142,6 @@ class CameraManager: NSObject, ObservableObject {
             self.error = nil
             self.scanState = .identifying  // For two-tier flow
             self.isProcessing = true       // For old flow
-            self.loadingStage = .callingAPI
         }
 
         sessionQueue.async { [weak self] in
@@ -365,7 +359,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             let claudeStart = Date()
             print("🎵 [CameraManager] Calling Claude API...")
             await MainActor.run {
-                self.loadingStage = .callingAPI
             }
             let response = try await ClaudeAPIService.shared.identifyAlbum(image: image)
             let claudeTime = Date().timeIntervalSince(claudeStart)
@@ -374,7 +367,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             // Advance to parsing stage
             await MainActor.run {
-                self.loadingStage = .parsingResponse
             }
 
             // Step 2: Search MusicBrainz for MBID
@@ -396,7 +388,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
                     // Advance to artwork download stage
                     await MainActor.run {
-                        self.loadingStage = .downloadingArtwork
                     }
 
                     // Step 3: Download artwork from Cover Art Archive
@@ -421,7 +412,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
                     // Still advance to artwork stage (will skip download)
                     await MainActor.run {
-                        self.loadingStage = .downloadingArtwork
                     }
                 }
             } catch {
@@ -430,7 +420,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
                 // Still advance to artwork stage
                 await MainActor.run {
-                    self.loadingStage = .downloadingArtwork
                 }
             }
 
@@ -596,7 +585,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
         // Reset deep cut flag
         await MainActor.run {
-            self.isDeepCutSearch = false
         }
 
         do {
@@ -642,7 +630,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
                 // Trigger "deep cut" message in UI
                 await MainActor.run {
-                    self.isDeepCutSearch = true
                 }
 
                 // ID CALL 2: Search finalization
@@ -673,7 +660,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                         self.scanState = .identificationFailed
                         self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: unresolvedResponse.errorMessage])
                         self.isProcessing = false
-                        self.isDeepCutSearch = false
                     }
                     return
 
@@ -684,7 +670,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                         self.scanState = .identificationFailed
                         self.error = NSError(domain: "CameraManager", code: -101, userInfo: [NSLocalizedDescriptionKey: "Unexpected response from search"])
                         self.isProcessing = false
-                        self.isDeepCutSearch = false
                     }
                     return
                 }
@@ -735,7 +720,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             // Reset deep cut flag and transition to .identified
             await MainActor.run {
-                self.isDeepCutSearch = false
                 self.scanState = .identified
             }
 
@@ -784,7 +768,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.error = error
                 self.scanState = .identificationFailed
                 self.isProcessing = false
-                self.isDeepCutSearch = false
             }
         }
     }

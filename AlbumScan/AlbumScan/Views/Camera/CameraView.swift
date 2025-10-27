@@ -121,26 +121,18 @@ struct CameraView: View {
                 }
             }
 
-            // Loading overlay - choose based on flow type
-            if cameraManager.useTwoTierFlow {
-                // Two-tier flow: unified loading view handles all states
-                switch cameraManager.scanState {
-                case .identifying, .identified, .loadingReview, .complete:
-                    // Keep loading screen visible during .complete to prevent camera flash
-                    // during fullScreenCover slide-up animation
-                    LoadingView(
-                        scanState: cameraManager.scanState,
-                        phase1Data: cameraManager.phase1Data,
-                        albumArtwork: cameraManager.albumArtwork
-                    )
-                case .idle, .identificationFailed, .reviewFailed:
-                    EmptyView()
-                }
-            } else {
-                // Old single-tier flow: use existing loading screen
-                if cameraManager.isProcessing {
-                    SearchPreLoaderView(currentStage: $cameraManager.loadingStage, isDeepCutSearch: $cameraManager.isDeepCutSearch)
-                }
+            // Loading overlay
+            switch cameraManager.scanState {
+            case .identifying, .identified, .loadingReview, .complete:
+                // Keep loading screen visible during .complete to prevent camera flash
+                // during fullScreenCover slide-up animation
+                LoadingView(
+                    scanState: cameraManager.scanState,
+                    phase1Data: cameraManager.phase1Data,
+                    albumArtwork: cameraManager.albumArtwork
+                )
+            case .idle, .identificationFailed, .reviewFailed:
+                EmptyView()
             }
 
             // Error banner for identification failures
