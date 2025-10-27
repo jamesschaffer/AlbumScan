@@ -28,27 +28,28 @@ struct SearchPreLoaderView: View {
     let greenColor = Color(red: 0, green: 0.87, blue: 0.32)
 
     var body: some View {
-        ZStack {
-            // Full black background
-            Color.black
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                // Full black background
+                Color.black
+                    .ignoresSafeArea()
 
-            // Main content
-            VStack(spacing: 0) {
-                // Logo at top (same position as other pages)
-                HStack {
-                    Spacer()
-                    Image("album-scan-logo-simple-white")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 185)
+                // Logo at top
+                VStack(spacing: 0) {
+                    HStack {
+                        Spacer()
+                        Image("album-scan-logo-simple-white")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 185)
+                        Spacer()
+                    }
+                    .padding(.top, 20)
+
                     Spacer()
                 }
-                .padding(.top, 20)
 
-                Spacer()
-
-                // Stage text with animated dots (left aligned)
+                // Stage text positioned at 50% screen height (top of text at 50%)
                 VStack(alignment: .leading, spacing: 0) {
                     (Text(displayedStage.text(isDeepCut: isDeepCutSearch))
                         .foregroundColor(.white) +
@@ -59,13 +60,12 @@ struct SearchPreLoaderView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 30)
+                .position(x: geometry.size.width / 2, y: geometry.size.height * 0.5)
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing),
                     removal: .move(edge: .leading)
                 ))
                 .id("\(displayedStage.rawValue)-\(isDeepCutSearch)") // Force view recreation on stage or deep cut change
-
-                Spacer()
             }
         }
         .onAppear {

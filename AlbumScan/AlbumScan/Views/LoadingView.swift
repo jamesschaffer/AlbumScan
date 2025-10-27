@@ -19,9 +19,9 @@ struct LoadingView: View {
     private let messageLineHeight: CGFloat = 6
     private let messageColor: Color = .white
     private let artworkSize: CGFloat = 120
-    private let artworkToTextSpacing: CGFloat = 16
+    private let artworkBottomMargin: CGFloat = 10
     private let textWidthPercentage: CGFloat = 0.75
-    private let contentTopPercentage: CGFloat = 0.4
+    private let textTopPercentage: CGFloat = 0.5  // Text starts at 50% screen height
     private let transitionDuration: Double = 0.4
 
     // Brand Colors
@@ -51,24 +51,21 @@ struct LoadingView: View {
                     }
                     .padding(.top, 20)
 
-                    // Fixed spacer pushes content to 40% from top
-                    Spacer()
-                        .frame(height: geometry.size.height * contentTopPercentage)
-
-                    // Content based on state
-                    if !shouldShowAlbumSection {
-                        // State 1: Identifying (no album info yet)
-                        identifyingContent(geometry: geometry)
-                            .padding(.horizontal, 30)
-                    } else {
-                        // State 2/3: Album found / Writing review
-                        albumFoundContent(geometry: geometry)
-                            .padding(.horizontal, 30)
-                    }
-
-                    // Bottom spacer fills remaining space
                     Spacer()
                 }
+
+                // Content positioned at 50% screen height
+                VStack(alignment: .leading, spacing: 0) {
+                    if !shouldShowAlbumSection {
+                        // State 1: Identifying (text only at 50%)
+                        identifyingContent(geometry: geometry)
+                    } else {
+                        // State 2/3: Album + text (album bottom at 50% - 10pt, text top at 50%)
+                        albumFoundContent(geometry: geometry)
+                    }
+                }
+                .padding(.horizontal, 30)
+                .position(x: geometry.size.width / 2, y: geometry.size.height * textTopPercentage)
             }
         }
         .onChange(of: shouldShowAlbumSection) { oldValue, newValue in
@@ -109,23 +106,30 @@ struct LoadingView: View {
     }
 
     private func albumFoundContent(geometry: GeometryProxy) -> some View {
-        VStack(alignment: .leading, spacing: artworkToTextSpacing) {
-            // Artwork or placeholder
-            if let artwork = albumArtwork {
-                Image(uiImage: artwork)
-                    .resizable()
-                    .frame(width: artworkSize, height: artworkSize)
-                    .aspectRatio(contentMode: .fill)
-                    .clipped()
-                    .cornerRadius(4)
-            } else {
-                // Dark gray placeholder when no artwork
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(placeholderGray)
-                    .frame(width: artworkSize, height: artworkSize)
+        VStack(alignment: .leading, spacing: 0) {
+            // Artwork or placeholder (positioned so bottom is at 50% - 10pt margin)
+            Group {
+                if let artwork = albumArtwork {
+                    Image(uiImage: artwork)
+                        .resizable()
+                        .frame(width: artworkSize, height: artworkSize)
+                        .aspectRatio(contentMode: .fill)
+                        .clipped()
+                        .cornerRadius(4)
+                } else {
+                    // Dark gray placeholder when no artwork
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(placeholderGray)
+                        .frame(width: artworkSize, height: artworkSize)
+                }
             }
+            .offset(y: -(artworkSize + artworkBottomMargin))  // Position album above text
 
-            // Text transitions with fade
+            // Spacing between album and text
+            Spacer()
+                .frame(height: artworkBottomMargin)
+
+            // Text transitions with fade (top of text is at 50% screen height)
             Group {
                 if !showingReviewMessage {
                     foundMessageView(geometry: geometry)
