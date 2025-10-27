@@ -55,17 +55,17 @@ struct LoadingView: View {
                 }
 
                 // Content positioned at 50% screen height
-                VStack(alignment: .leading, spacing: 0) {
-                    if !shouldShowAlbumSection {
-                        // State 1: Identifying (text only at 50%)
+                if !shouldShowAlbumSection {
+                    // State 1: Identifying (text top at 50%)
+                    VStack(alignment: .leading, spacing: 0) {
                         identifyingContent(geometry: geometry)
-                    } else {
-                        // State 2/3: Album + text (album bottom at 50% - 10pt, text top at 50%)
-                        albumFoundContent(geometry: geometry)
                     }
+                    .padding(.horizontal, 30)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height * textTopPercentage)
+                } else {
+                    // State 2/3: Album + text (positioned separately)
+                    albumFoundContentPositioned(geometry: geometry)
                 }
-                .padding(.horizontal, 30)
-                .position(x: geometry.size.width / 2, y: geometry.size.height * textTopPercentage)
             }
         }
         .onChange(of: shouldShowAlbumSection) { oldValue, newValue in
@@ -105,9 +105,13 @@ struct LoadingView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func albumFoundContent(geometry: GeometryProxy) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Artwork or placeholder (positioned so bottom is at 50% - 10pt margin)
+    private func albumFoundContentPositioned(geometry: GeometryProxy) -> some View {
+        // Album center Y = (50% - 10pt - artworkSize/2)
+        let albumCenterY = (geometry.size.height * textTopPercentage) - artworkBottomMargin - (artworkSize / 2)
+        let textTopY = geometry.size.height * textTopPercentage
+
+        return ZStack(alignment: .topLeading) {
+            // Album artwork positioned so bottom is at 50% - 10pt
             Group {
                 if let artwork = albumArtwork {
                     Image(uiImage: artwork)
@@ -123,24 +127,23 @@ struct LoadingView: View {
                         .frame(width: artworkSize, height: artworkSize)
                 }
             }
-            .offset(y: -(artworkSize + artworkBottomMargin))  // Position album above text
+            .position(x: 30 + artworkSize / 2, y: albumCenterY)
 
-            // Spacing between album and text
-            Spacer()
-                .frame(height: artworkBottomMargin)
-
-            // Text transitions with fade (top of text is at 50% screen height)
-            Group {
-                if !showingReviewMessage {
-                    foundMessageView(geometry: geometry)
-                        .transition(.opacity)
-                } else {
-                    reviewMessageView(geometry: geometry)
-                        .transition(.opacity)
+            // Text positioned so top is at 50%
+            VStack(alignment: .leading, spacing: 0) {
+                Group {
+                    if !showingReviewMessage {
+                        foundMessageView(geometry: geometry)
+                            .transition(.opacity)
+                    } else {
+                        reviewMessageView(geometry: geometry)
+                            .transition(.opacity)
+                    }
                 }
             }
+            .padding(.horizontal, 30)
+            .position(x: geometry.size.width / 2, y: textTopY)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Text Messages
