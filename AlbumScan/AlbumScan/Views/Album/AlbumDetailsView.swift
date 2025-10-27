@@ -192,7 +192,7 @@ struct AlbumDetailsView: View {
                                 .lineSpacing(bodyTextLineHeight)
                                 .foregroundColor(bodyTextColor)
                                 .padding(.vertical, 8)
-                                .tint(brandGreen)
+                                .tint(.black)
 
                             // Bullet Points
                             VStack(alignment: .leading, spacing: 12) {
@@ -205,7 +205,7 @@ struct AlbumDetailsView: View {
                                             .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
                                             .lineSpacing(bodyTextLineHeight)
                                             .foregroundColor(bodyTextColor)
-                                            .tint(brandGreen)
+                                            .tint(.black)
                                     }
                                     .padding(.leading, listItemIndent)
                                 }
