@@ -319,6 +319,18 @@ struct AlbumDetailsView: View {
                     manager.scanState = .idle
                 }
             }
+
+            // LOG RAW REVIEW TEXT FOR DEBUGGING
+            print("========================================")
+            print("RAW REVIEW DATA FOR: \(album.albumTitle)")
+            print("========================================")
+            print("\nCONTEXT SUMMARY:")
+            print(album.contextSummary)
+            print("\nBULLET POINTS:")
+            for (index, bullet) in album.contextBulletPoints.enumerated() {
+                print("[\(index + 1)] \(bullet)")
+            }
+            print("========================================\n")
         }
     }
 
