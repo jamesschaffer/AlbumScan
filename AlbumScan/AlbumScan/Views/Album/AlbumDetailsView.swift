@@ -187,13 +187,12 @@ struct AlbumDetailsView: View {
                         // Phase 2 succeeded - show full review
                         VStack(alignment: .leading, spacing: 16) {
                             // Cultural Context Summary
-                            Text(parseMarkdownLinks(
-                                album.contextSummary,
-                                baseFont: Font.custom("Helvetica Neue", size: bodyTextFontSize),
-                                baseColor: bodyTextColor
-                            ))
-                            .lineSpacing(bodyTextLineHeight)
-                            .padding(.vertical, 8)
+                            Text(parseMarkdownLinks(album.contextSummary))
+                                .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
+                                .lineSpacing(bodyTextLineHeight)
+                                .foregroundColor(bodyTextColor)
+                                .padding(.vertical, 8)
+                                .tint(brandGreen)
 
                             // Bullet Points
                             VStack(alignment: .leading, spacing: 12) {
@@ -202,16 +201,18 @@ struct AlbumDetailsView: View {
                                         Text("•")
                                             .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
                                             .foregroundColor(bodyTextColor)
-                                        Text(parseMarkdownLinks(
-                                            bullet,
-                                            baseFont: Font.custom("Helvetica Neue", size: bodyTextFontSize),
-                                            baseColor: bodyTextColor
-                                        ))
-                                        .lineSpacing(bodyTextLineHeight)
+                                        Text(parseMarkdownLinks(bullet))
+                                            .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
+                                            .lineSpacing(bodyTextLineHeight)
+                                            .foregroundColor(bodyTextColor)
+                                            .tint(brandGreen)
                                     }
                                     .padding(.leading, listItemIndent)
                                 }
                             }
+                            .environment(\.openURL, OpenURLAction { url in
+                                return .systemAction
+                            })
 
                             // Rating
                             HStack {
@@ -355,29 +356,18 @@ struct AlbumDetailsView: View {
 
     // MARK: - Markdown Link Parser
 
-    private func parseMarkdownLinks(_ text: String, baseFont: Font, baseColor: Color) -> AttributedString {
+    private func parseMarkdownLinks(_ text: String) -> AttributedString {
+        var result = text
+
         // Regex pattern to match [text](url)
         let pattern = #"\[([^\]]+)\]\(([^\)]+)\)"#
 
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            var result = AttributedString(text)
-            result.font = baseFont
-            result.foregroundColor = baseColor
-            return result
+            return AttributedString(text)
         }
 
         let nsString = text as NSString
         let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsString.length))
-
-        // If no matches, return plain text with base formatting
-        if matches.isEmpty {
-            var result = AttributedString(text)
-            result.font = baseFont
-            result.foregroundColor = baseColor
-            return result
-        }
-
-        var result = text
 
         // Process matches in reverse to maintain correct indices
         for match in matches.reversed() {
@@ -387,76 +377,20 @@ struct AlbumDetailsView: View {
             let displayTextRange = match.range(at: 1)
             let urlRange = match.range(at: 2)
 
-            guard let fullRange = Range(fullMatchRange, in: result),
-                  let displayTextNSRange = Range(displayTextRange, in: text),
-                  let urlNSRange = Range(urlRange, in: text) else {
-                continue
-            }
+            let domain = nsString.substring(with: displayTextRange)
+            let urlString = nsString.substring(with: urlRange)
 
-            let displayText = String(text[displayTextNSRange])
-            let urlString = String(text[urlNSRange])
+            // Create markdown-formatted link that SwiftUI can parse: **[🔗 domain](url)**
+            let replacement = "**[🔗 \(domain)](\(urlString))**"
 
-            // Create the replacement text: 🔗 domain
-            let linkText = "🔗 \(displayText)"
-
-            // Replace in the string
-            result.replaceSubrange(fullRange, with: linkText)
+            result = (result as NSString).replacingCharacters(in: fullMatchRange, with: replacement)
         }
 
-        // Now create AttributedString with base formatting
-        var attributedString = AttributedString(result)
-        attributedString.font = baseFont
-        attributedString.foregroundColor = baseColor
-
-        // Find all 🔗 patterns and make them links
-        let linkPattern = #"🔗 ([^\s]+)"#
-        guard let linkRegex = try? NSRegularExpression(pattern: linkPattern) else {
-            return attributedString
+        // Parse as markdown so links are clickable
+        if let attributed = try? AttributedString(markdown: result, options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+            return attributed
         }
 
-        let resultNSString = result as NSString
-        let linkMatches = linkRegex.matches(in: result, range: NSRange(location: 0, length: resultNSString.length))
-
-        // We need to find the original URLs for these domains
-        var urlMap: [String: URL] = [:]
-        for match in matches {
-            guard match.numberOfRanges == 3,
-                  let displayTextRange = Range(match.range(at: 1), in: text),
-                  let urlRange = Range(match.range(at: 2), in: text) else {
-                continue
-            }
-
-            let displayText = String(text[displayTextRange])
-            let urlString = String(text[urlRange])
-
-            if let url = URL(string: urlString) {
-                urlMap[displayText] = url
-            }
-        }
-
-        // Apply link formatting - need to get the UIFont equivalent for bold
-        let uiFont = UIFont(name: "Helvetica Neue Bold", size: bodyTextFontSize) ?? UIFont.boldSystemFont(ofSize: bodyTextFontSize)
-
-        // Apply link formatting
-        for linkMatch in linkMatches {
-            guard linkMatch.numberOfRanges == 2,
-                  let domainRange = Range(linkMatch.range(at: 1), in: result),
-                  let linkRange = Range(linkMatch.range(at: 0), in: result) else {
-                continue
-            }
-
-            let domain = String(result[domainRange])
-
-            // Find the corresponding URL
-            if let url = urlMap[domain],
-               let attributedRange = Range<AttributedString.Index>(linkRange, in: attributedString) {
-                attributedString[attributedRange].link = url
-                attributedString[attributedRange].font = Font(uiFont)
-                attributedString[attributedRange].underlineStyle = .single
-                attributedString[attributedRange].foregroundColor = brandGreen
-            }
-        }
-
-        return attributedString
+        return AttributedString(result)
     }
 }
