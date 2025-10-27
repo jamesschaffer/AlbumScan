@@ -187,11 +187,13 @@ struct AlbumDetailsView: View {
                         // Phase 2 succeeded - show full review
                         VStack(alignment: .leading, spacing: 16) {
                             // Cultural Context Summary
-                            Text(parseMarkdownLinks(album.contextSummary))
-                                .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
-                                .lineSpacing(bodyTextLineHeight)
-                                .foregroundColor(bodyTextColor)
-                                .padding(.vertical, 8)
+                            Text(parseMarkdownLinks(
+                                album.contextSummary,
+                                baseFont: Font.custom("Helvetica Neue", size: bodyTextFontSize),
+                                baseColor: bodyTextColor
+                            ))
+                            .lineSpacing(bodyTextLineHeight)
+                            .padding(.vertical, 8)
 
                             // Bullet Points
                             VStack(alignment: .leading, spacing: 12) {
@@ -200,10 +202,12 @@ struct AlbumDetailsView: View {
                                         Text("•")
                                             .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
                                             .foregroundColor(bodyTextColor)
-                                        Text(parseMarkdownLinks(bullet))
-                                            .font(Font.custom("Helvetica Neue", size: bodyTextFontSize))
-                                            .lineSpacing(bodyTextLineHeight)
-                                            .foregroundColor(bodyTextColor)
+                                        Text(parseMarkdownLinks(
+                                            bullet,
+                                            baseFont: Font.custom("Helvetica Neue", size: bodyTextFontSize),
+                                            baseColor: bodyTextColor
+                                        ))
+                                        .lineSpacing(bodyTextLineHeight)
                                     }
                                     .padding(.leading, listItemIndent)
                                 }
@@ -351,20 +355,26 @@ struct AlbumDetailsView: View {
 
     // MARK: - Markdown Link Parser
 
-    private func parseMarkdownLinks(_ text: String) -> AttributedString {
+    private func parseMarkdownLinks(_ text: String, baseFont: Font, baseColor: Color) -> AttributedString {
         // Regex pattern to match [text](url)
         let pattern = #"\[([^\]]+)\]\(([^\)]+)\)"#
 
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return AttributedString(text)
+            var result = AttributedString(text)
+            result.font = baseFont
+            result.foregroundColor = baseColor
+            return result
         }
 
         let nsString = text as NSString
         let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsString.length))
 
-        // If no matches, return plain text
+        // If no matches, return plain text with base formatting
         if matches.isEmpty {
-            return AttributedString(text)
+            var result = AttributedString(text)
+            result.font = baseFont
+            result.foregroundColor = baseColor
+            return result
         }
 
         var result = text
@@ -393,8 +403,10 @@ struct AlbumDetailsView: View {
             result.replaceSubrange(fullRange, with: linkText)
         }
 
-        // Now create AttributedString and apply link formatting
+        // Now create AttributedString with base formatting
         var attributedString = AttributedString(result)
+        attributedString.font = baseFont
+        attributedString.foregroundColor = baseColor
 
         // Find all 🔗 patterns and make them links
         let linkPattern = #"🔗 ([^\s]+)"#
@@ -422,6 +434,9 @@ struct AlbumDetailsView: View {
             }
         }
 
+        // Apply link formatting - need to get the UIFont equivalent for bold
+        let uiFont = UIFont(name: "Helvetica Neue Bold", size: bodyTextFontSize) ?? UIFont.boldSystemFont(ofSize: bodyTextFontSize)
+
         // Apply link formatting
         for linkMatch in linkMatches {
             guard linkMatch.numberOfRanges == 2,
@@ -436,7 +451,7 @@ struct AlbumDetailsView: View {
             if let url = urlMap[domain],
                let attributedRange = Range<AttributedString.Index>(linkRange, in: attributedString) {
                 attributedString[attributedRange].link = url
-                attributedString[attributedRange].font = .body.bold()
+                attributedString[attributedRange].font = Font(uiFont)
                 attributedString[attributedRange].underlineStyle = .single
                 attributedString[attributedRange].foregroundColor = brandGreen
             }
