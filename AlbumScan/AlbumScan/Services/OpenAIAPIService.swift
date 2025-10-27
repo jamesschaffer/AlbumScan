@@ -44,40 +44,54 @@ class OpenAIAPIService: LLMService {
         self.searchFinalizationPrompt = searchContent
         self.reviewPrompt = reviewContent
 
+        #if DEBUG
         print("✅ [OpenAIAPIService] Loaded identification prompt from bundle")
         print("✅ [OpenAIAPIService] Loaded search finalization prompt from bundle")
         print("✅ [OpenAIAPIService] Loaded review prompt from bundle")
+        #endif
     }
 
     // MARK: - Single-Prompt Identification (Call 1)
 
     func executeSinglePromptIdentification(image: UIImage) async throws -> AlbumIdentificationResponse {
+        #if DEBUG
         print("🔍 [OpenAI ID Call 1] Starting single-prompt identification...")
+        #endif
 
         // Convert image to base64
         guard let base64Image = convertImageToBase64(image) else {
             throw APIError.imageProcessingFailed
         }
+        #if DEBUG
         print("✅ [OpenAI ID Call 1] Image converted to base64 (\(base64Image.count) bytes)")
+        #endif
 
         // Build request (using gpt-4o WITHOUT search capability)
         let request = try buildIdentificationRequest(base64Image: base64Image)
 
         // Make API call
+        #if DEBUG
         print("📡 [OpenAI ID Call 1] Sending request...")
+        #endif
         let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
         print("📡 [OpenAI ID Call 1] Received response (\(data.count) bytes)")
+        #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
+        #if DEBUG
         print("📡 [OpenAI ID Call 1] HTTP Status: \(httpResponse.statusCode)")
+        #endif
 
         guard httpResponse.statusCode == 200 else {
+            #if DEBUG
             if let responseBody = String(data: data, encoding: .utf8) {
                 print("❌ [OpenAI ID Call 1] Error: \(responseBody)")
             }
+            #endif
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
@@ -85,10 +99,12 @@ class OpenAIAPIService: LLMService {
         let apiResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
 
         // Log token usage
+        #if DEBUG
         if let usage = apiResponse.usage {
             let totalTokens = usage.prompt_tokens + usage.completion_tokens
             print("💰 [OpenAI ID Call 1] Tokens: \(usage.prompt_tokens) input + \(usage.completion_tokens) output = \(totalTokens) total")
         }
+        #endif
 
         return try parseIdentificationResponse(from: apiResponse)
     }
@@ -96,8 +112,10 @@ class OpenAIAPIService: LLMService {
     // MARK: - Search Finalization (Call 2)
 
     func executeSearchFinalization(image: UIImage, searchRequest: SearchRequest) async throws -> AlbumIdentificationResponse {
+        #if DEBUG
         print("🔍 [OpenAI ID Call 2] Starting search finalization...")
         print("🔍 [OpenAI ID Call 2] Search query: \(searchRequest.query)")
+        #endif
 
         // Build prompt with search request data
         let prompt = searchFinalizationPrompt
@@ -110,20 +128,28 @@ class OpenAIAPIService: LLMService {
         let request = try buildSearchFinalizationRequest(prompt: prompt)
 
         // Make API call
+        #if DEBUG
         print("📡 [OpenAI ID Call 2] Sending request...")
+        #endif
         let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
         print("📡 [OpenAI ID Call 2] Received response (\(data.count) bytes)")
+        #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
+        #if DEBUG
         print("📡 [OpenAI ID Call 2] HTTP Status: \(httpResponse.statusCode)")
+        #endif
 
         guard httpResponse.statusCode == 200 else {
+            #if DEBUG
             if let responseBody = String(data: data, encoding: .utf8) {
                 print("❌ [OpenAI ID Call 2] Error: \(responseBody)")
             }
+            #endif
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
@@ -131,10 +157,12 @@ class OpenAIAPIService: LLMService {
         let apiResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
 
         // Log token usage
+        #if DEBUG
         if let usage = apiResponse.usage {
             let totalTokens = usage.prompt_tokens + usage.completion_tokens
             print("💰 [OpenAI ID Call 2] Tokens: \(usage.prompt_tokens) input + \(usage.completion_tokens) output = \(totalTokens) total")
         }
+        #endif
 
         return try parseIdentificationResponse(from: apiResponse)
     }
@@ -148,7 +176,9 @@ class OpenAIAPIService: LLMService {
         genres: [String],
         recordLabel: String
     ) async throws -> Phase2Response {
+        #if DEBUG
         print("🔑 [OpenAI Review] Starting review generation...")
+        #endif
 
         // Build prompt with album data
         let genresString = genres.joined(separator: ", ")
@@ -163,20 +193,28 @@ class OpenAIAPIService: LLMService {
         let request = try buildReviewRequest(prompt: prompt)
 
         // Make API call
+        #if DEBUG
         print("📡 [OpenAI Review] Sending request...")
+        #endif
         let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
         print("📡 [OpenAI Review] Received response (\(data.count) bytes)")
+        #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
+        #if DEBUG
         print("📡 [OpenAI Review] HTTP Status: \(httpResponse.statusCode)")
+        #endif
 
         guard httpResponse.statusCode == 200 else {
+            #if DEBUG
             if let responseBody = String(data: data, encoding: .utf8) {
                 print("❌ [OpenAI Review] Error: \(responseBody)")
             }
+            #endif
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
@@ -184,10 +222,12 @@ class OpenAIAPIService: LLMService {
         let apiResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
 
         // Log token usage
+        #if DEBUG
         if let usage = apiResponse.usage {
             let totalTokens = usage.prompt_tokens + usage.completion_tokens
             print("💰 [OpenAI Review] Tokens: \(usage.prompt_tokens) input + \(usage.completion_tokens) output = \(totalTokens) total")
         }
+        #endif
 
         return try parsePhase2Response(from: apiResponse)
     }
@@ -304,11 +344,15 @@ class OpenAIAPIService: LLMService {
     private func parseIdentificationResponse(from apiResponse: OpenAIResponse) throws -> AlbumIdentificationResponse {
         guard let choice = apiResponse.choices.first,
               let content = choice.message.content else {
+            #if DEBUG
             print("❌ [OpenAI] No content in response")
+            #endif
             throw APIError.invalidResponseFormat
         }
 
+        #if DEBUG
         print("📝 [OpenAI] Raw response:\n\(content)")
+        #endif
 
         // Clean up response - strip markdown code fences if present
         var cleanedText = content.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -325,10 +369,14 @@ class OpenAIAPIService: LLMService {
 
         do {
             let response = try AlbumIdentificationResponse.parse(from: jsonData)
+            #if DEBUG
             print("✅ [OpenAI] Successfully parsed identification response")
+            #endif
             return response
         } catch {
+            #if DEBUG
             print("❌ [OpenAI] JSON parsing error: \(error)")
+            #endif
             throw APIError.invalidResponseFormat
         }
     }
@@ -336,11 +384,15 @@ class OpenAIAPIService: LLMService {
     private func parsePhase2Response(from apiResponse: OpenAIResponse) throws -> Phase2Response {
         guard let choice = apiResponse.choices.first,
               let content = choice.message.content else {
+            #if DEBUG
             print("❌ [OpenAI Review] No content in response")
+            #endif
             throw APIError.invalidResponseFormat
         }
 
+        #if DEBUG
         print("📝 [OpenAI Review] Raw response:\n\(content)")
+        #endif
 
         // Clean up response
         var cleanedText = content.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -349,7 +401,9 @@ class OpenAIAPIService: LLMService {
             cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
             cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
             cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            #if DEBUG
             print("📝 [OpenAI Review] Extracted JSON from code fence")
+            #endif
         }
 
         guard let jsonData = cleanedText.data(using: .utf8) else {
@@ -358,10 +412,14 @@ class OpenAIAPIService: LLMService {
 
         do {
             let phase2Response = try JSONDecoder().decode(Phase2Response.self, from: jsonData)
+            #if DEBUG
             print("✅ [OpenAI Review] Successfully parsed")
+            #endif
             return phase2Response
         } catch {
+            #if DEBUG
             print("❌ [OpenAI Review] JSON parsing error: \(error)")
+            #endif
             throw APIError.invalidResponseFormat
         }
     }

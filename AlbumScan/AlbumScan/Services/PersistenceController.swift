@@ -66,7 +66,9 @@ struct PersistenceController {
         do {
             return try container.viewContext.fetch(request)
         } catch {
+            #if DEBUG
             print("Error fetching albums: \(error)")
+            #endif
             return []
         }
     }

@@ -74,8 +74,8 @@ struct SearchPreLoaderView: View {
         .onAppear {
             startDotAnimation()
         }
-        .onChange(of: currentStage) { newStage in
-            advanceToStage(newStage)
+        .onChange(of: currentStage) { oldValue, newValue in
+            advanceToStage(newValue)
         }
     }
 

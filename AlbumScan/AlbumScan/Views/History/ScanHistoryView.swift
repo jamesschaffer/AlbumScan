@@ -115,7 +115,9 @@ struct ScanHistoryView: View {
             do {
                 try viewContext.save()
             } catch {
+                #if DEBUG
                 print("Error deleting album: \(error)")
+                #endif
             }
         }
     }
@@ -127,7 +129,9 @@ struct ScanHistoryView: View {
             do {
                 try viewContext.save()
             } catch {
+                #if DEBUG
                 print("Error deleting album: \(error)")
+                #endif
             }
         }
     }

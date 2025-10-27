@@ -96,7 +96,9 @@ struct LoadingView: View {
         .onChange(of: shouldShowAlbumSection) { oldValue, newValue in
             // When we transition to showing album section, start 2-second timer
             if !oldValue && newValue {
+                #if DEBUG
                 print("🎬 [LoadingView] Transitioning to album section, starting 2-second timer")
+                #endif
                 startReviewTransitionTimer()
             }
         }
@@ -108,7 +110,9 @@ struct LoadingView: View {
 
             // If already in album section when view appears (edge case), start timer
             if shouldShowAlbumSection {
+                #if DEBUG
                 print("🎬 [LoadingView] View appeared with album section already visible, starting timer")
+                #endif
                 startReviewTransitionTimer()
             }
         }

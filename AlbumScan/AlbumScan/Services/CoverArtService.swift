@@ -32,7 +32,9 @@ class CoverArtService {
     /// Retrieve album artwork URLs from Cover Art Archive
     /// Tries both release-group and release endpoints for best results
     func getArtworkURLs(mbid: String) async throws -> (largeURL: String, thumbnailURL: String)? {
+        #if DEBUG
         print("🎨 [CoverArt] Fetching artwork for MBID: \(mbid)")
+        #endif
 
         // Try release-group first (community-chosen representative), then release
         // The MBID could be either type, so we try both
@@ -42,7 +44,9 @@ class CoverArtService {
             }
         }
 
+        #if DEBUG
         print("⚠️ [CoverArt] No artwork found in either release-group or release")
+        #endif
         return nil
     }
 
@@ -64,7 +68,9 @@ class CoverArtService {
 
             // 404 means this endpoint doesn't have artwork for this MBID
             if httpResponse.statusCode == 404 {
+                #if DEBUG
                 print("🎨 [CoverArt] No artwork at /\(endpoint)/\(mbid) (404)")
+                #endif
                 return nil
             }
 
@@ -89,25 +95,33 @@ class CoverArtService {
             } ?? coverArtResponse.images.first
 
             guard let artwork = frontImage else {
+                #if DEBUG
                 print("⚠️ [CoverArt] No images in response from /\(endpoint)/\(mbid)")
+                #endif
                 return nil
             }
 
+            #if DEBUG
             print("✅ [CoverArt] Found artwork at /\(endpoint)/\(mbid) (approved: \(artwork.approved == true))")
+            #endif
 
             // Use original "image" URL for highest quality, not just thumbnails
             // Fall back to large thumbnail if original is unavailable
             return (largeURL: artwork.image, thumbnailURL: artwork.thumbnails.large)
 
         } catch {
+            #if DEBUG
             print("🎨 [CoverArt] Error fetching from /\(endpoint)/\(mbid): \(error.localizedDescription)")
+            #endif
             return nil
         }
     }
 
     /// Download and process artwork images
     func downloadArtwork(largeURL: String, thumbnailURL: String) async throws -> (highRes: Data, thumbnail: Data) {
+        #if DEBUG
         print("📥 [CoverArt] Downloading images...")
+        #endif
 
         // Convert HTTP to HTTPS (Cover Art Archive supports both)
         let securelargeURL = largeURL.replacingOccurrences(of: "http://", with: "https://")
@@ -144,7 +158,9 @@ class CoverArtService {
             throw CoverArtError.imageProcessingFailed
         }
 
+        #if DEBUG
         print("✅ [CoverArt] Images downloaded and processed")
+        #endif
         return (highRes: largeData, thumbnail: resizedThumbnailData)
     }
 
@@ -153,7 +169,9 @@ class CoverArtService {
         do {
             // Step 1: Get artwork URLs
             guard let urls = try await getArtworkURLs(mbid: mbid) else {
+                #if DEBUG
                 print("⚠️ [CoverArt] No artwork available")
+                #endif
                 return (nil, nil)
             }
 
@@ -162,7 +180,9 @@ class CoverArtService {
             return (highRes, thumbnail)
 
         } catch {
+            #if DEBUG
             print("❌ [CoverArt] Artwork retrieval failed: \(error.localizedDescription)")
+            #endif
             return (nil, nil)
         }
     }

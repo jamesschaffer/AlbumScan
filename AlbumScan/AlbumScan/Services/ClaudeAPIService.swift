@@ -24,91 +24,135 @@ class ClaudeAPIService: LLMService {
         if let promptPath = Bundle.main.path(forResource: "phase1a_vision_extraction", ofType: "txt", inDirectory: "Prompts"),
            let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase1APrompt = promptContent
+            #if DEBUG
             print("✅ [ClaudeAPIService] Loaded Phase 1A prompt from Prompts subdirectory")
+            #endif
         } else if let promptPath = Bundle.main.path(forResource: "phase1a_vision_extraction", ofType: "txt"),
                   let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase1APrompt = promptContent
+            #if DEBUG
             print("✅ [ClaudeAPIService] Loaded Phase 1A prompt from root bundle")
+            #endif
         } else {
             self.phase1APrompt = "Extract text and describe the album cover."
+            #if DEBUG
             print("⚠️ [ClaudeAPIService] Could not find phase1a_vision_extraction.txt, using fallback")
+            #endif
         }
 
         // Load Phase 1B prompt (web search mapping)
         if let promptPath = Bundle.main.path(forResource: "phase1b_web_search_mapping", ofType: "txt", inDirectory: "Prompts"),
            let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase1BPrompt = promptContent
+            #if DEBUG
             print("✅ [ClaudeAPIService] Loaded Phase 1B prompt from Prompts subdirectory")
+            #endif
         } else if let promptPath = Bundle.main.path(forResource: "phase1b_web_search_mapping", ofType: "txt"),
                   let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase1BPrompt = promptContent
+            #if DEBUG
             print("✅ [ClaudeAPIService] Loaded Phase 1B prompt from root bundle")
+            #endif
         } else {
             self.phase1BPrompt = "Identify the album using web search."
+            #if DEBUG
             print("⚠️ [ClaudeAPIService] Could not find phase1b_web_search_mapping.txt, using fallback")
+            #endif
         }
 
         // Load Phase 3 prompt (review generation)
         if let promptPath = Bundle.main.path(forResource: "phase3_review_generation", ofType: "txt", inDirectory: "Prompts"),
            let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase3Prompt = promptContent
+            #if DEBUG
             print("✅ [ClaudeAPIService] Loaded Phase 3 prompt from Prompts subdirectory")
+            #endif
         } else if let promptPath = Bundle.main.path(forResource: "phase3_review_generation", ofType: "txt"),
                   let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase3Prompt = promptContent
+            #if DEBUG
             print("✅ [ClaudeAPIService] Loaded Phase 3 prompt from root bundle")
+            #endif
         } else {
             self.phase3Prompt = "Write a review for this album."
+            #if DEBUG
             print("⚠️ [ClaudeAPIService] Could not find phase3_review_generation.txt, using fallback")
+            #endif
         }
     }
 
     func identifyAlbum(image: UIImage) async throws -> AlbumResponse {
+        #if DEBUG
         print("🔑 [ClaudeAPI] Starting identifyAlbum...")
+        #endif
 
         guard !apiKey.isEmpty else {
+            #if DEBUG
             print("❌ [ClaudeAPI] API key is missing!")
+            #endif
             throw APIError.missingAPIKey
         }
+        #if DEBUG
         print("✅ [ClaudeAPI] API key is present")
+        #endif
 
         // Convert image to base64
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            #if DEBUG
             print("❌ [ClaudeAPI] Failed to convert image to JPEG")
+            #endif
             throw APIError.imageProcessingFailed
         }
         let base64Image = imageData.base64EncodedString()
+        #if DEBUG
         print("✅ [ClaudeAPI] Image converted to base64 (\(imageData.count) bytes)")
+        #endif
 
         // Construct API request
+        #if DEBUG
         print("🔨 [ClaudeAPI] Building request...")
+        #endif
         let request = try buildRequest(base64Image: base64Image)
 
         // Make API call
+        #if DEBUG
         print("📡 [ClaudeAPI] Sending request to Claude API...")
+        #endif
         let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
         print("📡 [ClaudeAPI] Received response (\(data.count) bytes)")
+        #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
+            #if DEBUG
             print("❌ [ClaudeAPI] Invalid HTTP response")
+            #endif
             throw APIError.invalidResponse
         }
 
+        #if DEBUG
         print("📡 [ClaudeAPI] HTTP Status Code: \(httpResponse.statusCode)")
+        #endif
 
         guard httpResponse.statusCode == 200 else {
+            #if DEBUG
             if let responseBody = String(data: data, encoding: .utf8) {
                 print("❌ [ClaudeAPI] Error response body: \(responseBody)")
             }
+            #endif
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
         // Parse response
+        #if DEBUG
         print("🔍 [ClaudeAPI] Parsing Claude API response...")
+        #endif
         let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
 
         // Extract album information from response
+        #if DEBUG
         print("🔍 [ClaudeAPI] Extracting album information...")
+        #endif
         return try parseAlbumResponse(from: apiResponse)
     }
 
@@ -116,11 +160,15 @@ class ClaudeAPIService: LLMService {
 
     private func parsePhase1Response(from apiResponse: ClaudeAPIResponse) throws -> Phase1Response {
         guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
+            #if DEBUG
             print("❌ [ClaudeAPI Phase1] No text content found")
+            #endif
             throw APIError.invalidResponseFormat
         }
 
+        #if DEBUG
         print("📝 [ClaudeAPI Phase1] Raw response:\n\(textContent)")
+        #endif
 
         // Extract JSON from response (handles thinking text, XML tags, markdown fences)
         var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -146,22 +194,30 @@ class ClaudeAPIService: LLMService {
             if let firstBrace = cleanedText.firstIndex(of: "{"),
                let lastBrace = cleanedText.lastIndex(of: "}") {
                 cleanedText = String(cleanedText[firstBrace...lastBrace])
+                #if DEBUG
                 print("📝 [ClaudeAPI Phase1] Extracted JSON from thinking text")
+                #endif
             }
         }
 
         guard let jsonData = cleanedText.data(using: .utf8) else {
+            #if DEBUG
             print("❌ [ClaudeAPI Phase1] Could not convert to UTF8")
+            #endif
             throw APIError.invalidResponseFormat
         }
 
         do {
             let phase1Response = try JSONDecoder().decode(Phase1Response.self, from: jsonData)
+            #if DEBUG
             print("✅ [ClaudeAPI Phase1] Successfully parsed")
+            #endif
             return phase1Response
         } catch {
+            #if DEBUG
             print("❌ [ClaudeAPI Phase1] JSON parsing error: \(error)")
             print("❌ [ClaudeAPI Phase1] Failed to parse: \(cleanedText.prefix(200))...")
+            #endif
             throw APIError.invalidResponseFormat
         }
     }
@@ -169,10 +225,14 @@ class ClaudeAPIService: LLMService {
     // MARK: - Phase 2: Deep Review Generation (uses Phase 3 prompt)
 
     func generateReviewPhase2(artistName: String, albumTitle: String, releaseYear: String, genres: [String], recordLabel: String) async throws -> Phase2Response {
+        #if DEBUG
         print("🔑 [ClaudeAPI Phase2] Starting review generation...")
+        #endif
 
         guard !apiKey.isEmpty else {
+            #if DEBUG
             print("❌ [ClaudeAPI Phase2] API key is missing!")
+            #endif
             throw APIError.missingAPIKey
         }
 
@@ -189,20 +249,28 @@ class ClaudeAPIService: LLMService {
         let request = try buildPhase2Request(prompt: metadataPrompt)
 
         // Make API call
+        #if DEBUG
         print("📡 [ClaudeAPI Phase2] Sending request...")
+        #endif
         let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
         print("📡 [ClaudeAPI Phase2] Received response (\(data.count) bytes)")
+        #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
+        #if DEBUG
         print("📡 [ClaudeAPI Phase2] HTTP Status: \(httpResponse.statusCode)")
+        #endif
 
         guard httpResponse.statusCode == 200 else {
+            #if DEBUG
             if let responseBody = String(data: data, encoding: .utf8) {
                 print("❌ [ClaudeAPI Phase2] Error: \(responseBody)")
             }
+            #endif
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
@@ -246,11 +314,15 @@ class ClaudeAPIService: LLMService {
 
     private func parsePhase2Response(from apiResponse: ClaudeAPIResponse) throws -> Phase2Response {
         guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
+            #if DEBUG
             print("❌ [ClaudeAPI Phase2] No text content found")
+            #endif
             throw APIError.invalidResponseFormat
         }
 
+        #if DEBUG
         print("📝 [ClaudeAPI Phase2] Raw response:\n\(textContent)")
+        #endif
 
         // Extract JSON from markdown code fence or from the response
         var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -263,7 +335,9 @@ class ClaudeAPIService: LLMService {
             let endIndex = jsonEnd.lowerBound
             cleanedText = String(cleanedText[startIndex..<endIndex])
             cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            #if DEBUG
             print("📝 [ClaudeAPI Phase2] Extracted JSON from code fence")
+            #endif
         } else if cleanedText.hasPrefix("```json") {
             // Fallback: strip code fences if at start
             cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
@@ -277,10 +351,14 @@ class ClaudeAPIService: LLMService {
 
         do {
             let phase2Response = try JSONDecoder().decode(Phase2Response.self, from: jsonData)
+            #if DEBUG
             print("✅ [ClaudeAPI Phase2] Successfully parsed")
+            #endif
             return phase2Response
         } catch {
+            #if DEBUG
             print("❌ [ClaudeAPI Phase2] JSON parsing error: \(error)")
+            #endif
             throw APIError.invalidResponseFormat
         }
     }
@@ -331,11 +409,15 @@ class ClaudeAPIService: LLMService {
     private func parseAlbumResponse(from apiResponse: ClaudeAPIResponse) throws -> AlbumResponse {
         // Extract text content from Claude's response
         guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
+            #if DEBUG
             print("❌ [ClaudeAPI] No text content found in response")
+            #endif
             throw APIError.invalidResponseFormat
         }
 
+        #if DEBUG
         print("📝 [ClaudeAPI] Raw text from Claude:\n\(textContent)")
+        #endif
 
         // Strip markdown code fences if present
         var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -343,22 +425,30 @@ class ClaudeAPIService: LLMService {
             cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
             cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
             cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            #if DEBUG
             print("✂️ [ClaudeAPI] Stripped markdown code fences")
+            #endif
         }
 
         // Parse JSON from text content
         guard let jsonData = cleanedText.data(using: .utf8) else {
+            #if DEBUG
             print("❌ [ClaudeAPI] Failed to convert text to data")
+            #endif
             throw APIError.invalidResponseFormat
         }
 
         do {
             let albumResponse = try JSONDecoder().decode(AlbumResponse.self, from: jsonData)
+            #if DEBUG
             print("✅ [ClaudeAPI] Successfully parsed album response")
+            #endif
             return albumResponse
         } catch {
+            #if DEBUG
             print("❌ [ClaudeAPI] JSON parsing error: \(error)")
             print("❌ [ClaudeAPI] Failed to parse JSON:\n\(cleanedText)")
+            #endif
             throw APIError.invalidResponseFormat
         }
     }
@@ -455,33 +545,45 @@ Return only the JSON object, no additional text.
     /// Extracts observable text and visual description from album cover
     /// Uses: Sonnet 4.5, NO web search, 2048 tokens, temp 0.2
     func executePhase1A(image: UIImage) async throws -> Phase1AResponse {
+        #if DEBUG
         print("🔍 [ClaudeAPI Phase1A] Starting vision extraction...")
+        #endif
 
         // Convert image to base64
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             throw APIError.imageProcessingFailed
         }
         let base64Image = imageData.base64EncodedString()
+        #if DEBUG
         print("✅ [ClaudeAPI Phase1A] Image converted to base64 (\(imageData.count) bytes)")
+        #endif
 
         // Build request
         let request = try buildPhase1ARequest(base64Image: base64Image)
 
         // Make API call
+        #if DEBUG
         print("📡 [ClaudeAPI Phase1A] Sending request...")
+        #endif
         let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
         print("📡 [ClaudeAPI Phase1A] Received response (\(data.count) bytes)")
+        #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
+        #if DEBUG
         print("📡 [ClaudeAPI Phase1A] HTTP Status: \(httpResponse.statusCode)")
+        #endif
 
         guard httpResponse.statusCode == 200 else {
+            #if DEBUG
             if let responseBody = String(data: data, encoding: .utf8) {
                 print("❌ [ClaudeAPI Phase1A] Error: \(responseBody)")
             }
+            #endif
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
@@ -489,10 +591,12 @@ Return only the JSON object, no additional text.
         let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
 
         // Log token usage
+        #if DEBUG
         if let usage = apiResponse.usage {
             let totalTokens = usage.input_tokens + usage.output_tokens
             print("💰 [ClaudeAPI Phase1A] Tokens: \(usage.input_tokens) input + \(usage.output_tokens) output = \(totalTokens) total")
         }
+        #endif
 
         return try parsePhase1AResponse(from: apiResponse)
     }
@@ -501,7 +605,9 @@ Return only the JSON object, no additional text.
     /// Uses extracted data to identify album via web search
     /// Uses: Sonnet 4.5, web search enabled, 2048 tokens, temp 0.2
     func executePhase1B(phase1AData: Phase1AResponse) async throws -> Phase1Response {
+        #if DEBUG
         print("🔍 [ClaudeAPI Phase1B] Starting web search mapping...")
+        #endif
 
         // Build prompt with extracted data
         let prompt = phase1BPrompt
@@ -513,20 +619,28 @@ Return only the JSON object, no additional text.
         let request = try buildPhase1BRequest(prompt: prompt)
 
         // Make API call
+        #if DEBUG
         print("📡 [ClaudeAPI Phase1B] Sending request...")
+        #endif
         let (data, response) = try await URLSession.shared.data(for: request)
+        #if DEBUG
         print("📡 [ClaudeAPI Phase1B] Received response (\(data.count) bytes)")
+        #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
+        #if DEBUG
         print("📡 [ClaudeAPI Phase1B] HTTP Status: \(httpResponse.statusCode)")
+        #endif
 
         guard httpResponse.statusCode == 200 else {
+            #if DEBUG
             if let responseBody = String(data: data, encoding: .utf8) {
                 print("❌ [ClaudeAPI Phase1B] Error: \(responseBody)")
             }
+            #endif
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
@@ -534,10 +648,12 @@ Return only the JSON object, no additional text.
         let apiResponse = try JSONDecoder().decode(ClaudeAPIResponse.self, from: data)
 
         // Log token usage
+        #if DEBUG
         if let usage = apiResponse.usage {
             let totalTokens = usage.input_tokens + usage.output_tokens
             print("💰 [ClaudeAPI Phase1B] Tokens: \(usage.input_tokens) input + \(usage.output_tokens) output = \(totalTokens) total")
         }
+        #endif
 
         return try parsePhase1Response(from: apiResponse)
     }
@@ -625,11 +741,15 @@ Return only the JSON object, no additional text.
 
     private func parsePhase1AResponse(from apiResponse: ClaudeAPIResponse) throws -> Phase1AResponse {
         guard let textContent = apiResponse.content.first(where: { $0.type == "text" })?.text else {
+            #if DEBUG
             print("❌ [ClaudeAPI Phase1A] No text content in response")
+            #endif
             throw APIError.invalidResponseFormat
         }
 
+        #if DEBUG
         print("📝 [ClaudeAPI Phase1A] Raw response:\n\(textContent)")
+        #endif
 
         // Clean up response - strip markdown code fences and XML tags
         var cleanedText = textContent.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -656,10 +776,14 @@ Return only the JSON object, no additional text.
 
         do {
             let phase1AResponse = try JSONDecoder().decode(Phase1AResponse.self, from: jsonData)
+            #if DEBUG
             print("✅ [ClaudeAPI Phase1A] Successfully parsed")
+            #endif
             return phase1AResponse
         } catch {
+            #if DEBUG
             print("❌ [ClaudeAPI Phase1A] JSON parsing error: \(error)")
+            #endif
             throw APIError.invalidResponseFormat
         }
     }

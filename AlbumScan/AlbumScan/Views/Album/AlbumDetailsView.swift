@@ -325,6 +325,7 @@ struct AlbumDetailsView: View {
                 }
             }
 
+            #if DEBUG
             // LOG RAW REVIEW TEXT FOR DEBUGGING
             print("========================================")
             print("RAW REVIEW DATA FOR: \(album.albumTitle)")
@@ -336,6 +337,7 @@ struct AlbumDetailsView: View {
                 print("[\(index + 1)] \(bullet)")
             }
             print("========================================\n")
+            #endif
         }
     }
 

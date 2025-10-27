@@ -8,10 +8,14 @@ class LLMServiceFactory {
     static func getService() -> LLMService {
         switch Config.currentProvider {
         case .claude:
+            #if DEBUG
             print("🔧 [LLMServiceFactory] Using Claude API")
+            #endif
             return ClaudeAPIService.shared
         case .openAI:
+            #if DEBUG
             print("🔧 [LLMServiceFactory] Using OpenAI API")
+            #endif
             return OpenAIAPIService.shared
         }
     }

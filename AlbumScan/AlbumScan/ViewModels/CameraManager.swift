@@ -74,7 +74,9 @@ class CameraManager: NSObject, ObservableObject {
             guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
                   let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
                   self.session.canAddInput(videoInput) else {
+                #if DEBUG
                 print("Could not add video input")
+                #endif
                 DispatchQueue.main.async {
                     self.error = NSError(domain: "CameraManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not add video input. Make sure you're running on a device with a camera."])
                 }
@@ -87,14 +89,18 @@ class CameraManager: NSObject, ObservableObject {
                 videoDevice.videoZoomFactor = 1.0
                 videoDevice.unlockForConfiguration()
             } catch {
+                #if DEBUG
                 print("Could not set zoom factor: \(error)")
+                #endif
             }
 
             self.session.addInput(videoInput)
 
             // Add photo output
             guard self.session.canAddOutput(self.photoOutput) else {
+                #if DEBUG
                 print("Could not add photo output")
+                #endif
                 DispatchQueue.main.async {
                     self.error = NSError(domain: "CameraManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Could not add photo output."])
                 }
@@ -102,7 +108,8 @@ class CameraManager: NSObject, ObservableObject {
             }
 
             self.session.addOutput(self.photoOutput)
-            self.photoOutput.isHighResolutionCaptureEnabled = false
+            // Note: isHighResolutionCaptureEnabled deprecated in iOS 16
+            // Using default behavior (no need to set maxPhotoDimensions for our use case)
         }
     }
 
@@ -124,7 +131,9 @@ class CameraManager: NSObject, ObservableObject {
 
             // Check if session is running before attempting capture
             guard self.session.isRunning else {
+                #if DEBUG
                 print("❌ Camera session is not running")
+                #endif
                 DispatchQueue.main.async {
                     self.error = NSError(domain: "CameraManager", code: -3, userInfo: [NSLocalizedDescriptionKey: "Camera session is not running. Please restart the app."])
                     self.isProcessing = false
@@ -134,7 +143,9 @@ class CameraManager: NSObject, ObservableObject {
 
             // Check if photoOutput is connected to the session
             guard self.session.outputs.contains(self.photoOutput) else {
+                #if DEBUG
                 print("❌ Photo output is not connected to session")
+                #endif
                 DispatchQueue.main.async {
                     self.error = NSError(domain: "CameraManager", code: -4, userInfo: [NSLocalizedDescriptionKey: "Camera is not properly configured. Please restart the app."])
                     self.isProcessing = false
@@ -143,8 +154,10 @@ class CameraManager: NSObject, ObservableObject {
             }
 
             DispatchQueue.main.async {
+                #if DEBUG
                 // Clear all previous state before starting new scan
                 print("🧹 [CAPTURE] Clearing previous scan state...")
+                #endif
                 self.scannedAlbum = nil
                 self.phase1Data = nil
                 self.phase2Data = nil
@@ -153,8 +166,10 @@ class CameraManager: NSObject, ObservableObject {
                 self.error = nil
                 self.scanState = .idle
 
+                #if DEBUG
                 // Start new scan
                 print("📸 [CAPTURE] Starting new scan...")
+                #endif
                 self.isProcessing = true
                 self.loadingStage = .callingAPI
             }
@@ -206,7 +221,9 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
     private func processImage(_ image: UIImage) -> UIImage {
         // STEP 1: Fix orientation (CRITICAL - do this first!)
         guard let orientedImage = fixImageOrientation(image: image) else {
+            #if DEBUG
             print("❌ Failed to fix image orientation")
+            #endif
             return image
         }
 
@@ -219,17 +236,23 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
         // STEP 3: Crop to guide with 5px margin
         guard let croppedImage = cropToGuide(image: orientedImage, cropRect: imageCropRect) else {
+            #if DEBUG
             print("❌ Failed to crop image")
+            #endif
             return orientedImage
         }
 
         // STEP 4: Resize to 1024×1024
         guard let finalImage = resizeImage(image: croppedImage, targetSize: CGSize(width: 1024, height: 1024)) else {
+            #if DEBUG
             print("❌ Failed to resize image")
+            #endif
             return croppedImage
         }
 
+        #if DEBUG
         print("✅ Image processed: 1024×1024 square ready for API")
+        #endif
         return finalImage
     }
 
@@ -491,7 +514,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             // Check cache for existing album with completed Phase 2
             let cachedAlbum = self.checkCachedAlbum(artistName: artistName, albumTitle: albumTitle)
-            let shouldSkipPhase2 = cachedAlbum?.phase2Completed == true
+            let _ = cachedAlbum?.phase2Completed == true  // Future: could skip Phase 2 if cached
 
             // Fetch artwork FIRST (don't show transition screen until artwork is ready)
             print("🎨 [TWO-TIER] Fetching artwork before showing transition...")
@@ -540,7 +563,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             await MainActor.run {
                 let totalTime = Date().timeIntervalSince(totalStart)
                 print("⏱️ [TIMING] ========== TWO-TIER TOTAL: \(String(format: "%.2f", totalTime))s ==========")
-                print("✅ [TWO-TIER] Setting scannedAlbum to: \(savedAlbum.albumTitle ?? "Unknown") by \(savedAlbum.artistName ?? "Unknown")")
+                print("✅ [TWO-TIER] Setting scannedAlbum to: \(savedAlbum.albumTitle) by \(savedAlbum.artistName)")
                 self.scanState = .complete
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false
@@ -691,7 +714,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             // Check cache for existing album with completed Phase 2
             let cachedAlbum = self.checkCachedAlbum(artistName: finalArtistName, albumTitle: finalAlbumTitle)
-            let shouldSkipPhase2 = cachedAlbum?.phase2Completed == true
+            let _ = cachedAlbum?.phase2Completed == true  // Future: could skip Phase 2 if cached
 
             // Fetch artwork FIRST (don't show transition screen until artwork is ready)
             print("🎨 [SINGLE-PROMPT] Fetching artwork before showing transition...")
@@ -740,7 +763,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             await MainActor.run {
                 let totalTime = Date().timeIntervalSince(totalStart)
                 print("⏱️ [TIMING] ========== SINGLE-PROMPT TOTAL: \(String(format: "%.2f", totalTime))s ==========")
-                print("✅ [SINGLE-PROMPT] Setting scannedAlbum to: \(savedAlbum.albumTitle ?? "Unknown") by \(savedAlbum.artistName ?? "Unknown")")
+                print("✅ [SINGLE-PROMPT] Setting scannedAlbum to: \(savedAlbum.albumTitle) by \(savedAlbum.artistName)")
                 self.scanState = .complete
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false

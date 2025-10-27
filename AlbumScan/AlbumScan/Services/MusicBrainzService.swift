@@ -52,7 +52,9 @@ class MusicBrainzService {
     /// Search for an album and return the MusicBrainz ID (MBID)
     /// Tries multiple candidates until one with artwork is found
     func searchAlbum(artist: String, album: String) async throws -> String? {
+        #if DEBUG
         print("🔍 [MusicBrainz] Searching for: \(artist) - \(album)")
+        #endif
 
         // Add small delay to respect rate limiting (1 request per second)
         try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
@@ -78,7 +80,9 @@ class MusicBrainzService {
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 10.0 // Increased from 5 to 10 seconds
 
+        #if DEBUG
         print("🔍 [MusicBrainz] Request URL: \(url.absoluteString)")
+        #endif
 
         // Retry logic - try up to 2 times on network errors
         var lastError: Error?
@@ -90,12 +94,16 @@ class MusicBrainzService {
                     throw MusicBrainzError.invalidResponse
                 }
 
+                #if DEBUG
                 print("🔍 [MusicBrainz] Response status: \(httpResponse.statusCode)")
+                #endif
 
                 guard httpResponse.statusCode == 200 else {
                     if httpResponse.statusCode == 503 && attempt < 2 {
                         // Service unavailable, wait and retry
+                        #if DEBUG
                         print("⚠️ [MusicBrainz] Service unavailable (503), retrying in 2 seconds...")
+                        #endif
                         try? await Task.sleep(nanoseconds: 2_000_000_000)
                         continue
                     }
@@ -104,7 +112,9 @@ class MusicBrainzService {
 
                 // Success! Parse response
                 let searchResponse = try JSONDecoder().decode(MusicBrainzSearchResponse.self, from: data)
+                #if DEBUG
                 print("🔍 [MusicBrainz] Found \(searchResponse.count) results")
+                #endif
 
                 // Find the best match - try multiple candidates until we find one with artwork
                 return await findBestMatchWithArtwork(in: searchResponse.releases, searchArtist: artist, searchAlbum: album)
@@ -113,11 +123,15 @@ class MusicBrainzService {
                 // Network error - retry once
                 lastError = error
                 if attempt < 2 {
+                    #if DEBUG
                     print("⚠️ [MusicBrainz] Network error (attempt \(attempt)/2): \(error.code) - retrying...")
+                    #endif
                     try? await Task.sleep(nanoseconds: 1_000_000_000) // Wait 1 second before retry
                     continue
                 } else {
+                    #if DEBUG
                     print("❌ [MusicBrainz] Network error after 2 attempts")
+                    #endif
                     throw error
                 }
             }
@@ -138,22 +152,30 @@ class MusicBrainzService {
         let sortedCandidates = getSortedCandidates(in: releases, searchArtist: searchArtist, searchAlbum: searchAlbum)
 
         if sortedCandidates.isEmpty {
+            #if DEBUG
             print("❌ [MusicBrainz] No matching results")
+            #endif
             return nil
         }
 
+        #if DEBUG
         print("🔍 [MusicBrainz] Trying \(min(sortedCandidates.count, 5)) candidates for artwork...")
+        #endif
 
         // Try up to 5 candidates to find one with artwork
         for (index, release) in sortedCandidates.prefix(5).enumerated() {
             let rgMbid = release.releaseGroup?.id
+            #if DEBUG
             print("🔍 [MusicBrainz] Candidate \(index + 1): release=\(release.id), release-group=\(rgMbid ?? "none") (country: \(release.country ?? "unknown"), date: \(release.date ?? "unknown"))")
+            #endif
 
             // Check if this release (or its release-group) has artwork
             if await hasArtwork(releaseMbid: release.id, releaseGroupMbid: rgMbid) {
                 // Return release-group MBID if available (preferred), otherwise release MBID
                 let preferredMbid = rgMbid ?? release.id
+                #if DEBUG
                 print("✅ [MusicBrainz] Found MBID with artwork: \(preferredMbid) (type: \(rgMbid != nil ? "release-group" : "release"))")
+                #endif
                 return preferredMbid
             }
         }
@@ -161,7 +183,9 @@ class MusicBrainzService {
         // If no candidate has artwork, return the first one anyway as fallback
         if let firstCandidate = sortedCandidates.first {
             let fallbackMbid = firstCandidate.releaseGroup?.id ?? firstCandidate.id
+            #if DEBUG
             print("⚠️ [MusicBrainz] No candidates have artwork, using first result: \(fallbackMbid)")
+            #endif
             return fallbackMbid
         }
 
