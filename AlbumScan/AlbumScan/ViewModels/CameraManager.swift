@@ -5,6 +5,7 @@ import CoreData
 
 class CameraManager: NSObject, ObservableObject {
     @Published var isProcessing = false
+    @Published var isCaptureInitiated = false  // Disables button immediately, before loading screen
     @Published var capturedImage: UIImage?
     @Published var error: Error?
     @Published var scannedAlbum: Album?
@@ -126,6 +127,29 @@ class CameraManager: NSObject, ObservableObject {
     }
 
     func capturePhoto() {
+        #if DEBUG
+        print("📸 [CAPTURE] Starting new scan - disabling button, waiting for animation...")
+        #endif
+
+        // Disable button IMMEDIATELY to prevent double-tap
+        isCaptureInitiated = true
+
+        // Wait 0.25s for button press animation to complete before showing loading screen
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            guard let self = self else { return }
+
+            // Clear previous state and set processing flag
+            self.scannedAlbum = nil
+            self.phase1Data = nil
+            self.phase2Data = nil
+            self.albumArtwork = nil
+            self.capturedImage = nil
+            self.error = nil
+            self.scanState = .identifying  // For two-tier flow
+            self.isProcessing = true       // For old flow
+            self.loadingStage = .callingAPI
+        }
+
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
 
@@ -137,6 +161,8 @@ class CameraManager: NSObject, ObservableObject {
                 DispatchQueue.main.async {
                     self.error = NSError(domain: "CameraManager", code: -3, userInfo: [NSLocalizedDescriptionKey: "Camera session is not running. Please restart the app."])
                     self.isProcessing = false
+                    self.isCaptureInitiated = false
+                    self.scanState = .idle
                 }
                 return
             }
@@ -149,29 +175,10 @@ class CameraManager: NSObject, ObservableObject {
                 DispatchQueue.main.async {
                     self.error = NSError(domain: "CameraManager", code: -4, userInfo: [NSLocalizedDescriptionKey: "Camera is not properly configured. Please restart the app."])
                     self.isProcessing = false
+                    self.isCaptureInitiated = false
+                    self.scanState = .idle
                 }
                 return
-            }
-
-            DispatchQueue.main.async {
-                #if DEBUG
-                // Clear all previous state before starting new scan
-                print("🧹 [CAPTURE] Clearing previous scan state...")
-                #endif
-                self.scannedAlbum = nil
-                self.phase1Data = nil
-                self.phase2Data = nil
-                self.albumArtwork = nil
-                self.capturedImage = nil
-                self.error = nil
-                self.scanState = .idle
-
-                #if DEBUG
-                // Start new scan
-                print("📸 [CAPTURE] Starting new scan...")
-                #endif
-                self.isProcessing = true
-                self.loadingStage = .callingAPI
             }
 
             let settings = AVCapturePhotoSettings()

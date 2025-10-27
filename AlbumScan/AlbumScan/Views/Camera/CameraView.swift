@@ -75,6 +75,8 @@ struct CameraView: View {
                             )
                         }
                         .buttonStyle(PressedButtonStyle())
+                        .disabled(cameraManager.isCaptureInitiated)
+                        .opacity(cameraManager.isCaptureInitiated ? 0.4 : 1.0)
 
                         Spacer()
 
@@ -171,6 +173,7 @@ struct CameraView: View {
             // Reset state when album details is manually dismissed
             cameraManager.scanState = .idle
             cameraManager.isProcessing = false
+            cameraManager.isCaptureInitiated = false
         }) { album in
             AlbumDetailsView(album: album, cameraManager: cameraManager)
         }
@@ -204,6 +207,7 @@ struct CameraView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     showErrorBanner = false
                     cameraManager.scanState = .idle
+                    cameraManager.isCaptureInitiated = false
                 }
             }
         }
