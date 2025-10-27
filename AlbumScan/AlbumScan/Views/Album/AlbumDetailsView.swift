@@ -359,8 +359,9 @@ struct AlbumDetailsView: View {
     private func parseMarkdownLinks(_ text: String) -> AttributedString {
         var result = text
 
-        // Regex pattern to match [text](url)
-        let pattern = #"\[([^\]]+)\]\(([^\)]+)\)"#
+        // Regex pattern to match optional opening paren, [text](url), optional closing paren
+        // This handles both [text](url) and ([text](url))
+        let pattern = #"\(?\[([^\]]+)\]\(([^\)]+)\)\)?"#
 
         guard let regex = try? NSRegularExpression(pattern: pattern) else {
             return AttributedString(text)
@@ -381,6 +382,7 @@ struct AlbumDetailsView: View {
             let urlString = nsString.substring(with: urlRange)
 
             // Create markdown-formatted link that SwiftUI can parse: **[🔗 domain](url)**
+            // This will NOT have parentheses around it
             let replacement = "**[🔗 \(domain)](\(urlString))**"
 
             result = (result as NSString).replacingCharacters(in: fullMatchRange, with: replacement)
