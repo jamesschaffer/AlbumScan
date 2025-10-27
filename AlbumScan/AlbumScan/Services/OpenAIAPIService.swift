@@ -99,11 +99,6 @@ class OpenAIAPIService: LLMService {
         print("🔍 [OpenAI ID Call 2] Starting search finalization...")
         print("🔍 [OpenAI ID Call 2] Search query: \(searchRequest.query)")
 
-        // Convert image to base64
-        guard let base64Image = convertImageToBase64(image) else {
-            throw APIError.imageProcessingFailed
-        }
-
         // Build prompt with search request data
         let prompt = searchFinalizationPrompt
             .replacingOccurrences(of: "{extractedText}", with: searchRequest.observation.extractedText)
@@ -112,7 +107,7 @@ class OpenAIAPIService: LLMService {
             .replacingOccurrences(of: "{searchQuery}", with: searchRequest.query)
 
         // Build request (using gpt-4o-search-preview WITH search capability)
-        let request = try buildSearchFinalizationRequest(base64Image: base64Image, prompt: prompt)
+        let request = try buildSearchFinalizationRequest(prompt: prompt)
 
         // Make API call
         print("📡 [OpenAI ID Call 2] Sending request...")
@@ -187,6 +182,13 @@ class OpenAIAPIService: LLMService {
 
         // Parse response
         let apiResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
+
+        // Log token usage
+        if let usage = apiResponse.usage {
+            let totalTokens = usage.prompt_tokens + usage.completion_tokens
+            print("💰 [OpenAI Review] Tokens: \(usage.prompt_tokens) input + \(usage.completion_tokens) output = \(totalTokens) total")
+        }
+
         return try parsePhase2Response(from: apiResponse)
     }
 
@@ -243,7 +245,7 @@ class OpenAIAPIService: LLMService {
         return request
     }
 
-    private func buildSearchFinalizationRequest(base64Image: String, prompt: String) throws -> URLRequest {
+    private func buildSearchFinalizationRequest(prompt: String) throws -> URLRequest {
         guard let url = URL(string: apiURL) else {
             throw APIError.invalidURL
         }
@@ -252,7 +254,7 @@ class OpenAIAPIService: LLMService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 60  // Longer timeout for search
+        request.timeoutInterval = 60  // Longer timeout for web search
 
         let body: [String: Any] = [
             "model": "gpt-4o-search-preview",  // Search-enabled model
@@ -280,7 +282,7 @@ class OpenAIAPIService: LLMService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 30
+        request.timeoutInterval = 60  // Longer timeout for web search
 
         let body: [String: Any] = [
             "model": "gpt-4o-search-preview",  // Search-enabled for review context
