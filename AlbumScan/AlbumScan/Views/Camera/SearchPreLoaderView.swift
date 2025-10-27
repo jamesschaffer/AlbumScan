@@ -26,6 +26,7 @@ struct SearchPreLoaderView: View {
     @State private var dotTimer: Timer?
 
     let greenColor = Color(red: 0, green: 0.87, blue: 0.32)
+    let textTopPosition: CGFloat = 0.5  // Text always at 50% screen height
 
     var body: some View {
         GeometryReader { geometry in
@@ -34,8 +35,8 @@ struct SearchPreLoaderView: View {
                 Color.black
                     .ignoresSafeArea()
 
-                // Logo at top
                 VStack(spacing: 0) {
+                    // Logo at top
                     HStack {
                         Spacer()
                         Image("album-scan-logo-simple-white")
@@ -46,11 +47,11 @@ struct SearchPreLoaderView: View {
                     }
                     .padding(.top, 20)
 
+                    // Calculate top spacer to position text at exactly 50% screen height
                     Spacer()
-                }
+                        .frame(height: geometry.size.height * textTopPosition)
 
-                // Stage text positioned at 50% screen height (top of text at 50%)
-                VStack(alignment: .leading, spacing: 0) {
+                    // Stage text - top edge is ALWAYS at 50% screen height
                     (Text(displayedStage.text(isDeepCut: isDeepCutSearch))
                         .foregroundColor(.white) +
                      Text(String(repeating: ".", count: dotCount))
@@ -58,14 +59,16 @@ struct SearchPreLoaderView: View {
                         .font(.system(size: 22))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 30)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing),
+                            removal: .move(edge: .leading)
+                        ))
+                        .id("\(displayedStage.rawValue)-\(isDeepCutSearch)") // Force view recreation on stage or deep cut change
+
+                    // Bottom spacer fills remaining space
+                    Spacer()
                 }
-                .padding(.horizontal, 30)
-                .position(x: geometry.size.width / 2, y: geometry.size.height * 0.5)
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
-                .id("\(displayedStage.rawValue)-\(isDeepCutSearch)") // Force view recreation on stage or deep cut change
             }
         }
         .onAppear {

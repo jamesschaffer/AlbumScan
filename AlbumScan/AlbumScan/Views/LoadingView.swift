@@ -13,15 +13,15 @@ struct LoadingView: View {
     @State private var showingReviewMessage = false
     @State private var ellipsisDots = 1
 
-    // MARK: - Typography Settings
+    // MARK: - Layout Constants
 
     private let messageFontSize: CGFloat = 24
     private let messageLineHeight: CGFloat = 6
     private let messageColor: Color = .white
-    private let artworkSize: CGFloat = 120
-    private let artworkBottomMargin: CGFloat = 10
+    private let albumSize: CGFloat = 150  // Album cover size
+    private let albumTextSpacing: CGFloat = 20  // Fixed spacing between album and text
+    private let textTopPosition: CGFloat = 0.5  // Text always starts at 50% screen height
     private let textWidthPercentage: CGFloat = 0.75
-    private let textTopPercentage: CGFloat = 0.5  // Text starts at 50% screen height
     private let transitionDuration: Double = 0.4
 
     // Brand Colors
@@ -51,20 +51,45 @@ struct LoadingView: View {
                     }
                     .padding(.top, 20)
 
-                    Spacer()
-                }
+                    // Calculate top spacer to position text at exactly 50% screen height
+                    // When album present: 50% - (albumSize + spacing)
+                    // When album absent: 50%
+                    let hasAlbum = shouldShowAlbumSection
+                    let topSpacerHeight = (geometry.size.height * textTopPosition) - (hasAlbum ? (albumSize + albumTextSpacing) : 0)
 
-                // Content positioned at 50% screen height
-                if !shouldShowAlbumSection {
-                    // State 1: Identifying (text top at 50%)
-                    VStack(alignment: .leading, spacing: 0) {
-                        identifyingContent(geometry: geometry)
+                    Spacer()
+                        .frame(height: topSpacerHeight)
+
+                    // Album cover (only shown in identified/review states)
+                    if shouldShowAlbumSection {
+                        Group {
+                            if let artwork = albumArtwork {
+                                Image(uiImage: artwork)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: albumSize, height: albumSize)
+                                    .clipped()
+                                    .cornerRadius(4)
+                            } else {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(placeholderGray)
+                                    .frame(width: albumSize, height: albumSize)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 30)
+
+                        // Fixed spacing between album and text
+                        Spacer()
+                            .frame(height: albumTextSpacing)
                     }
-                    .padding(.horizontal, 30)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height * textTopPercentage)
-                } else {
-                    // State 2/3: Album + text (positioned separately)
-                    albumFoundContentPositioned(geometry: geometry)
+
+                    // Text content - top edge is ALWAYS at 50% screen height
+                    contentText(geometry: geometry)
+                        .padding(.horizontal, 30)
+
+                    // Bottom spacer fills remaining space
+                    Spacer()
                 }
             }
         }
@@ -91,8 +116,10 @@ struct LoadingView: View {
 
     // MARK: - Content Views
 
-    private func identifyingContent(geometry: GeometryProxy) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+    @ViewBuilder
+    private func contentText(geometry: GeometryProxy) -> some View {
+        if !shouldShowAlbumSection {
+            // State 1: Identifying
             (Text("Flipping through every record bin in existence")
                 .foregroundColor(messageColor) +
              Text(String(repeating: ".", count: ellipsisDots))
@@ -101,48 +128,18 @@ struct LoadingView: View {
                 .lineSpacing(messageLineHeight)
                 .frame(maxWidth: geometry.size.width * textWidthPercentage, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func albumFoundContentPositioned(geometry: GeometryProxy) -> some View {
-        // Album center Y = (50% - 10pt - artworkSize/2)
-        let albumCenterY = (geometry.size.height * textTopPercentage) - artworkBottomMargin - (artworkSize / 2)
-        let textTopY = geometry.size.height * textTopPercentage
-
-        return ZStack(alignment: .topLeading) {
-            // Album artwork positioned so bottom is at 50% - 10pt
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            // State 2/3: Album found or writing review
             Group {
-                if let artwork = albumArtwork {
-                    Image(uiImage: artwork)
-                        .resizable()
-                        .frame(width: artworkSize, height: artworkSize)
-                        .aspectRatio(contentMode: .fill)
-                        .clipped()
-                        .cornerRadius(4)
+                if !showingReviewMessage {
+                    foundMessageView(geometry: geometry)
+                        .transition(.opacity)
                 } else {
-                    // Dark gray placeholder when no artwork
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(placeholderGray)
-                        .frame(width: artworkSize, height: artworkSize)
+                    reviewMessageView(geometry: geometry)
+                        .transition(.opacity)
                 }
             }
-            .position(x: 30 + artworkSize / 2, y: albumCenterY)
-
-            // Text positioned so top is at 50%
-            VStack(alignment: .leading, spacing: 0) {
-                Group {
-                    if !showingReviewMessage {
-                        foundMessageView(geometry: geometry)
-                            .transition(.opacity)
-                    } else {
-                        reviewMessageView(geometry: geometry)
-                            .transition(.opacity)
-                    }
-                }
-            }
-            .padding(.horizontal, 30)
-            .position(x: geometry.size.width / 2, y: textTopY)
         }
     }
 
@@ -161,6 +158,7 @@ struct LoadingView: View {
             .lineSpacing(messageLineHeight)
             .frame(maxWidth: geometry.size.width * textWidthPercentage, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func reviewMessageView(geometry: GeometryProxy) -> some View {
@@ -172,6 +170,7 @@ struct LoadingView: View {
             .lineSpacing(messageLineHeight)
             .frame(maxWidth: geometry.size.width * textWidthPercentage, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Timer
