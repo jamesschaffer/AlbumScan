@@ -23,11 +23,16 @@ Generate a concise, honest assessment of this album's cultural significance and 
 
 3. **rating** (number 0-10): Your assessment based on the album's artistic merit and cultural significance.
 
-4. **recommendation** (string): Choose ONE of these four categories:
-   - "ESSENTIAL" - Must own for any serious music collection
-   - "RECOMMENDED" - Buy if you're a fan of [specific artist/genre/era]
-   - "SKIP" - Not worth your time or money
-   - "AVOID" - Actively bad; belongs in the trash
+4. **recommendation** (string): Choose ONE label that best captures this album's place in music:
+
+   TIER 1 (Undeniable Greatness): Essential Classic | Genre Landmark | Cultural Monument
+   TIER 2 (Critical Darlings): Indie Masterpiece | Cult Essential | Critics' Choice
+   TIER 3 (Crowd Pleasers): Crowd Favorite | Radio Gold | Crossover Success
+   TIER 4 (Hidden Gems): Deep Cut | Surprise Excellence | Scene Favorite
+   TIER 5 (Historical Interest): Time Capsule | Influential Curio | Pioneering Effort
+   TIER 6 (Solid Work): Reliable Listen | Fan Essential | Genre Staple
+   TIER 7 (Problematic): Ambitious Failure | Divisive Work | Uneven Effort
+   TIER 8 (Pass): Forgettable Entry | Career Low | Avoid Entirely
 
 5. **key_tracks** (array of strings): 3-7 most significant/popular tracks from the album.
 
@@ -36,6 +41,8 @@ Generate a concise, honest assessment of this album's cultural significance and 
 - Focus on what actually matters about the album (no filler or generic praise)
 - Evaluate albums purely on musical merit - artist's personal controversies or social issues may be mentioned for context but do NOT devalue their musical contributions or impact
 - Provide specific evidence (scores, chart positions, awards, influence examples)
+- Choose the badge_label carefully based on the album's actual place in music history, not just your personal opinion
+- Reserve Tier 1 labels for genuinely canonical/influential albums only
 - NEVER mention price, monetary value, market considerations, investment potential, pressing details, or collectibility
 - Be the honest music historian, not the investment advisor
 
@@ -44,6 +51,6 @@ Return ONLY valid JSON in this exact format:
   "context_summary": "string",
   "context_bullets": ["string", "string", "string"],
   "rating": number,
-  "recommendation": "ESSENTIAL|RECOMMENDED|SKIP|AVOID",
+  "recommendation": "string (exactly as written above)",
   "key_tracks": ["string", "string", "string"]
 }
