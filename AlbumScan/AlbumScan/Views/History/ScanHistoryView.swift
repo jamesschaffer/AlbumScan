@@ -214,15 +214,12 @@ struct AlbumHistoryRow: View {
                         .lineLimit(1)
 
                     HStack(spacing: 4) {
-                        Text(album.recommendationEnum.emoji)
-                            .font(.system(size: recommendationFontSize, weight: recommendationFontWeight))
-                            .lineSpacing(recommendationLineHeight)
-                        Text("\(album.recommendation) / ")
+                        Text("\(album.recommendation.uppercased()) / ")
                             .font(.system(size: recommendationFontSize, weight: recommendationFontWeight))
                             .lineSpacing(recommendationLineHeight)
                             .foregroundColor(recommendationColor.opacity(0.8))
                         Text("\(album.rating, specifier: "%.1f")")
-                            .font(.system(size: scoreFontSize, weight: scoreFontWeight))
+                            .font(.custom("Bungee-Regular", size: scoreFontSize))
                             .lineSpacing(scoreLineHeight)
                             .foregroundColor(scoreColor)
                     }

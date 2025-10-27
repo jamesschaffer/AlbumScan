@@ -41,7 +41,7 @@ struct AlbumDetailsView: View {
                     // Add top padding for the logo
                     Color.clear.frame(height: 50)
                     // Album artwork with recommendation badge overlay
-                    ZStack(alignment: .bottomTrailing) {
+                    ZStack(alignment: .bottom) {
                         // Album artwork (prefer high-res from MusicBrainz, fallback to legacy)
                         if let artData = album.albumArtHighResData,
                            let uiImage = UIImage(data: artData) {
@@ -69,19 +69,21 @@ struct AlbumDetailsView: View {
                                 .cornerRadius(8)
                         }
 
-                        // Recommendation Badge - positioned in bottom-right corner
-                        HStack {
-                            Text(album.recommendationEnum.emoji)
-                                .font(.title)
-                            Text("\(album.recommendation) / \(album.rating, specifier: "%.1f")")
+                        // Recommendation Badge - flush to bottom, full width
+                        HStack(spacing: 12) {
+                            Text(album.recommendation.uppercased())
                                 .font(.headline)
                                 .fontWeight(.bold)
+                                .foregroundColor(.white)
+                            Spacer()
+                            Text("\(album.rating, specifier: "%.1f")")
+                                .font(.custom("Bungee-Regular", size: 20))
+                                .foregroundColor(brandGreen)
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 12)
                         .padding(.horizontal, 16)
-                        .background(recommendationColor(for: album.recommendation))
-                        .cornerRadius(8)
-                        .padding([.trailing, .bottom], 6)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.black.opacity(0.8))
                     }
 
                     // Artist and Album Title
