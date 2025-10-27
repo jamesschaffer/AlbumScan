@@ -214,7 +214,7 @@ class OpenAIAPIService: LLMService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 30
+        request.timeoutInterval = 60  // Increased for vision + large image processing
 
         let body: [String: Any] = [
             "model": "gpt-4o",  // Regular model (NO search capability)
@@ -257,22 +257,11 @@ class OpenAIAPIService: LLMService {
         let body: [String: Any] = [
             "model": "gpt-4o-search-preview",  // Search-enabled model
             "max_tokens": 1000,
-            "response_format": ["type": "json_object"],  // Enforce JSON output
+            // Note: response_format not supported with web_search
             "messages": [
                 [
                     "role": "user",
-                    "content": [
-                        [
-                            "type": "text",
-                            "text": prompt
-                        ],
-                        [
-                            "type": "image_url",
-                            "image_url": [
-                                "url": "data:image/jpeg;base64,\(base64Image)"
-                            ]
-                        ]
-                    ]
+                    "content": prompt  // Text-only - no image needed (observation data already in prompt)
                 ]
             ]
             // Note: Web search is automatic with gpt-4o-search-preview
@@ -378,7 +367,10 @@ class OpenAIAPIService: LLMService {
     // MARK: - Helper Methods
 
     private func convertImageToBase64(_ image: UIImage) -> String? {
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+        // Use much lower quality for API transmission
+        // OpenAI vision doesn't need high-res to read album text
+        // 0.4 quality on 1024x1024 image = ~300-500KB (vs 3MB at 0.8)
+        guard let imageData = image.jpegData(compressionQuality: 0.4) else {
             return nil
         }
         return imageData.base64EncodedString()
