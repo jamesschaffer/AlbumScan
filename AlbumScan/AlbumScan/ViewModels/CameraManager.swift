@@ -10,6 +10,10 @@ class CameraManager: NSObject, ObservableObject {
     @Published var error: Error?
     @Published var scannedAlbum: Album?
 
+    // Subscription managers (injected from CameraView)
+    var subscriptionManager: SubscriptionManager?
+    var scanLimitManager: ScanLimitManager?
+
     // Store framing guide coordinates for cropping
     var capturedGuideFrame: CGRect = .zero
     var previewLayerSize: CGSize = .zero
@@ -563,6 +567,16 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.scanState = .complete
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false
+
+                // Increment scan count (only if not subscribed)
+                if let scanLimitManager = self.scanLimitManager,
+                   let subscriptionManager = self.subscriptionManager,
+                   !subscriptionManager.isSubscribed {
+                    scanLimitManager.incrementScanCount()
+                    #if DEBUG
+                    print("📊 [Scan] Incremented scan count - \(scanLimitManager.remainingFreeScans) remaining")
+                    #endif
+                }
             }
 
         } catch {
@@ -781,6 +795,16 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.scanState = .complete
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false
+
+                // Increment scan count (only if not subscribed)
+                if let scanLimitManager = self.scanLimitManager,
+                   let subscriptionManager = self.subscriptionManager,
+                   !subscriptionManager.isSubscribed {
+                    scanLimitManager.incrementScanCount()
+                    #if DEBUG
+                    print("📊 [Scan] Incremented scan count - \(scanLimitManager.remainingFreeScans) remaining")
+                    #endif
+                }
             }
 
         } catch {
