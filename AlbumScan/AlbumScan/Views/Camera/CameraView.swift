@@ -14,9 +14,15 @@ struct PressedButtonStyle: ButtonStyle {
 
 struct CameraView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @EnvironmentObject var scanLimitManager: ScanLimitManager
+    @EnvironmentObject var remoteConfigManager: RemoteConfigManager
+
     @StateObject private var cameraManager = CameraManager()
     @State private var showingHistory = false
     @State private var showErrorBanner = false
+    @State private var showingPaywall = false
+    @State private var showingMaintenanceAlert = false
 
     let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
 
@@ -55,9 +61,7 @@ struct CameraView: View {
                         Spacer()
 
                         // Center - Scan button
-                        Button(action: {
-                            cameraManager.capturePhoto()
-                        }) {
+                        Button(action: handleScanAction) {
                             HStack(alignment: .center, spacing: 0) {
                                 Text("SCAN")
                                     .font(.custom("Bungee", size: 28))
@@ -203,6 +207,49 @@ struct CameraView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
+                .environmentObject(subscriptionManager)
+                .environmentObject(scanLimitManager)
+        }
+        .alert("Maintenance", isPresented: $showingMaintenanceAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(remoteConfigManager.maintenanceMessage)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func handleScanAction() {
+        // Check 1: Remote config kill switch
+        guard remoteConfigManager.scanningEnabled else {
+            #if DEBUG
+            print("🔴 [Scan] Blocked by remote config kill switch")
+            #endif
+            showingMaintenanceAlert = true
+            return
+        }
+
+        // Check 2: Scan limit (if not subscribed)
+        guard scanLimitManager.canScan(isSubscribed: subscriptionManager.isSubscribed) else {
+            #if DEBUG
+            print("🔴 [Scan] Blocked by scan limit - showing paywall")
+            #endif
+            showingPaywall = true
+            return
+        }
+
+        // All checks passed - proceed with scan
+        #if DEBUG
+        print("✅ [Scan] All checks passed - starting scan")
+        #endif
+
+        // Pass managers to CameraManager for post-scan increment
+        cameraManager.subscriptionManager = subscriptionManager
+        cameraManager.scanLimitManager = scanLimitManager
+
+        cameraManager.capturePhoto()
     }
 }
 

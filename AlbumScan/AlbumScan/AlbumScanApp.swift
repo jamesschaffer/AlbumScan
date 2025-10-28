@@ -7,12 +7,24 @@ struct AlbumScanApp: App {
     let persistenceController = PersistenceController.shared
     @State private var showingSplash = true
 
+    // Subscription & Limit Managers
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
+    @StateObject private var scanLimitManager = ScanLimitManager.shared
+    @StateObject private var remoteConfigManager = RemoteConfigManager.shared
+
+    init() {
+        // Initialize Firebase Remote Config
+        RemoteConfigManager.shared.initialize()
+    }
 
     var body: some Scene {
         WindowGroup {
             ZStack {
                 ContentView()
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                    .environmentObject(subscriptionManager)
+                    .environmentObject(scanLimitManager)
+                    .environmentObject(remoteConfigManager)
 
                 if showingSplash {
                     LaunchScreenView()
