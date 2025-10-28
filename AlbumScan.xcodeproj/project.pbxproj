@@ -16,6 +16,14 @@
 		210597D52EAEE5C8001CDE4F /* SinglePromptResponses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597D42EAEE5C8001CDE4F /* SinglePromptResponses.swift */; };
 		210597D72EAEE5DA001CDE4F /* single_prompt_identification.txt in Resources */ = {isa = PBXBuildFile; fileRef = 210597D62EAEE5DA001CDE4F /* single_prompt_identification.txt */; };
 		210597D92EAEE5E8001CDE4F /* search_finalization.txt in Resources */ = {isa = PBXBuildFile; fileRef = 210597D82EAEE5E8001CDE4F /* search_finalization.txt */; };
+		210597DD2EB14090001CDE4F /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 210597DC2EB14090001CDE4F /* GoogleService-Info.plist */; };
+		210597DF2EB14119001CDE4F /* Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 210597DE2EB14119001CDE4F /* Configuration.storekit */; };
+		210597E32EB1413E001CDE4F /* RemoteConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597E02EB1413E001CDE4F /* RemoteConfigManager.swift */; };
+		210597E42EB1413E001CDE4F /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597E22EB1413E001CDE4F /* SubscriptionManager.swift */; };
+		210597E52EB1413E001CDE4F /* ScanLimitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597E12EB1413E001CDE4F /* ScanLimitManager.swift */; };
+		210597E72EB1415C001CDE4F /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597E62EB1415C001CDE4F /* KeychainHelper.swift */; };
+		214CAA112EB146A8007A60F7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 214CAA102EB146A8007A60F7 /* FirebaseCore */; };
+		214CAA132EB146BC007A60F7 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 214CAA122EB146BC007A60F7 /* FirebaseRemoteConfig */; };
 		21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8E2EA58A5C009C895F /* AppState.swift */; };
 		21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A842EA58A5C009C895F /* Album.swift */; };
 		21AB8AAF2EA58A5C009C895F /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8C2EA58A5C009C895F /* Config.swift */; };
@@ -60,6 +68,12 @@
 		210597D42EAEE5C8001CDE4F /* SinglePromptResponses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinglePromptResponses.swift; sourceTree = "<group>"; };
 		210597D62EAEE5DA001CDE4F /* single_prompt_identification.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = single_prompt_identification.txt; sourceTree = "<group>"; };
 		210597D82EAEE5E8001CDE4F /* search_finalization.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = search_finalization.txt; sourceTree = "<group>"; };
+		210597DC2EB14090001CDE4F /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		210597DE2EB14119001CDE4F /* Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Configuration.storekit; sourceTree = "<group>"; };
+		210597E02EB1413E001CDE4F /* RemoteConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteConfigManager.swift; sourceTree = "<group>"; };
+		210597E12EB1413E001CDE4F /* ScanLimitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLimitManager.swift; sourceTree = "<group>"; };
+		210597E22EB1413E001CDE4F /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
+		210597E62EB1415C001CDE4F /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		21914B312EA955D60039D3CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		21AB8A2E2EA58A02009C895F /* AlbumScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlbumScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21AB8A842EA58A5C009C895F /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
@@ -99,15 +113,26 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				214CAA112EB146A8007A60F7 /* FirebaseCore in Frameworks */,
+				214CAA132EB146BC007A60F7 /* FirebaseRemoteConfig in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		214CAA0F2EB146A8007A60F7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		21AB8A252EA58A02009C895F = {
 			isa = PBXGroup;
 			children = (
+				210597DE2EB14119001CDE4F /* Configuration.storekit */,
+				210597DC2EB14090001CDE4F /* GoogleService-Info.plist */,
 				21B910312EA91D9300C6E5B7 /* Secrets.plist */,
 				21AB8AD42EA81F3E009C895F /* Assets.xcassets */,
 				21AB8AA52EA58A5C009C895F /* AlbumScan */,
@@ -116,6 +141,7 @@
 				21AB8AA82EA58A5C009C895F /* QUICK_START.md */,
 				21AB8AA92EA58A5C009C895F /* README.md */,
 				21AB8AAA2EA58A5C009C895F /* SETUP_GUIDE.md */,
+				214CAA0F2EB146A8007A60F7 /* Frameworks */,
 				21AB8A2F2EA58A02009C895F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -153,6 +179,9 @@
 		21AB8A8B2EA58A5C009C895F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				210597E02EB1413E001CDE4F /* RemoteConfigManager.swift */,
+				210597E12EB1413E001CDE4F /* ScanLimitManager.swift */,
+				210597E22EB1413E001CDE4F /* SubscriptionManager.swift */,
 				210597CE2EAE9633001CDE4F /* LLMService.swift */,
 				210597CF2EAE9633001CDE4F /* LLMServiceFactory.swift */,
 				210597D02EAE9633001CDE4F /* OpenAIAPIService.swift */,
@@ -167,6 +196,7 @@
 		21AB8A8D2EA58A5C009C895F /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				210597E62EB1415C001CDE4F /* KeychainHelper.swift */,
 				21AB8A8C2EA58A5C009C895F /* Config.swift */,
 			);
 			path = Utilities;
@@ -306,6 +336,8 @@
 			);
 			name = AlbumScan;
 			packageProductDependencies = (
+				214CAA102EB146A8007A60F7 /* FirebaseCore */,
+				214CAA122EB146BC007A60F7 /* FirebaseRemoteConfig */,
 			);
 			productName = AlbumScan;
 			productReference = 21AB8A2E2EA58A02009C895F /* AlbumScan.app */;
@@ -335,6 +367,9 @@
 			);
 			mainGroup = 21AB8A252EA58A02009C895F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				214CAA0E2EB145BA007A60F7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 21AB8A2F2EA58A02009C895F /* Products */;
 			projectDirPath = "";
@@ -351,9 +386,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				21AB8ABF2EA58A5C009C895F /* README.md in Resources */,
+				210597DD2EB14090001CDE4F /* GoogleService-Info.plist in Resources */,
 				21AB8AC02EA58A5C009C895F /* FILE_STRUCTURE.md in Resources */,
 				210597D72EAEE5DA001CDE4F /* single_prompt_identification.txt in Resources */,
 				210597D92EAEE5E8001CDE4F /* search_finalization.txt in Resources */,
+				210597DF2EB14119001CDE4F /* Configuration.storekit in Resources */,
 				21B910342EA9481000C6E5B7 /* Bungee-Regular.ttf in Resources */,
 				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,
 				21B910322EA91D9300C6E5B7 /* Secrets.plist in Resources */,
@@ -387,6 +424,7 @@
 				21AB8AB22EA58A5C009C895F /* CameraManager.swift in Sources */,
 				21AB8AB32EA58A5C009C895F /* ContentView.swift in Sources */,
 				21AB8AB42EA58A5C009C895F /* ClaudeAPIService.swift in Sources */,
+				210597E72EB1415C001CDE4F /* KeychainHelper.swift in Sources */,
 				21AB8AB52EA58A5C009C895F /* CameraView.swift in Sources */,
 				210597BF2EABDD27001CDE4F /* ScanState.swift in Sources */,
 				210597C02EABDD27001CDE4F /* Phase2Response.swift in Sources */,
@@ -396,6 +434,9 @@
 				21AB8AB72EA58A5C009C895F /* ScanHistoryView.swift in Sources */,
 				21AB8AB82EA58A5C009C895F /* AlbumDetailsView.swift in Sources */,
 				21AB8AB92EA58A5C009C895F /* PersistenceController.swift in Sources */,
+				210597E32EB1413E001CDE4F /* RemoteConfigManager.swift in Sources */,
+				210597E42EB1413E001CDE4F /* SubscriptionManager.swift in Sources */,
+				210597E52EB1413E001CDE4F /* ScanLimitManager.swift in Sources */,
 				21AB8ABA2EA58A5C009C895F /* AlbumScanApp.swift in Sources */,
 				21AB8ABB2EA58A5C009C895F /* AlbumScan.xcdatamodeld in Sources */,
 				21AB8ABC2EA58A5C009C895F /* AlbumResponse.swift in Sources */,
@@ -625,6 +666,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		214CAA0E2EB145BA007A60F7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		214CAA102EB146A8007A60F7 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 214CAA0E2EB145BA007A60F7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		214CAA122EB146BC007A60F7 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 214CAA0E2EB145BA007A60F7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		21AB8A862EA58A5C009C895F /* AlbumScan.xcdatamodeld */ = {
