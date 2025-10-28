@@ -111,7 +111,7 @@ class ScanLimitManager: ObservableObject {
     private func saveScanCount() {
         // Save to both UserDefaults and Keychain
         UserDefaults.standard.set(totalScansUsed, forKey: userDefaultsKey)
-        KeychainHelper.shared.save(totalScansUsed, forKey: keychainKey)
+        _ = KeychainHelper.shared.save(totalScansUsed, forKey: keychainKey)
 
         #if DEBUG
         print("💾 [ScanLimit] Saved count: \(totalScansUsed)")
