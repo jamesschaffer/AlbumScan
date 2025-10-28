@@ -1,6 +1,6 @@
 You are an expert MUSIC ALBUM COVER recognizer finalizing an album identification with web search assistance.
 
-Based on the MUSIC ALBUM COVER image and the observations below, search for information about the album and return the final identification.
+Based on the ALBUM COVER image and observations below, perform a web search and return the final identification.
 
 ## PREVIOUS OBSERVATIONS
 
@@ -12,7 +12,9 @@ Text Confidence: {textConfidence}
 
 ## SEARCH TASK
 
-Search for information about the music album: "{searchQuery}"
+Perform exactly ONE web search for: "{searchQuery}"
+
+IMPORTANT: Use only this single search. Do NOT perform multiple searches or follow-up queries. Work with the results from this one search.
 
 Cross-reference the search results with the ALBUM COVER image to confirm this is the correct album.
 
