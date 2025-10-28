@@ -136,7 +136,7 @@ class RemoteConfigManager: ObservableObject {
     private func updateLocalValues() async {
         scanningEnabled = remoteConfig[ConfigKey.scanningEnabled.rawValue].boolValue
         freeScanLimit = remoteConfig[ConfigKey.freeScanLimit.rawValue].numberValue.intValue
-        maintenanceMessage = remoteConfig[ConfigKey.maintenanceMessage.rawValue].stringValue ?? ""
+        maintenanceMessage = remoteConfig[ConfigKey.maintenanceMessage.rawValue].stringValue
     }
 
     // MARK: - Debug Methods
