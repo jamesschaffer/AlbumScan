@@ -583,7 +583,7 @@ AlbumScan uses a sequential four-phase API strategy that optimizes for identific
 - **Endpoint:** Anthropic Claude API (Text only, no vision)
 - **Model:** Claude Sonnet 4.5
 - **Input:** Clean metadata from Phase 1B (text string: "Artist: {artistName}, Album: {albumTitle}, Year: {releaseYear}, Genre: {genres}, Label: {recordLabel}")
-- **Prompt:** See `phase3_review_generation.txt`
+- **Prompt:** See `album_review.txt`
 - **Key Characteristics:**
   - Full review prompt with web search ENABLED
   - Research current album information (critical reception, chart performance, influence)
@@ -1722,9 +1722,9 @@ Include this header in ALL MusicBrainz API requests.
 ### Prompt Management
 
 **Prompt Files:**
-- Phase 1A: `phase1a_vision_extraction.txt`
-- Phase 1B: `phase1b_web_search_mapping.txt`
-- Phase 3: `phase3_review_generation.txt`
+- Phase 1A: `Archive/Claude/phase1a_vision_extraction.txt` (archived - Claude only)
+- Phase 1B: `Archive/Claude/phase1b_web_search_mapping.txt` (archived - Claude only)
+- Phase 3: `album_review.txt`
 
 **Note:** No Phase 2 prompt file (Phase 2 is MusicBrainz + Cover Art Archive API calls only)
 

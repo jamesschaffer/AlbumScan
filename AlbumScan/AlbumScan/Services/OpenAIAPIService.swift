@@ -24,8 +24,8 @@ class OpenAIAPIService: LLMService {
             fatalError("❌ Could not find search_finalization.txt in bundle")
         }
 
-        guard let reviewURL = Bundle.main.url(forResource: "phase3_review_generation", withExtension: "txt") else {
-            fatalError("❌ Could not find phase3_review_generation.txt in bundle")
+        guard let reviewURL = Bundle.main.url(forResource: "album_review", withExtension: "txt") else {
+            fatalError("❌ Could not find album_review.txt in bundle")
         }
 
         guard let identificationContent = try? String(contentsOf: identificationURL) else {
@@ -37,7 +37,7 @@ class OpenAIAPIService: LLMService {
         }
 
         guard let reviewContent = try? String(contentsOf: reviewURL) else {
-            fatalError("❌ Could not read phase3_review_generation.txt")
+            fatalError("❌ Could not read album_review.txt")
         }
 
         self.identificationPrompt = identificationContent

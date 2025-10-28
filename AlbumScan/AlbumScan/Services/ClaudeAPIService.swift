@@ -61,13 +61,13 @@ class ClaudeAPIService: LLMService {
         }
 
         // Load Phase 3 prompt (review generation)
-        if let promptPath = Bundle.main.path(forResource: "phase3_review_generation", ofType: "txt", inDirectory: "Prompts"),
+        if let promptPath = Bundle.main.path(forResource: "album_review", ofType: "txt", inDirectory: "Prompts"),
            let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase3Prompt = promptContent
             #if DEBUG
             print("✅ [ClaudeAPIService] Loaded Phase 3 prompt from Prompts subdirectory")
             #endif
-        } else if let promptPath = Bundle.main.path(forResource: "phase3_review_generation", ofType: "txt"),
+        } else if let promptPath = Bundle.main.path(forResource: "album_review", ofType: "txt"),
                   let promptContent = try? String(contentsOfFile: promptPath, encoding: .utf8) {
             self.phase3Prompt = promptContent
             #if DEBUG
@@ -76,7 +76,7 @@ class ClaudeAPIService: LLMService {
         } else {
             self.phase3Prompt = "Write a review for this album."
             #if DEBUG
-            print("⚠️ [ClaudeAPIService] Could not find phase3_review_generation.txt, using fallback")
+            print("⚠️ [ClaudeAPIService] Could not find album_review.txt, using fallback")
             #endif
         }
     }
