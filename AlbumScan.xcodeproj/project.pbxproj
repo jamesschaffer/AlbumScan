@@ -24,6 +24,7 @@
 		210597E72EB1415C001CDE4F /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597E62EB1415C001CDE4F /* KeychainHelper.swift */; };
 		214CAA112EB146A8007A60F7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 214CAA102EB146A8007A60F7 /* FirebaseCore */; };
 		214CAA132EB146BC007A60F7 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 214CAA122EB146BC007A60F7 /* FirebaseRemoteConfig */; };
+		214CAA152EB14AF2007A60F7 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214CAA142EB14AF2007A60F7 /* PaywallView.swift */; };
 		21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8E2EA58A5C009C895F /* AppState.swift */; };
 		21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A842EA58A5C009C895F /* Album.swift */; };
 		21AB8AAF2EA58A5C009C895F /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8C2EA58A5C009C895F /* Config.swift */; };
@@ -74,6 +75,7 @@
 		210597E12EB1413E001CDE4F /* ScanLimitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLimitManager.swift; sourceTree = "<group>"; };
 		210597E22EB1413E001CDE4F /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		210597E62EB1415C001CDE4F /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		214CAA142EB14AF2007A60F7 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PaywallView.swift; path = Subscription/PaywallView.swift; sourceTree = "<group>"; };
 		21914B312EA955D60039D3CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		21AB8A2E2EA58A02009C895F /* AlbumScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlbumScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21AB8A842EA58A5C009C895F /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
@@ -256,6 +258,7 @@
 		21AB8A9E2EA58A5C009C895F /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				214CAA142EB14AF2007A60F7 /* PaywallView.swift */,
 				65497B4506434630BFC0BA1A /* LoadingView.swift */,
 				21B9102D2EA822B000C6E5B7 /* LaunchScreenView.swift */,
 				21AB8A922EA58A5C009C895F /* Album */,
@@ -425,6 +428,7 @@
 				21AB8AB32EA58A5C009C895F /* ContentView.swift in Sources */,
 				21AB8AB42EA58A5C009C895F /* ClaudeAPIService.swift in Sources */,
 				210597E72EB1415C001CDE4F /* KeychainHelper.swift in Sources */,
+				214CAA152EB14AF2007A60F7 /* PaywallView.swift in Sources */,
 				21AB8AB52EA58A5C009C895F /* CameraView.swift in Sources */,
 				210597BF2EABDD27001CDE4F /* ScanState.swift in Sources */,
 				210597C02EABDD27001CDE4F /* Phase2Response.swift in Sources */,
