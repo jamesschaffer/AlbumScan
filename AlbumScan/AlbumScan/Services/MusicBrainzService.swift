@@ -232,12 +232,31 @@ class MusicBrainzService {
 
     /// Get sorted candidates using existing matching logic (extracted for reuse)
     private func getSortedCandidates(in releases: [MusicBrainzRelease], searchArtist: String, searchAlbum: String) -> [MusicBrainzRelease] {
-        // Filter releases that match the artist name
+        // Filter releases that match BOTH artist AND album title
         let matchingReleases = releases.filter { release in
+            // Artist check
             guard let artistCredit = release.artistCredit?.first else { return false }
             let releaseArtist = artistCredit.name.lowercased()
             let searchArtistLower = searchArtist.lowercased()
-            return releaseArtist.contains(searchArtistLower) || searchArtistLower.contains(releaseArtist)
+            let artistMatches = releaseArtist.contains(searchArtistLower) || searchArtistLower.contains(releaseArtist)
+
+            // Title check using word overlap (at least 50% common words)
+            let searchWords = Set(searchAlbum.lowercased().split(separator: " ").filter { $0.count > 1 }) // Ignore single-char words
+            let releaseWords = Set(release.title.lowercased().split(separator: " ").filter { $0.count > 1 })
+
+            // Require at least 50% word overlap to avoid false matches
+            let commonWords = searchWords.intersection(releaseWords)
+            let maxWords = max(searchWords.count, releaseWords.count)
+            let overlapPercentage = maxWords > 0 ? Double(commonWords.count) / Double(maxWords) : 0.0
+            let titleMatches = overlapPercentage >= 0.5
+
+            #if DEBUG
+            if !titleMatches && artistMatches {
+                print("🔍 [MusicBrainz] Filtered out: '\(release.title)' (overlap: \(Int(overlapPercentage * 100))%)")
+            }
+            #endif
+
+            return artistMatches && titleMatches
         }
 
         // Sort to get consistent, high-quality results:
