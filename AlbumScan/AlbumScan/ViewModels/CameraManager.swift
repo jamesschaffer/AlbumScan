@@ -628,6 +628,29 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 print("🔍 [ID Call 1] Search needed: \(searchRequest.searchRequest.reason)")
                 print("🔍 [ID Call 1] Query: \(searchRequest.searchRequest.query)")
 
+                // SEARCH GATE: Validate if search is worth attempting
+                let extractedText = searchRequest.searchRequest.observation.extractedText
+                let textConfidence = searchRequest.searchRequest.observation.textConfidence
+                let meaningfulChars = extractedText.filter { !$0.isWhitespace }.count
+
+                print("🔍 [Search Gate] Extracted text: '\(extractedText)' (\(meaningfulChars) chars, \(textConfidence) confidence)")
+
+                guard meaningfulChars >= 3 && textConfidence != "low" else {
+                    print("⛔ [Search Gate] BLOCKED - Insufficient text data for search")
+                    print("⛔ [Search Gate] Criteria: Need 3+ chars AND medium/high confidence")
+                    print("⛔ [Search Gate] Got: \(meaningfulChars) chars, \(textConfidence) confidence")
+
+                    await MainActor.run {
+                        self.scanState = .identificationFailed
+                        self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: "Unable to identify - album cover has insufficient readable text"])
+                        self.isProcessing = false
+                        self.isCaptureInitiated = false
+                    }
+                    return
+                }
+
+                print("✅ [Search Gate] PASSED - Text sufficient for search")
+
                 // Trigger "deep cut" message in UI
                 await MainActor.run {
                 }
