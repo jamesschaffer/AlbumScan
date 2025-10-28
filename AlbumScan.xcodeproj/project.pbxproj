@@ -44,10 +44,8 @@
 		21B9102E2EA822B000C6E5B7 /* LaunchScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B9102D2EA822B000C6E5B7 /* LaunchScreenView.swift */; };
 		21B910322EA91D9300C6E5B7 /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = 21B910312EA91D9300C6E5B7 /* Secrets.plist */; };
 		21B910342EA9481000C6E5B7 /* Bungee-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 21B910332EA9481000C6E5B7 /* Bungee-Regular.ttf */; };
-		390FBF0188B345789C9206D2 /* phase1b_web_search_mapping.txt in Resources */ = {isa = PBXBuildFile; fileRef = FBD1A3CEC3004E0FBB49BF9C /* phase1b_web_search_mapping.txt */; };
 		66378A241DA347A394EEEAB4 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65497B4506434630BFC0BA1A /* LoadingView.swift */; };
 		74034F4931A44D6C86F55EC5 /* Phase1AResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02DD9207AC464190AC1BBD80 /* Phase1AResponse.swift */; };
-		DEE5B3C8D593412CB76EE1A8 /* phase1a_vision_extraction.txt in Resources */ = {isa = PBXBuildFile; fileRef = 7C4E121D146B41449A73D624 /* phase1a_vision_extraction.txt */; };
 		EFC56BF99C0B45BFB480023F /* phase3_review_generation.txt in Resources */ = {isa = PBXBuildFile; fileRef = 3FCE23C575394A75A62E6BF5 /* phase3_review_generation.txt */; };
 /* End PBXBuildFile section */
 
@@ -94,8 +92,6 @@
 		21B910332EA9481000C6E5B7 /* Bungee-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Bungee-Regular.ttf"; sourceTree = "<group>"; };
 		3FCE23C575394A75A62E6BF5 /* phase3_review_generation.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = phase3_review_generation.txt; sourceTree = "<group>"; };
 		65497B4506434630BFC0BA1A /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
-		7C4E121D146B41449A73D624 /* phase1a_vision_extraction.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = phase1a_vision_extraction.txt; sourceTree = "<group>"; };
-		FBD1A3CEC3004E0FBB49BF9C /* phase1b_web_search_mapping.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = phase1b_web_search_mapping.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -288,8 +284,6 @@
 			children = (
 				210597D82EAEE5E8001CDE4F /* search_finalization.txt */,
 				210597D62EAEE5DA001CDE4F /* single_prompt_identification.txt */,
-				7C4E121D146B41449A73D624 /* phase1a_vision_extraction.txt */,
-				FBD1A3CEC3004E0FBB49BF9C /* phase1b_web_search_mapping.txt */,
 				3FCE23C575394A75A62E6BF5 /* phase3_review_generation.txt */,
 			);
 			path = Prompts;
@@ -364,8 +358,6 @@
 				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,
 				21B910322EA91D9300C6E5B7 /* Secrets.plist in Resources */,
 				21AB8AC32EA58A5C009C895F /* project_context.md in Resources */,
-				DEE5B3C8D593412CB76EE1A8 /* phase1a_vision_extraction.txt in Resources */,
-				390FBF0188B345789C9206D2 /* phase1b_web_search_mapping.txt in Resources */,
 				EFC56BF99C0B45BFB480023F /* phase3_review_generation.txt in Resources */,
 				21AB8AD52EA81F3E009C895F /* Assets.xcassets in Resources */,
 				21AB8AC42EA58A5C009C895F /* QUICK_START.md in Resources */,
