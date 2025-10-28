@@ -104,3 +104,6 @@ build.log
 
 # macOS
 .DS_Store
+
+# Project-specific
+GTM.md
