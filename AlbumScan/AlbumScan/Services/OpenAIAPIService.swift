@@ -325,7 +325,7 @@ class OpenAIAPIService: LLMService {
         request.timeoutInterval = 60  // Longer timeout for web search
 
         let body: [String: Any] = [
-            "model": "gpt-4o-search-preview",  // Search-enabled for review context
+            "model": "gpt-4o",  // Regular model - music history is stable, no search needed
             "max_tokens": 1500,
             "messages": [
                 [
