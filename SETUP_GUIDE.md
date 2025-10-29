@@ -7,7 +7,8 @@ This guide will walk you through setting up the AlbumScan iOS project in Xcode.
 - macOS 13.0 (Ventura) or later
 - Xcode 15.0 or later
 - iOS 16.0+ device or simulator
-- Anthropic Claude API key
+- **OpenAI API key** (required - primary identification service)
+- Anthropic Claude API key (optional - backup service)
 
 ## Step 1: Create Xcode Project
 
@@ -55,35 +56,42 @@ The `Info.plist` file has been created with the required camera permission descr
 1. Add `Info.plist` to the project if not already included
 2. Verify it contains `NSCameraUsageDescription`
 
-## Step 4: Set Up API Key
+## Step 4: Set Up API Keys (Critical)
 
-You need to configure your Claude API key. Choose one of these methods:
+**Current Implementation:** The app uses `Secrets.plist` to load API keys at runtime.
 
-### Option A: Environment Variable (Recommended for Development)
-
-1. Edit your scheme in Xcode:
-   - Product → Scheme → Edit Scheme
-   - Select "Run" → "Arguments"
-   - Under "Environment Variables", add:
-     - Name: `CLAUDE_API_KEY`
-     - Value: `your-api-key-here`
-
-### Option B: Create Secrets.plist (Gitignored)
+### Create Secrets.plist (Required)
 
 1. Create a new file: File → New → File → Property List
 2. Name it `Secrets.plist`
-3. Add your API key:
+3. Add to target: **AlbumScan** (check the box)
+4. Add your API keys:
    ```xml
    <?xml version="1.0" encoding="UTF-8"?>
    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
    <plist version="1.0">
    <dict>
+       <key>OPENAI_API_KEY</key>
+       <string>your-openai-api-key-here</string>
        <key>CLAUDE_API_KEY</key>
-       <string>your-api-key-here</string>
+       <string>your-claude-api-key-here-optional</string>
    </dict>
    </plist>
    ```
-4. This file is already in `.gitignore`
+5. **Important:** `Secrets.plist` is already in `.gitignore` - never commit API keys!
+6. **Template Available:** See `Secrets.plist.template` for reference
+
+### Alternative: Environment Variable (Development Only)
+
+If you prefer environment variables during development:
+
+1. Edit your scheme in Xcode:
+   - Product → Scheme → Edit Scheme
+   - Select "Run" → "Arguments"
+   - Under "Environment Variables", add:
+     - Name: `OPENAI_API_KEY`
+     - Value: `your-openai-api-key-here`
+2. **Note:** Config.swift checks Secrets.plist first, then falls back to environment variables
 
 ## Step 5: Build Settings
 
@@ -148,7 +156,13 @@ For initial testing, use a well-known album cover like:
 - Nirvana - Nevermind
 - The Beatles - Abbey Road
 
-These should have high success rates for identification.
+**Expected Behavior:**
+- Loading Screen 1: "Flipping through every record bin in existence..." (2-4 seconds)
+- Loading Screen 2: "We found [Album] by [Artist]" with artwork (2.5 seconds)
+- Loading Screen 3: "Writing a review..." (3-5 seconds or instant if cached)
+- Album Details: Full review with 8-tier recommendation label
+
+These well-known albums should identify via ID Call 1 only (no search needed).
 
 ## Next Steps After Setup
 
@@ -176,13 +190,31 @@ If you encounter issues:
 4. Verify all files are added to target
 5. Check Info.plist for camera permissions
 
-## Getting Your Claude API Key
+## Getting Your OpenAI API Key
+
+1. Go to https://platform.openai.com/
+2. Sign up or log in
+3. Navigate to "API keys" in your account settings
+4. Click "Create new secret key"
+5. Name it (e.g., "AlbumScan Development")
+6. Copy the key immediately and store it securely (you won't see it again)
+7. Add billing information and set up usage limits (recommended: $10/month)
+
+**Cost Expectations:**
+- ID Call 1: ~$0.01 per scan
+- ID Call 2 (10-20% of scans): ~$0.03-0.04 per scan
+- Review Generation: ~$0.05-0.10 per new album (or $0 if cached)
+- **Total: ~$0.10/day for 100 scans** with caching
+
+## Getting Your Claude API Key (Optional Backup)
 
 1. Go to https://console.anthropic.com/
 2. Sign up or log in
 3. Navigate to API Keys
 4. Create a new API key
-5. Copy the key and store it securely (you won't see it again)
+5. Copy the key and store it securely
+
+**Note:** Claude API is configured as a backup provider. To use it, change `Config.currentProvider` to `.claude` in Config.swift.
 
 ## Security Reminders
 
@@ -196,10 +228,12 @@ If you encounter issues:
 - [SwiftUI Documentation](https://developer.apple.com/documentation/swiftui)
 - [CoreData Documentation](https://developer.apple.com/documentation/coredata)
 - [AVFoundation Camera Guide](https://developer.apple.com/documentation/avfoundation/cameras_and_media_capture)
-- [Anthropic API Documentation](https://docs.anthropic.com/)
+- [OpenAI API Documentation](https://platform.openai.com/docs)
+- [Anthropic API Documentation](https://docs.anthropic.com/) (backup provider)
+- **Project Documentation**: See `Project_Context/` directory for complete specification
 
 ---
 
 **Ready to start developing!** 🎵
 
-If you encounter any issues during setup, check PROJECT_CONTEXT.md for the complete specification.
+If you encounter any issues during setup, check `Project_Context/` directory for the complete specification (11 organized documents covering architecture, APIs, UX, testing, and more).
