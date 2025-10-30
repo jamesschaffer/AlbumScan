@@ -16,9 +16,110 @@ struct CameraView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var cameraManager = CameraManager()
     @State private var showingHistory = false
+    @State private var showSettings = false
     @State private var showErrorBanner = false
 
-    let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
+    private let brandGreen = Color(red: 0.0, green: 0.87, blue: 0.32)
+
+    private var settingsButton: some View {
+        Button(action: {
+            showSettings = true
+        }) {
+            ZStack {
+                Circle()
+                    .fill(Color.black.opacity(0.6))
+                    .frame(width: 64, height: 64)
+
+                Circle()
+                    .strokeBorder(brandGreen, lineWidth: 4)
+                    .frame(width: 64, height: 64)
+
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+        .buttonStyle(PressedButtonStyle())
+    }
+
+    private var scanButton: some View {
+        Button(action: {
+            cameraManager.capturePhoto()
+        }) {
+            HStack(alignment: .center, spacing: 0) {
+                Text("SCAN")
+                    .font(.custom("Bungee", size: 28))
+                    .foregroundColor(.white)
+            }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 26)
+            .frame(width: 201, alignment: .center)
+            .background(.black.opacity(0.6))
+            .cornerRadius(42)
+            .overlay(
+                RoundedRectangle(cornerRadius: 42)
+                    .inset(by: 2)
+                    .stroke(brandGreen, lineWidth: 4)
+            )
+        }
+        .buttonStyle(PressedButtonStyle())
+        .disabled(cameraManager.isCaptureInitiated)
+        .opacity(cameraManager.isCaptureInitiated ? 0.4 : 1.0)
+    }
+
+    private var historyButton: some View {
+        Group {
+            if appState.hasScannedAlbums {
+                Button(action: {
+                    showingHistory = true
+                }) {
+                    HStack(alignment: .center, spacing: 0) {
+                        VStack(spacing: 4) {
+                            Rectangle()
+                                .fill(Color.white)
+                                .frame(width: 20, height: 2)
+                            Rectangle()
+                                .fill(Color.white)
+                                .frame(width: 20, height: 2)
+                            Rectangle()
+                                .fill(Color.white)
+                                .frame(width: 20, height: 2)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 20)
+                    .frame(width: 64, height: 64, alignment: .center)
+                    .background(.black.opacity(0.6))
+                    .cornerRadius(999)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 999)
+                            .inset(by: 2)
+                            .stroke(brandGreen, lineWidth: 4)
+                    )
+                }
+                .buttonStyle(PressedButtonStyle())
+            } else {
+                Color.clear
+                    .frame(width: 64, height: 64)
+            }
+        }
+    }
+
+    private var controlBar: some View {
+        VStack {
+            Spacer()
+
+            HStack(alignment: .center, spacing: 0) {
+                settingsButton
+                Spacer()
+                scanButton
+                Spacer()
+                historyButton
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 22)
+        }
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -43,82 +144,7 @@ struct CameraView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
 
                 // Camera controls at bottom
-                VStack {
-                    Spacer()
-
-                    // Bottom control bar container
-                    HStack(alignment: .center, spacing: 0) {
-                        // Left side - placeholder for settings button
-                        Color.clear
-                            .frame(width: 64, height: 64)
-
-                        Spacer()
-
-                        // Center - Scan button
-                        Button(action: {
-                            cameraManager.capturePhoto()
-                        }) {
-                            HStack(alignment: .center, spacing: 0) {
-                                Text("SCAN")
-                                    .font(.custom("Bungee", size: 28))
-                                    .foregroundColor(.white)
-                            }
-                            .padding(.horizontal, 40)
-                            .padding(.vertical, 26)
-                            .frame(width: 201, alignment: .center)
-                            .background(.black.opacity(0.6))
-                            .cornerRadius(42)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 42)
-                                    .inset(by: 2)
-                                    .stroke(brandGreen, lineWidth: 4)
-                            )
-                        }
-                        .buttonStyle(PressedButtonStyle())
-                        .disabled(cameraManager.isCaptureInitiated)
-                        .opacity(cameraManager.isCaptureInitiated ? 0.4 : 1.0)
-
-                        Spacer()
-
-                        // Right side - History button
-                        if appState.hasScannedAlbums {
-                            Button(action: {
-                                showingHistory = true
-                            }) {
-                                HStack(alignment: .center, spacing: 0) {
-                                    VStack(spacing: 4) {
-                                        Rectangle()
-                                            .fill(Color.white)
-                                            .frame(width: 20, height: 2)
-                                        Rectangle()
-                                            .fill(Color.white)
-                                            .frame(width: 20, height: 2)
-                                        Rectangle()
-                                            .fill(Color.white)
-                                            .frame(width: 20, height: 2)
-                                    }
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 20)
-                                .frame(width: 64, height: 64, alignment: .center)
-                                .background(.black.opacity(0.6))
-                                .cornerRadius(999)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 999)
-                                        .inset(by: 2)
-                                        .stroke(brandGreen, lineWidth: 4)
-                                )
-                            }
-                            .buttonStyle(PressedButtonStyle())
-                        } else {
-                            // Placeholder to maintain spacing when no history
-                            Color.clear
-                                .frame(width: 64, height: 64)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 22)
-                }
+                controlBar
             }
 
             // Loading overlay
@@ -161,6 +187,11 @@ struct CameraView: View {
         .fullScreenCover(isPresented: $showingHistory) {
             ScanHistoryView()
         }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .environmentObject(appState)
+                .presentationDetents([.height(460)])
+        }
         .fullScreenCover(item: $cameraManager.scannedAlbum, onDismiss: {
             // Reset state when album details is manually dismissed
             cameraManager.scanState = .idle
@@ -170,6 +201,9 @@ struct CameraView: View {
             AlbumDetailsView(album: album, cameraManager: cameraManager)
         }
         .onAppear {
+            // Set AppState reference for Ultra search toggle
+            cameraManager.setAppState(appState)
+
             cameraManager.startSession()
 
             // Setup guide coordinates (use a small delay to ensure preview layer is sized)

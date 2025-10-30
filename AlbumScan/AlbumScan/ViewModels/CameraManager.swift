@@ -10,6 +10,9 @@ class CameraManager: NSObject, ObservableObject {
     @Published var error: Error?
     @Published var scannedAlbum: Album?
 
+    // Reference to AppState for Ultra search toggle
+    private weak var appState: AppState?
+
     // Store framing guide coordinates for cropping
     var capturedGuideFrame: CGRect = .zero
     var previewLayerSize: CGSize = .zero
@@ -50,6 +53,11 @@ class CameraManager: NSObject, ObservableObject {
     override init() {
         super.init()
         setupSession()
+    }
+
+    /// Set the AppState reference after initialization
+    func setAppState(_ appState: AppState) {
+        self.appState = appState
     }
 
     private func setupSession() {
@@ -186,7 +194,7 @@ class CameraManager: NSObject, ObservableObject {
 // MARK: - AVCapturePhotoCaptureDelegate
 
 extension CameraManager: AVCapturePhotoCaptureDelegate {
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+    nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if let error = error {
             DispatchQueue.main.async {
                 self.error = error
@@ -628,28 +636,33 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 print("🔍 [ID Call 1] Search needed: \(searchRequest.searchRequest.reason)")
                 print("🔍 [ID Call 1] Query: \(searchRequest.searchRequest.query)")
 
-                // SEARCH GATE: Validate if search is worth attempting
-                let extractedText = searchRequest.searchRequest.observation.extractedText
-                let textConfidence = searchRequest.searchRequest.observation.textConfidence
-                let meaningfulChars = extractedText.filter { !$0.isWhitespace }.count
+                // Check if AlbumScan Ultra search is enabled
+                let searchEnabled = appState?.searchEnabled ?? false
+                #if DEBUG
+                print("🔍 [AlbumScan Ultra] Search enabled: \(searchEnabled)")
+                #endif
 
-                print("🔍 [Search Gate] Extracted text: '\(extractedText)' (\(meaningfulChars) chars, \(textConfidence) confidence)")
-
-                guard meaningfulChars >= 3 && textConfidence != "low" else {
-                    print("⛔ [Search Gate] BLOCKED - Insufficient text data for search")
-                    print("⛔ [Search Gate] Criteria: Need 3+ chars AND medium/high confidence")
-                    print("⛔ [Search Gate] Got: \(meaningfulChars) chars, \(textConfidence) confidence")
+                guard searchEnabled else {
+                    // Search disabled - treat as identification failure
+                    print("⛔ [Search Disabled] AlbumScan Ultra required for deep cut albums")
+                    print("⛔ [Search Disabled] Enable Advanced Search in Settings to identify obscure albums")
 
                     await MainActor.run {
                         self.scanState = .identificationFailed
-                        self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: "Unable to identify - album cover has insufficient readable text"])
+                        self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: "Unable to identify this cover art"])
                         self.isProcessing = false
                         self.isCaptureInitiated = false
                     }
                     return
                 }
 
-                print("✅ [Search Gate] PASSED - Text sufficient for search")
+                // Ultra enabled - proceed to ID Call 2 (no gate validation)
+                let extractedText = searchRequest.searchRequest.observation.extractedText
+                let textConfidence = searchRequest.searchRequest.observation.textConfidence
+                let meaningfulChars = extractedText.filter { !$0.isWhitespace }.count
+
+                print("🔍 [AlbumScan Ultra] Bypassing search gate validation")
+                print("🔍 [ID Call 2] Extracted text: '\(extractedText)' (\(meaningfulChars) chars, \(textConfidence) confidence)")
 
                 // Trigger "deep cut" message in UI
                 await MainActor.run {
@@ -841,13 +854,20 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         // Cache miss - generate new review
         print("📦 [CACHE MISS] Generating new review via API...")
 
+        // Get Ultra search toggle state
+        let searchEnabled = appState?.searchEnabled ?? false
+        #if DEBUG
+        print("🔍 [AlbumScan Ultra] Review generation with search enabled: \(searchEnabled)")
+        #endif
+
         do {
             let phase2Response = try await LLMServiceFactory.getService().generateReviewPhase2(
                 artistName: artistName,
                 albumTitle: albumTitle,
                 releaseYear: releaseYear,
                 genres: genres,
-                recordLabel: recordLabel
+                recordLabel: recordLabel,
+                searchEnabled: searchEnabled
             )
             let phase2Time = Date().timeIntervalSince(phase2Start)
             print("⏱️ [TIMING] Phase 2 took: \(String(format: "%.2f", phase2Time))s")

@@ -11,6 +11,7 @@ class OpenAIAPIService: LLMService {
     private let identificationPrompt: String
     private let searchFinalizationPrompt: String
     private let reviewPrompt: String
+    private let reviewUltraPrompt: String
 
     private init() {
         self.apiKey = Config.openAIAPIKey
@@ -28,6 +29,10 @@ class OpenAIAPIService: LLMService {
             fatalError("❌ Could not find album_review.txt in bundle")
         }
 
+        guard let reviewUltraURL = Bundle.main.url(forResource: "album_review_ultra", withExtension: "txt") else {
+            fatalError("❌ Could not find album_review_ultra.txt in bundle")
+        }
+
         guard let identificationContent = try? String(contentsOf: identificationURL) else {
             fatalError("❌ Could not read single_prompt_identification.txt")
         }
@@ -40,14 +45,20 @@ class OpenAIAPIService: LLMService {
             fatalError("❌ Could not read album_review.txt")
         }
 
+        guard let reviewUltraContent = try? String(contentsOf: reviewUltraURL) else {
+            fatalError("❌ Could not read album_review_ultra.txt")
+        }
+
         self.identificationPrompt = identificationContent
         self.searchFinalizationPrompt = searchContent
         self.reviewPrompt = reviewContent
+        self.reviewUltraPrompt = reviewUltraContent
 
         #if DEBUG
         print("✅ [OpenAIAPIService] Loaded identification prompt from bundle")
         print("✅ [OpenAIAPIService] Loaded search finalization prompt from bundle")
         print("✅ [OpenAIAPIService] Loaded review prompt from bundle")
+        print("✅ [OpenAIAPIService] Loaded Ultra review prompt from bundle")
         #endif
     }
 
@@ -167,30 +178,41 @@ class OpenAIAPIService: LLMService {
         return try parseIdentificationResponse(from: apiResponse)
     }
 
-    // MARK: - Review Generation (unchanged from original)
+    // MARK: - Review Generation (with AlbumScan Ultra support)
 
     func generateReviewPhase2(
         artistName: String,
         albumTitle: String,
         releaseYear: String,
         genres: [String],
-        recordLabel: String
+        recordLabel: String,
+        searchEnabled: Bool = false
     ) async throws -> Phase2Response {
         #if DEBUG
         print("🔑 [OpenAI Review] Starting review generation...")
+        print("🔍 [AlbumScan Ultra] Search enabled: \(searchEnabled)")
+        #endif
+
+        // Choose prompt and model based on Ultra toggle
+        let selectedPrompt = searchEnabled ? reviewUltraPrompt : reviewPrompt
+        let model = searchEnabled ? "gpt-4o-search-preview" : "gpt-4o"
+
+        #if DEBUG
+        print("📝 [OpenAI Review] Using prompt: \(searchEnabled ? "album_review_ultra.txt" : "album_review.txt")")
+        print("🤖 [OpenAI Review] Using model: \(model)")
         #endif
 
         // Build prompt with album data
         let genresString = genres.joined(separator: ", ")
-        let prompt = reviewPrompt
+        let prompt = selectedPrompt
             .replacingOccurrences(of: "{artistName}", with: artistName)
             .replacingOccurrences(of: "{albumTitle}", with: albumTitle)
             .replacingOccurrences(of: "{releaseYear}", with: releaseYear)
             .replacingOccurrences(of: "{genres}", with: genresString)
             .replacingOccurrences(of: "{recordLabel}", with: recordLabel)
 
-        // Build request with web search enabled
-        let request = try buildReviewRequest(prompt: prompt)
+        // Build request for review generation
+        let request = try buildReviewRequest(prompt: prompt, model: model)
 
         // Make API call
         #if DEBUG
@@ -313,7 +335,7 @@ class OpenAIAPIService: LLMService {
         return request
     }
 
-    private func buildReviewRequest(prompt: String) throws -> URLRequest {
+    private func buildReviewRequest(prompt: String, model: String = "gpt-4o") throws -> URLRequest {
         guard let url = URL(string: apiURL) else {
             throw APIError.invalidURL
         }
@@ -322,10 +344,10 @@ class OpenAIAPIService: LLMService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 60  // Longer timeout for web search
+        request.timeoutInterval = 60  // Standard timeout for review generation
 
         let body: [String: Any] = [
-            "model": "gpt-4o",  // Regular model - music history is stable, no search needed
+            "model": model,  // Either gpt-4o (free) or gpt-4o-search-preview (Ultra)
             "max_tokens": 1500,
             "messages": [
                 [

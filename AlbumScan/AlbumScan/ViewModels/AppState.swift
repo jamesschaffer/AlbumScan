@@ -9,10 +9,24 @@ class AppState: ObservableObject {
     @Published var cameraPermissionDenied: Bool = false
     @Published var hasScannedAlbums: Bool = false
 
+    // MARK: - AlbumScan Ultra Search Toggle
+
+    @Published var searchEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(searchEnabled, forKey: "searchEnabled")
+            #if DEBUG
+            print("🔍 [AlbumScan Ultra] Search enabled changed to: \(searchEnabled)")
+            #endif
+        }
+    }
+
     init() {
         // Check if first launch
         let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
         self.isFirstLaunch = !hasLaunchedBefore
+
+        // Load search toggle state from UserDefaults
+        self.searchEnabled = UserDefaults.standard.bool(forKey: "searchEnabled")
 
         // Defer album check to avoid initialization issues
         checkForScannedAlbums()

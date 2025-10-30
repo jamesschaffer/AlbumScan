@@ -15,7 +15,7 @@ protocol LLMService {
     /// - Returns: Phase1Response containing album metadata (artist, title, year, etc.)
     func executePhase1B(phase1AData: Phase1AResponse) async throws -> Phase1Response
 
-    /// Phase 2: Review Generation (WITH web search)
+    /// Phase 2: Review Generation (WITH or WITHOUT web search depending on Ultra)
     /// Generates a detailed review and analysis of the identified album
     /// - Parameters:
     ///   - artistName: The artist name
@@ -23,12 +23,14 @@ protocol LLMService {
     ///   - releaseYear: The release year
     ///   - genres: Array of genre strings
     ///   - recordLabel: The record label
+    ///   - searchEnabled: Whether Ultra search is enabled (uses gpt-4o-search-preview if true)
     /// - Returns: Phase2Response containing review, rating, and recommendations
     func generateReviewPhase2(
         artistName: String,
         albumTitle: String,
         releaseYear: String,
         genres: [String],
-        recordLabel: String
+        recordLabel: String,
+        searchEnabled: Bool
     ) async throws -> Phase2Response
 }
