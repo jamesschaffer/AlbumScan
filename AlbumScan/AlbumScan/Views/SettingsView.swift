@@ -14,32 +14,62 @@ struct SettingsView: View {
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
 
-                    Text("$11.99/year")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(Color(red: 0, green: 0.87, blue: 0.32))
+                    // Only show price before purchase
+                    if !appState.hasActiveSubscription {
+                        Text("$11.99/year")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(Color(red: 0, green: 0.87, blue: 0.32))
+                    }
 
                     VStack(alignment: .leading, spacing: 12) {
-                        BenefitRow(text: "Leverages web search for obscure albums")
-                        BenefitRow(text: "Enhanced accuracy for modern releases (2020+)")
-                        BenefitRow(text: "Cited sources in review from major music outlets")
-                        BenefitRow(text: "Reduces potential hallucinations")
-                        BenefitRow(text: "Support continued development efforts")
+                        BenefitRow(text: "Improve scans on obscure albums that shaped your favorite artists")
+                        BenefitRow(text: "Access reviews from credible industry experts like Pitchfork")
+                        BenefitRow(text: "Stay ahead with live updates on albums released after 2024")
+                        BenefitRow(text: "Build expertise with verified facts, not AI guesses")
                     }
                     .padding(.top, 8)
 
-                    // Toggle Switch (Placeholder - no purchase flow yet)
-                    HStack {
-                        Text("Enable Advanced Search")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white)
+                    // Conditional UI based on subscription state
+                    if appState.hasActiveSubscription {
+                        // After Purchase State
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("You are now leveraging AlbumScan Ultra")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(Color(red: 0, green: 0.87, blue: 0.32))
+                                .padding(.top, 16)
 
-                        Spacer()
+                            Text("To manage your subscription or cancel renewal, visit the App Store.")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding(.top, 8)
 
-                        Toggle("", isOn: $appState.searchEnabled)
-                            .labelsHidden()
-                            .tint(Color(red: 0, green: 0.87, blue: 0.32))
+                            #if DEBUG
+                            Button(action: {
+                                appState.hasActiveSubscription = false
+                            }) {
+                                Text("Reset for Testing")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.red)
+                            }
+                            .padding(.top, 12)
+                            #endif
+                        }
+                    } else {
+                        // Before Purchase State
+                        Button(action: {
+                            // Simulate purchase (for testing - will be replaced with StoreKit 2)
+                            appState.hasActiveSubscription = true
+                        }) {
+                            Text("Upgrade")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Color(red: 0, green: 0.87, blue: 0.32))
+                                .cornerRadius(12)
+                        }
+                        .padding(.top, 16)
                     }
-                    .padding(.top, 16)
                 }
                 .padding(24)
                 .background(
@@ -61,10 +91,13 @@ struct BenefitRow: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 20))
                 .foregroundColor(Color(red: 0, green: 0.87, blue: 0.32))
+                .frame(width: 20, alignment: .center)
 
             Text(text)
                 .font(.system(size: 16))
                 .foregroundColor(.white.opacity(0.9))
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
