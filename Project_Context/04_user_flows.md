@@ -88,15 +88,32 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
   → User Grants Permission → Return to App → Camera View
 ```
 
+### Flow 10: Access Settings and Toggle AlbumScan Ultra
+```
+Camera View → Tap Settings Button (gear icon, bottom-left)
+  → Settings Screen (sheet presentation, 460pt height)
+  → View AlbumScan Ultra benefits card
+  → Toggle "Enable Advanced Search" ON/OFF
+    - Toggle ON: Reviews use gpt-4o-search-preview with source prioritization (~$0.08-0.13/review)
+    - Toggle OFF: Reviews use gpt-4o with no search (~$0.05-0.10/review)
+  → State persists to UserDefaults
+  → Swipe down or tap outside sheet to dismiss
+  → Returns to Camera View
+```
+
+**Note:** Toggle change affects future scans immediately - cached reviews remain unaffected
+
 ---
 
 ## Verification Summary
 
-**Document Accuracy:** This document has been verified against the actual codebase implementation as of October 29, 2025.
+**Document Accuracy:** This document has been verified against the actual codebase implementation as of October 30, 2025.
 
 **Files Verified:**
-- `CameraManager.swift` (identification flow, timing, error handling)
-- `CameraView.swift` (error banner implementation, UI buttons)
+- `CameraManager.swift` (identification flow, timing, error handling, Ultra search bypass)
+- `CameraView.swift` (error banner implementation, UI buttons, settings button)
+- `SettingsView.swift` (Ultra benefits card, toggle, sheet presentation)
+- `AppState.swift` (searchEnabled state management)
 - `LoadingView.swift` (loading state messages and transitions)
 - `AlbumDetailsView.swift` (review failure handling, no retry button)
 - `ScanHistoryView.swift` (history list, swipe-to-delete, camera button)
@@ -107,11 +124,12 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
 
 **Major Corrections Made:**
 1. **Architecture Update**: Changed from "Four-Phase" to "Two-Tier Identification System"
-2. **Error Handling**: Corrected Flow 3 to describe error banner (not full-screen error view)
-3. **Review Retry**: Removed non-existent "Retry Review" button from Flow 4
-4. **Button Labels**: Corrected Flow 6 to describe camera icon button (not "SCAN" button)
-5. **Timing Estimates**: Updated with accurate timing from actual implementation
-6. **Cache Behavior**: Added note about instant cached review display in Flow 8
+2. **New Flow Added (October 30, 2025)**: Flow 10 - Access Settings and Toggle AlbumScan Ultra
+3. **Error Handling**: Corrected Flow 3 to describe error banner (not full-screen error view)
+4. **Review Retry**: Removed non-existent "Retry Review" button from Flow 4
+5. **Button Labels**: Corrected Flow 6 to describe camera icon button (not "SCAN" button)
+6. **Timing Estimates**: Updated with accurate timing from actual implementation
+7. **Cache Behavior**: Added note about instant cached review display in Flow 8
 
 **Evidence-Based Changes:**
 - Error banner slides down from top, auto-dismisses after 3 seconds (spring animation)
@@ -119,6 +137,8 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
 - Review failure shows suggestion message only, no interactive retry button
 - History view has camera icon button (circular, green border, bottom right)
 - Swipe-to-delete supports full swipe for immediate deletion
+- Settings button (gear icon) added to camera view (bottom-left)
+- Ultra toggle affects future scans, not cached reviews
 
 **No Implementation Found:**
 - `ScanErrorView.swift` exists in codebase but is NOT used in actual flow

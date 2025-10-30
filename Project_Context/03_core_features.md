@@ -73,9 +73,11 @@
 
 ### Feature 2: Cultural Context & Quality Assessment
 - **Priority:** MUST-HAVE (Core differentiator)
-- **Description:** AI-powered concise album review providing critical assessment, cultural significance, and buying recommendation - explicitly NOT financial value or pricing information
+- **Description:** AI-powered concise album review providing critical assessment, cultural significance, and buying recommendation - explicitly NOT financial value or pricing information. Available in two tiers: Free (standard model) and Ultra (search-enabled model with prioritized sources)
 - **User Story:** "As a record store browser, I want a quick, honest assessment of why an album matters musically and whether I should buy it, so I can make informed decisions while flipping through bins"
-- **Architecture:** Generated after successful identification and artwork retrieval, uses `gpt-4o` (NO web search capability)
+- **Architecture:** Generated after successful identification and artwork retrieval
+  - **Free Tier:** Uses `gpt-4o` (NO web search capability, cost-optimized)
+  - **Ultra Tier:** Uses `gpt-4o-search-preview` (WITH web search, prioritized professional sources)
 - **Input:** Receives clean metadata from identification (artist name, album title, release year, genres, record label)
 - **Acceptance Criteria:**
   - Review prompt receives ONLY metadata (no album identification task)
@@ -101,7 +103,16 @@
   - Evaluates albums purely on musical merit - artist's personal controversies or social issues may be mentioned for context but do NOT devalue their musical contributions or impact
   - Explicitly avoids any language about "investment," "value," "rare," "pressing details," or "collectibility"
   - NEVER mentions price, monetary value, or market considerations
-  - Model: `gpt-4o` (regular model, NO search capability - music history is stable)
+  - **Model Selection:**
+    - **Free:** `gpt-4o` (NO search capability - cost ~$0.05-0.10/review)
+    - **Ultra:** `gpt-4o-search-preview` (WITH search - cost ~$0.08-0.13/review including ~$0.03 search)
+  - **Ultra Source Prioritization:** When search is enabled, prioritizes professional publications in order:
+    1. Metacritic (aggregated scores)
+    2. Album of the Year (comprehensive database)
+    3. Pitchfork (leading indie publication)
+    4. Rolling Stone (classic music journalism)
+    5. AllMusic (music encyclopedia)
+    6. The Guardian (respected UK publication)
   - Shows cached content if album has been scanned before (avoids redundant API calls)
   - Cache check happens BEFORE API call (CoreData lookup with title normalization)
   - Title normalization strips variants: Deluxe, Remaster, Reissue, Edition, Anniversary
@@ -215,6 +226,36 @@
   - Logo displayed at top of all loading screens
 - **User Story:** "As a user, I want to know what's happening during processing so I don't think the app is frozen"
 
+### Feature 9: AlbumScan Ultra Settings
+- **Priority:** NICE-TO-HAVE (Premium Feature)
+- **Description:** Settings screen with Advanced Search toggle for AlbumScan Ultra functionality
+- **Implementation:**
+  - **Settings Button:** Gear icon, bottom-left of camera controls (64x64, green border, black bg)
+  - **Sheet Presentation:** Fixed 460pt height, no X button (swipe-to-dismiss)
+  - **Ultra Benefits Card:** Black background with green accents
+    - Title: "AlbumScan Ultra"
+    - Price: "$11.99/year"
+    - Four benefit bullets with green checkmarks:
+      - Advanced search for obscure albums
+      - Enhanced accuracy for modern releases (2020+)
+      - Detailed reviews with cited sources
+      - Support continued development
+    - Toggle: "Enable Advanced Search" (green tint when ON)
+  - **State Persistence:** UserDefaults saves toggle state across app launches
+  - **Model Switching:** Toggle controls which model/prompt is used for reviews:
+    - **OFF (Free):** `gpt-4o` with `album_review.txt` (no search)
+    - **ON (Ultra):** `gpt-4o-search-preview` with `album_review_ultra.txt` (with search + source prioritization)
+  - **Search Gate Bypass:** When Ultra is enabled, bypasses the ID Call 2 search gate (3-char/confidence requirements) to allow identification of more obscure albums
+- **User Story:** "As a user, I want to toggle advanced search features so I can get more detailed reviews with cited sources for my favorite albums"
+- **Acceptance Criteria:**
+  - Settings button visible on camera view (lower-left position)
+  - Tapping settings opens sheet with Ultra benefits
+  - Toggle switches between free and Ultra models
+  - State persists across app restarts
+  - When Ultra ON: uses search-enabled model with prioritized sources
+  - When Ultra ON: bypasses search gate for obscure album identification
+  - Sheet dismisses via swipe-down gesture
+
 ---
 
 ## Feature Implementation Status
@@ -222,14 +263,15 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Camera-Based Identification | ✅ Complete | Two-tier system with 80-90% first-call success |
-| Cultural Context & Reviews | ✅ Complete | Uses gpt-4o, aggressive caching |
+| Cultural Context & Reviews | ✅ Complete | Two-tier: Free (gpt-4o) + Ultra (gpt-4o-search-preview) |
 | Album Information Display | ✅ Complete | Handles partial failures gracefully |
 | Scan History | ✅ Complete | Unlimited local storage, swipe-to-delete |
 | Branded Launch Screen | ✅ Complete | 1.5 second display with fade |
 | Framing Guide | ✅ Complete | Square green-bordered guide |
 | Error Banner | ✅ Complete | Top slide-down, auto-dismiss |
 | Progress Indicators | ✅ Complete | Three states with animations |
+| AlbumScan Ultra Settings | ✅ Complete | Settings button + toggle + state persistence |
 
 ---
 
-**Document Accuracy:** This document reflects the actual implementation as of October 29, 2025, verified against CameraManager.swift, LoadingView.swift, AlbumDetailsView.swift, ScanHistoryView.swift, and ScanState.swift.
+**Document Accuracy:** This document reflects the actual implementation as of October 30, 2025, verified against CameraManager.swift, CameraView.swift, SettingsView.swift, AppState.swift, OpenAIAPIService.swift, LoadingView.swift, AlbumDetailsView.swift, ScanHistoryView.swift, and ScanState.swift.

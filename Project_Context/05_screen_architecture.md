@@ -11,11 +11,14 @@
     - Green border (4px stroke) using brand color
   - When picture is taken, crops to guide boundaries (excludes background records)
   - Camera lens set to 1x default zoom
-  - Large green "SCAN" button at bottom center
-  - History button (hamburger icon - three horizontal lines) top right - only visible after first successful scan
+  - **Bottom control bar (3 buttons):**
+    - Settings button (bottom-left): Gear icon, 64x64, green border, black semi-transparent bg
+    - SCAN button (bottom-center): "SCAN" text in Bungee font, 201px wide, green border, black semi-transparent bg
+    - History button (bottom-right): Hamburger icon (three lines), 64x64, green border, black semi-transparent bg - only visible after first successful scan
   - AlbumScan logo displayed at top center
 - **Navigation:**
   - App launches directly to this screen (after first-time onboarding)
+  - Settings button → Settings Screen (sheet)
   - History button → Scan History Screen
   - SCAN button → Loading Screen 1 (Identification)
 
@@ -181,52 +184,93 @@
   - Open Settings → Opens `UIApplication.openSettingsURLString`
   - User returns after granting permission → App detects permission change → Camera View
 
+### Settings Screen (Sheet Presentation)
+- **Purpose:** Configure AlbumScan Ultra advanced search features
+- **Trigger:** Tapping settings button (gear icon) on Camera View
+- **Presentation:** Sheet with fixed 460pt height, no X button (dismisses via swipe-down gesture)
+- **Key Elements:**
+  - Black background (matches app branding)
+  - **AlbumScan Ultra Benefits Card:** White semi-transparent background (10% opacity), 16pt corner radius
+    - Title: "AlbumScan Ultra" (28pt bold, white)
+    - Price: "$11.99/year" (20pt semibold, brand green)
+    - Four benefit bullets with green checkmark icons:
+      1. "Advanced search for obscure albums"
+      2. "Enhanced accuracy for modern releases (2020+)"
+      3. "Detailed reviews with cited sources"
+      4. "Support continued development"
+    - Toggle control: "Enable Advanced Search" label with iOS Toggle
+      - Green tint when ON
+      - Persists state to UserDefaults
+  - Card padding: 24pt inside, 20pt horizontal/vertical margins
+- **Functionality:**
+  - **Toggle OFF (Free Tier):**
+    - Uses `gpt-4o` for review generation (no search)
+    - Uses `album_review.txt` prompt
+    - Cost: ~$0.05-0.10 per review
+  - **Toggle ON (Ultra Tier):**
+    - Uses `gpt-4o-search-preview` for review generation (with search)
+    - Uses `album_review_ultra.txt` prompt with source prioritization
+    - Bypasses ID Call 2 search gate for obscure album identification
+    - Cost: ~$0.08-0.13 per review (includes ~$0.03 search cost)
+  - State saved to `UserDefaults.standard` with key `"searchEnabled"`
+  - AppState broadcasts changes via `@Published var searchEnabled`
+- **Navigation:**
+  - Swipe down → Dismisses sheet → Camera View
+  - Tap outside → Dismisses sheet → Camera View
+- **Note:** Currently a placeholder UI for future subscription implementation - toggle works immediately without purchase validation
+
 ---
 
 ## Verification Summary
 
-**Document Accuracy:** This document has been verified against the actual codebase implementation as of October 29, 2025.
+**Document Accuracy:** This document has been verified against the actual codebase implementation as of October 30, 2025.
 
 **Files Verified:**
-- `CameraView.swift` (Screen 1 - camera interface, history button, error banner, framing guide)
+- `CameraView.swift` (Screen 1 - camera interface, settings/history buttons, error banner, framing guide)
+- `SettingsView.swift` (Settings Screen - Ultra benefits card, toggle, sheet presentation)
 - `CameraManager.swift` (cropping logic, framing guide positioning, identification flow, timing)
 - `LoadingView.swift` (Loading Screens 1-3 - messages, animations, transitions)
 - `AlbumDetailsView.swift` (Album Details Screen - layout, typography, close button, failure states)
 - `ScanHistoryView.swift` (Scan History Screen - list implementation, camera button)
 - `WelcomeView.swift` (Welcome Screen - first launch)
 - `PermissionErrorView.swift` (Permission Error Screen - denial handling)
+- `AppState.swift` (searchEnabled state management, UserDefaults persistence)
 - `ContentView.swift` (app routing logic)
 - `ScanErrorView.swift` (confirmed exists but NOT used)
 
 **Major Corrections Made:**
 1. **Architecture Update:** Changed from "Phase 1A/1B/2/3" to "Two-Tier Identification System (ID Call 1, ID Call 2, Review Generation)"
-2. **Screen 1 Camera View:**
+2. **New Screen Added (October 30, 2025):** Settings Screen for AlbumScan Ultra functionality
+   - Settings button added to Camera View (bottom-left, gear icon)
+   - Sheet presentation with Ultra benefits card and toggle
+   - State persistence via UserDefaults
+3. **Screen 1 Camera View:**
    - Corrected history icon: hamburger (three lines), not clock symbol
    - Added vertical positioning detail: 1.5% downward adjustment
    - Confirmed cropping to guide boundaries
-3. **Loading Screen 1:**
+4. **Loading Screen 1:**
    - Updated to two-tier identification architecture with conditional search
    - Added search gate validation details
    - Corrected timing: 5-7 seconds without search, 8-13 with search
    - Changed error navigation: Error banner (not full-screen error view)
-4. **Loading Screen 2:**
+5. **Loading Screen 2:**
    - Corrected hold time: 2.5 seconds total (not 2 seconds)
    - Added logo and layout details
-5. **Loading Screen 3:**
+6. **Loading Screen 3:**
    - Removed "minimum display time" claim (not enforced in code)
    - Added cache behavior details
    - Removed retry button mention
-6. **Album Details Screen:**
+7. **Album Details Screen:**
    - Fixed recommendation system: 8-tier contextual labels (NOT 4 emoji categories)
    - Corrected close button position: bottom right (not top right)
    - Removed non-existent history icon
    - Removed all "Retry Review" button mentions
    - Added specific typography details (font sizes, Helvetica Neue, Bungee for ratings)
-7. **Scan History Screen:**
+8. **Scan History Screen:**
    - Changed "SCAN button" to "Camera icon button"
    - Removed non-existent history icon
    - Added swipe-to-delete behavior details
-8. **Error Handling:**
+9. **Error Handling:**
    - Replaced "Scan Error Screen" with "Error Banner (Identification Failure)"
    - Documented actual implementation: top slide-down banner with auto-dismiss
    - Added note that ScanErrorView.swift exists but is not used

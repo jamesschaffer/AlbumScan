@@ -16,7 +16,6 @@ Label: {recordLabel}
   2. You have <80% confidence in at least two evidence bullets
 - If you must search:
   - Make ONE bundled search call maximum
-  - Restrict to: {wikipedia.org, pitchfork.com, rollingstone.com, allmusic.com, metacritic.com}
   - Do NOT search for classic/well-known albums (pre-2015)
   - Do NOT click through multiple pages
 

@@ -40,20 +40,36 @@ AlbumScan maintains three active prompts and two archived prompts:
    - **Location:** `AlbumScan/AlbumScan/Prompts/search_finalization.txt`
 
 3. **`album_review.txt`**
-   - **Purpose:** Review Generation - Cultural analysis, rating, and buying recommendation
-   - **Used By:** `OpenAIAPIService.generateReviewPhase2()` and `ClaudeAPIService.generateReviewPhase2()`
-   - **Model:** `gpt-4o` (OpenAI, no search capability) or `claude-sonnet-4-5-20250929` (Claude)
+   - **Purpose:** Review Generation (Free Tier) - Cultural analysis, rating, and buying recommendation
+   - **Used By:** `OpenAIAPIService.generateReviewPhase2()` when `searchEnabled = false`
+   - **Model:** `gpt-4o` (OpenAI, NO search capability)
    - **Location:** `AlbumScan/AlbumScan/Prompts/album_review.txt`
-   - **Features:** Cost-optimized - switched from search-enabled model to eliminate $0.15/review search costs
+   - **Features:** Cost-optimized - no search capability, no domain restrictions
+   - **Cost:** ~$0.05-0.10 per review
+
+4. **`album_review_ultra.txt`**
+   - **Purpose:** Review Generation (Ultra Tier) - Enhanced reviews with web search and cited sources
+   - **Used By:** `OpenAIAPIService.generateReviewPhase2()` when `searchEnabled = true`
+   - **Model:** `gpt-4o-search-preview` (OpenAI, WITH search capability)
+   - **Location:** `AlbumScan/AlbumScan/Prompts/album_review_ultra.txt`
+   - **Features:** Source prioritization - prioritizes 6 professional publications for citations
+   - **Source Priority:**
+     1. Metacritic (aggregated scores)
+     2. Album of the Year (comprehensive database)
+     3. Pitchfork (leading indie publication)
+     4. Rolling Stone (classic music journalism)
+     5. AllMusic (music encyclopedia)
+     6. The Guardian (respected UK publication)
+   - **Cost:** ~$0.08-0.13 per review (includes ~$0.03 search cost)
 
 ### Archived Prompts (Claude-Only)
 
-4. **`Archive/Claude/phase1a_vision_extraction.txt`**
+5. **`Archive/Claude/phase1a_vision_extraction.txt`**
    - **Purpose:** Legacy Phase 1A - Vision extraction (text + visual description)
    - **Status:** Archived - only used if `Config.currentProvider = .claude`
    - **Location:** `AlbumScan/AlbumScan/Prompts/Archive/Claude/phase1a_vision_extraction.txt`
 
-5. **`Archive/Claude/phase1b_web_search_mapping.txt`**
+6. **`Archive/Claude/phase1b_web_search_mapping.txt`**
    - **Purpose:** Legacy Phase 1B - Web search mapping for album identification
    - **Status:** Archived - only used if `Config.currentProvider = .claude`
    - **Location:** `AlbumScan/AlbumScan/Prompts/Archive/Claude/phase1b_web_search_mapping.txt`
@@ -157,7 +173,11 @@ Before triggering Call 2, validates search is worthwhile:
 
 ---
 
-### Review Generation (Separate Phase)
+### Review Generation (Separate Phase) - Two-Tier System
+
+**AlbumScan offers two review tiers** controlled by the Advanced Search toggle in Settings:
+
+#### Free Tier
 
 **Prompt File:** `album_review.txt`
 
@@ -167,22 +187,47 @@ Before triggering Call 2, validates search is worthwhile:
 - **Time:** 3-5 seconds (or instant if cached)
 - **Cost:** ~$0.05-0.10 per new review, $0.00 if cached
 - **Cache Hit Rate:** 70-80% after initial usage
+- **Source Restrictions:** None (removed domain restrictions - model relies on training data)
 
-**Process:**
+#### Ultra Tier (AlbumScan Ultra)
+
+**Prompt File:** `album_review_ultra.txt`
+
+**Model:** `gpt-4o-search-preview` (WITH web search capability)
+
+**Performance Metrics:**
+- **Time:** 3-5 seconds (or instant if cached)
+- **Cost:** ~$0.08-0.13 per new review (includes ~$0.03 search cost), $0.00 if cached
+- **Cache Hit Rate:** 70-80% after initial usage (same cache as Free tier)
+- **Source Prioritization:** Model prioritizes 6 professional publications for citations:
+  1. Metacritic (aggregated scores)
+  2. Album of the Year (comprehensive database)
+  3. Pitchfork (leading indie publication)
+  4. Rolling Stone (classic music journalism)
+  5. AllMusic (music encyclopedia)
+  6. The Guardian (respected UK publication)
+
+**Unified Process (Both Tiers):**
 1. **Cache Check:** CoreData lookup by artist + album (with title normalization)
-2. **If Cached:** Skip API call entirely (saves ~$0.05-0.10)
-3. **If Not Cached:** Generate new review using album metadata
-4. **Cache Result:** Store for future scans (indefinite duration)
+2. **If Cached:** Skip API call entirely (works for both Free and Ultra - cache is tier-agnostic)
+3. **If Not Cached:**
+   - **Free:** Generate review using `gpt-4o` with `album_review.txt` (~$0.05-0.10)
+   - **Ultra:** Generate review using `gpt-4o-search-preview` with `album_review_ultra.txt` (~$0.08-0.13)
+4. **Cache Result:** Store for future scans (indefinite duration, shared across tiers)
 5. **Failure Handling:** Cache failure state for 30 days (prevents retry loops)
 
-**Implementation:** `OpenAIAPIService.generateReviewPhase2()`
+**Implementation:** `OpenAIAPIService.generateReviewPhase2(searchEnabled: Bool)`
+- `searchEnabled = false` → Free tier (gpt-4o, no search)
+- `searchEnabled = true` → Ultra tier (gpt-4o-search-preview, with search + source prioritization)
 
-**Critical Optimization (October 2025):**
-- **Problem:** Initial implementation used `gpt-4o-search-preview` for reviews
-- **Discovery:** Model performed hidden server-side searches ($0.15/review)
-- **Solution:** Switched to regular `gpt-4o` (no search capability)
-- **Result:** 100% elimination of review search costs
-- **Rationale:** Music history is stable and well-established - search not needed
+**Critical Optimization History (October 2025):**
+- **Original Problem:** All reviews used `gpt-4o-search-preview` with hidden server-side searches ($0.15/review)
+- **First Solution:** Switched Free tier to regular `gpt-4o` (no search) - eliminated search costs for Free tier
+- **New Enhancement (October 30, 2025):** Two-tier system introduced
+  - **Free Tier:** Uses `gpt-4o` (no search) - cost-optimized default ($0.05-0.10/review)
+  - **Ultra Tier:** Uses `gpt-4o-search-preview` (with search) - premium option with source prioritization ($0.08-0.13/review)
+- **Result:** Users control search costs via Settings toggle
+- **Key Insight:** Use model without search capability for cost optimization; use search-enabled model with source prioritization when quality citations matter
 
 **Input:** Clean metadata from identification phase
 - Artist name
@@ -213,10 +258,15 @@ guard let reviewURL = Bundle.main.url(forResource: "album_review", withExtension
     fatalError("❌ Could not find album_review.txt in bundle")
 }
 
+guard let reviewUltraURL = Bundle.main.url(forResource: "album_review_ultra", withExtension: "txt") else {
+    fatalError("❌ Could not find album_review_ultra.txt in bundle")
+}
+
 // Read file contents
 self.identificationPrompt = try String(contentsOf: identificationURL)
 self.searchFinalizationPrompt = try String(contentsOf: searchURL)
 self.reviewPrompt = try String(contentsOf: reviewURL)
+self.reviewUltraPrompt = try String(contentsOf: reviewUltraURL)
 ```
 
 **Characteristics:**
@@ -323,46 +373,31 @@ if let cachedAlbum = checkCachedAlbum(artistName: artist, albumTitle: album) {
 let review = try await generateReviewPhase2(...)
 ```
 
-### 3. Review Generation Search Constraints
+### 3. Two-Tier Review System (AlbumScan Ultra)
 
-The `album_review.txt` prompt includes explicit cost optimization rules:
+**Free Tier (`album_review.txt`):**
+- Uses `gpt-4o` (NO search capability)
+- Removed domain restrictions - relies on training data
+- Cost: ~$0.05-0.10 per review
+- Best for: Well-known albums, cost-conscious users
 
-```
-🎯 **SEARCH CONSTRAINTS** (minimize web searches to reduce costs):
-- ALWAYS try from your training knowledge FIRST
-- ONLY search if BOTH conditions are met:
-  1. Album released after 2020 AND you need numeric evidence, OR
-  2. You have <80% confidence in at least two evidence bullets
-- If you must search:
-  - Make ONE bundled search call maximum
-  - Restrict to: {wikipedia.org, pitchfork.com, rollingstone.com, allmusic.com, metacritic.com}
-  - Do NOT search for classic/well-known albums (pre-2015)
-  - Do NOT click through multiple pages
-```
+**Ultra Tier (`album_review_ultra.txt`):**
+- Uses `gpt-4o-search-preview` (WITH search capability)
+- Source prioritization for 6 professional publications
+- Cost: ~$0.08-0.13 per review (includes ~$0.03 search)
+- Best for: Obscure albums, users who want cited sources
 
-**Impact:** Reduces review generation costs by 60-70% for well-known albums.
-
-### 4. Critical Model Change: gpt-4o-search-preview → gpt-4o
-
-**The Problem (October 2025):**
-- Initial implementation used `gpt-4o-search-preview` for review generation
-- Prompt-based search constraints (above) were added but didn't reduce costs
-- OpenAI dashboard showed persistent $0.15/review in search costs
-- **Root cause:** `gpt-4o-search-preview` performs server-side searches automatically, invisible in logs
-- Prompt constraints were advisory only - the search-enabled model searched anyway
-
-**The Solution:**
-- Switched to regular `gpt-4o` for review generation (OpenAIAPIService.swift:328)
-- Regular `gpt-4o` has **zero search capability** = guaranteed no search costs
-- Music history is stable and well-established - search not needed for reviews
-- Identification flow still uses `gpt-4o-search-preview` when needed (10-20% of scans)
+**User Control:**
+- Toggle in Settings: "Enable Advanced Search"
+- State persists via UserDefaults (`searchEnabled` key)
+- AppState broadcasts changes to CameraManager
+- Model selection happens at review generation time
 
 **Impact:**
-- **100% elimination of review search costs** ($0.15 → $0.00 per review)
-- Combined with caching: 98% total cost reduction ($5.15/day → $0.10/day for 100 scans)
-- Model: `OpenAIAPIService.buildReviewRequest()` at line 328
-
-**Key Insight:** When you need zero searches, use a model without search capability rather than trying to constrain a search-enabled model via prompts.
+- Free tier: 100% elimination of search costs for default usage
+- Ultra tier: Controlled search costs (~$0.03) with source quality improvements
+- Combined with caching: 70-80% cache hit rate reduces costs significantly
+- Users choose when search is worth the cost
 
 ---
 
@@ -396,7 +431,8 @@ AlbumScan/
     └── Prompts/
         ├── single_prompt_identification.txt    (ID Call 1 - active)
         ├── search_finalization.txt             (ID Call 2 - active)
-        ├── album_review.txt                    (Review Gen - active)
+        ├── album_review.txt                    (Review Gen Free - active)
+        ├── album_review_ultra.txt              (Review Gen Ultra - active)
         └── Archive/
             └── Claude/
                 ├── phase1a_vision_extraction.txt    (archived)
@@ -445,9 +481,16 @@ AlbumScan/
 
 ## Verification Summary
 
-**Document Accuracy:** This prompt management document has been verified against the actual codebase implementation as of October 29, 2025.
+**Document Accuracy:** This prompt management document has been verified against the actual codebase implementation as of October 30, 2025.
 
-**Verification Status:** ✅ No corrections required
+**Verification Status:** ✅ Updated with AlbumScan Ultra two-tier review system
+
+**Major Updates (October 30, 2025):**
+1. **Added `album_review_ultra.txt`** - New prompt for Ultra tier with search and source prioritization
+2. **Removed domain restrictions** from `album_review.txt` (Free tier)
+3. **Documented two-tier review system** - Free (gpt-4o) vs Ultra (gpt-4o-search-preview)
+4. **Updated cost optimization section** - Reflects user-controlled search via Settings toggle
+5. **Added source prioritization details** - 6 professional publications for Ultra tier
 
 **Key Accuracies Verified:**
 
