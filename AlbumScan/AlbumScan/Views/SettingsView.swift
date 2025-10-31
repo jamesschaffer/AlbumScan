@@ -1,7 +1,15 @@
 import SwiftUI
+import StoreKit
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+
+    @State private var isPurchasing = false
+    @State private var showError = false
+    @State private var errorMessage = ""
+
+    private let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
 
     var body: some View {
         ZStack {
@@ -15,27 +23,33 @@ struct SettingsView: View {
                         .foregroundColor(.white)
 
                     // Only show price before purchase
-                    if !appState.hasActiveSubscription {
-                        Text("$11.99/year")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(Color(red: 0, green: 0.87, blue: 0.32))
+                    if !subscriptionManager.isSubscribed {
+                        if let product = subscriptionManager.availableProduct {
+                            Text("\(product.displayPrice)/year")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(brandGreen)
+                        } else {
+                            Text("Loading...")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(brandGreen.opacity(0.6))
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
-                        BenefitRow(text: "Improve scans on obscure albums that shaped your favorite artists")
-                        BenefitRow(text: "Access reviews from credible industry experts like Pitchfork")
-                        BenefitRow(text: "Stay ahead with live updates on albums released after 2024")
-                        BenefitRow(text: "Build expertise with verified facts, not AI guesses")
+                        BenefitRow(text: "Unlimited album scans, forever", color: brandGreen)
+                        BenefitRow(text: "Improve scans on obscure albums", color: brandGreen)
+                        BenefitRow(text: "Access reviews from credible industry experts", color: brandGreen)
+                        BenefitRow(text: "Build expertise with verified facts, not AI guesses", color: brandGreen)
                     }
                     .padding(.top, 8)
 
                     // Conditional UI based on subscription state
-                    if appState.hasActiveSubscription {
+                    if subscriptionManager.isSubscribed {
                         // After Purchase State
                         VStack(alignment: .leading, spacing: 12) {
                             Text("You are now leveraging AlbumScan Ultra")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(Color(red: 0, green: 0.87, blue: 0.32))
+                                .foregroundColor(brandGreen)
                                 .padding(.top, 16)
 
                             Text("To manage your subscription or cancel renewal, visit the App Store.")
@@ -45,9 +59,12 @@ struct SettingsView: View {
 
                             #if DEBUG
                             Button(action: {
-                                appState.hasActiveSubscription = false
+                                // Debug reset - reload subscription status
+                                Task {
+                                    await subscriptionManager.checkSubscriptionStatus()
+                                }
                             }) {
-                                Text("Reset for Testing")
+                                Text("Refresh Status (Debug)")
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.red)
                             }
@@ -56,18 +73,23 @@ struct SettingsView: View {
                         }
                     } else {
                         // Before Purchase State
-                        Button(action: {
-                            // Simulate purchase (for testing - will be replaced with StoreKit 2)
-                            appState.hasActiveSubscription = true
-                        }) {
-                            Text("Upgrade")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color(red: 0, green: 0.87, blue: 0.32))
-                                .cornerRadius(12)
+                        Button(action: handlePurchase) {
+                            HStack {
+                                if isPurchasing {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text("Upgrade")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(brandGreen)
+                            .cornerRadius(12)
                         }
+                        .disabled(isPurchasing || subscriptionManager.availableProduct == nil)
                         .padding(.top, 16)
                     }
                 }
@@ -80,17 +102,51 @@ struct SettingsView: View {
                 .padding(.vertical, 20)
             }
         }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func handlePurchase() {
+        isPurchasing = true
+
+        Task {
+            do {
+                try await subscriptionManager.purchase()
+                // Success! Update AppState to enable search
+                await MainActor.run {
+                    appState.searchEnabled = true
+                    isPurchasing = false
+                }
+            } catch SubscriptionError.userCancelled {
+                // User cancelled - no error message needed
+                await MainActor.run {
+                    isPurchasing = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                    isPurchasing = false
+                }
+            }
+        }
     }
 }
 
 struct BenefitRow: View {
     let text: String
+    let color: Color
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 20))
-                .foregroundColor(Color(red: 0, green: 0.87, blue: 0.32))
+                .foregroundColor(color)
                 .frame(width: 20, alignment: .center)
 
             Text(text)
@@ -105,4 +161,5 @@ struct BenefitRow: View {
 #Preview {
     SettingsView()
         .environmentObject(AppState())
+        .environmentObject(SubscriptionManager.shared)
 }
