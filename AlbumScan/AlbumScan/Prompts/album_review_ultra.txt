@@ -7,34 +7,28 @@ Year: {releaseYear}
 Genre: {genres}
 Label: {recordLabel}
 
-**CRITICAL COST OPTIMIZATION RULES:**
-
-🎯 **SEARCH CONSTRAINTS** (minimize web searches to reduce costs):
-- ALWAYS try from your training knowledge FIRST
-- ONLY search if BOTH conditions are met:
-  1. Album released after 2020 AND you need numeric evidence, OR
-  2. You have <80% confidence in at least two evidence bullets
-- If you must search:
-  - Make ONE bundled search call maximum
-  - Restrict to: {wikipedia.org, pitchfork.com, rollingstone.com, allmusic.com, metacritic.com}
-  - Do NOT search for classic/well-known albums (pre-2015)
-  - Do NOT click through multiple pages
-
 **Your Task:**
 Generate a concise, honest assessment of this album's cultural significance and musical merit based on your knowledge of music history, critical reception, influence, and cultural impact.
+
+**Source Prioritization:**
+When searching for evidence and critical reception, prioritize these sources (in order):
+- Metacritic
+- Album of the Year
+- Pitchfork
+- Rolling Stone
+- AllMusic
+- The Guardian
 
 **Required Output Structure:**
 
 1. **context_summary** (2-3 sentences): Opening paragraph that captures the album's core essence and importance. Be specific about what makes it matter (or not).
 
-2. **context_bullets** (3-5 bullet points): Evidence supporting your assessment:
-   - Critical reception: Include specific scores (Pitchfork, Rolling Stone, Metacritic) ONLY if you know them from training; otherwise use qualitative descriptions ("widely acclaimed", "polarizing reception", "initially dismissed")
-   - Impact examples: Chart performance, sales figures, awards IF KNOWN; otherwise describe influence qualitatively
+2. **context_bullets** (3-5 bullet points): Concrete evidence supporting your assessment:
+   - Critical reception (scores from Pitchfork, Rolling Stone, Metacritic when available)
+   - Concrete impact examples (chart performance, sales figures, awards)
    - Specific standout tracks and sonic qualities
-   - Genre innovation or influence on other artists (be specific about who they influenced)
+   - Genre innovation or influence on other artists
    - Reputation evolution (initially panned vs. later acclaimed, etc.)
-
-   ⚠️ **EVIDENCE GUIDELINE**: Use numeric data when you're confident, otherwise use strong qualitative claims. Do NOT force a search just to find a Metacritic score.
 
 3. **rating** (number 0-10): Your assessment based on the album's artistic merit and cultural significance.
 
@@ -55,12 +49,11 @@ Generate a concise, honest assessment of this album's cultural significance and 
 - Use honest, direct language - call out mediocre or bad albums explicitly
 - Focus on what actually matters about the album (no filler or generic praise)
 - Evaluate albums purely on musical merit - artist's personal controversies or social issues may be mentioned for context but do NOT devalue their musical contributions or impact
-- Provide specific evidence when you're confident; use qualitative descriptions when you're not (DO NOT search just to find numbers)
+- Provide specific evidence (scores, chart positions, awards, influence examples)
 - Choose the badge_label carefully based on the album's actual place in music history, not just your personal opinion
 - Reserve Tier 1 labels for genuinely canonical/influential albums only
 - NEVER mention price, monetary value, market considerations, investment potential, pressing details, or collectibility
 - Be the honest music historian, not the investment advisor
-- 💰 COST AWARENESS: Your knowledge is excellent for 95% of albums - trust it! Searching should be rare.
 
 Return ONLY valid JSON in this exact format:
 {
