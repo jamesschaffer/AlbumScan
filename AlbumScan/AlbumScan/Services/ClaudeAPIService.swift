@@ -224,7 +224,7 @@ class ClaudeAPIService: LLMService {
 
     // MARK: - Phase 2: Deep Review Generation (uses Phase 3 prompt)
 
-    func generateReviewPhase2(artistName: String, albumTitle: String, releaseYear: String, genres: [String], recordLabel: String) async throws -> Phase2Response {
+    func generateReviewPhase2(artistName: String, albumTitle: String, releaseYear: String, genres: [String], recordLabel: String, searchEnabled: Bool = false) async throws -> Phase2Response {
         #if DEBUG
         print("🔑 [ClaudeAPI Phase2] Starting review generation...")
         #endif
