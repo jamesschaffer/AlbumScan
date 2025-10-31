@@ -9,20 +9,8 @@ class AppState: ObservableObject {
     @Published var cameraPermissionDenied: Bool = false
     @Published var hasScannedAlbums: Bool = false
 
-    // MARK: - AlbumScan Ultra Subscription State
-
-    @Published var hasActiveSubscription: Bool {
-        didSet {
-            UserDefaults.standard.set(hasActiveSubscription, forKey: "hasActiveSubscription")
-            // When subscription becomes active, automatically enable search
-            if hasActiveSubscription {
-                searchEnabled = true
-            }
-            #if DEBUG
-            print("💎 [AlbumScan Ultra] Subscription state changed to: \(hasActiveSubscription)")
-            #endif
-        }
-    }
+    // MARK: - AlbumScan Ultra Search Toggle
+    // Note: Subscription state managed by SubscriptionManager
 
     @Published var searchEnabled: Bool {
         didSet {
@@ -38,10 +26,8 @@ class AppState: ObservableObject {
         let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
         self.isFirstLaunch = !hasLaunchedBefore
 
-        // Load subscription state from UserDefaults
-        self.hasActiveSubscription = UserDefaults.standard.bool(forKey: "hasActiveSubscription")
-
         // Load search toggle state from UserDefaults
+        // Note: This will be automatically enabled when user subscribes
         self.searchEnabled = UserDefaults.standard.bool(forKey: "searchEnabled")
 
         // Defer album check to avoid initialization issues
