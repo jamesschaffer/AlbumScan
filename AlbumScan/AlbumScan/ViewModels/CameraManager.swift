@@ -141,8 +141,11 @@ class CameraManager: NSObject, ObservableObject {
     }
 
     func capturePhoto() {
+        let scanStartTime = Date()
         #if DEBUG
-        print("📸 [CAPTURE] Starting new scan - disabling button, waiting for animation...")
+        print("📸 [CAPTURE] ========================================")
+        print("📸 [CAPTURE] NEW SCAN STARTED")
+        print("📸 [CAPTURE] ========================================")
         #endif
 
         // Disable button IMMEDIATELY to prevent double-tap
@@ -239,6 +242,15 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
     /// Complete image processing pipeline from camera capture to API-ready image
     private func processImage(_ image: UIImage) -> UIImage {
+        #if DEBUG
+        print("")
+        print("═══ IMAGE PROCESSING PIPELINE ═══")
+        print("📸 RAW: \(Int(image.size.width))x\(Int(image.size.height)) @\(image.scale)x scale")
+        if let jpegData = image.jpegData(compressionQuality: 0.6) {
+            print("📸 RAW JPEG (0.6 quality): \(jpegData.count / 1024)KB")
+        }
+        #endif
+
         // STEP 1: Fix orientation (CRITICAL - do this first!)
         guard let orientedImage = fixImageOrientation(image: image) else {
             #if DEBUG
@@ -262,6 +274,13 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             return orientedImage
         }
 
+        #if DEBUG
+        print("✂️  CROPPED: \(Int(croppedImage.size.width))x\(Int(croppedImage.size.height)) @\(croppedImage.scale)x scale")
+        if let jpegData = croppedImage.jpegData(compressionQuality: 0.6) {
+            print("✂️  CROPPED JPEG (0.6 quality): \(jpegData.count / 1024)KB")
+        }
+        #endif
+
         // STEP 4: Resize to 1024×1024
         guard let finalImage = resizeImage(image: croppedImage, targetSize: CGSize(width: 1024, height: 1024)) else {
             #if DEBUG
@@ -271,12 +290,18 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         }
 
         #if DEBUG
-        print("✅ Image processed: 1024×1024 square ready for API")
+        print("📐 RESIZED: \(Int(finalImage.size.width))x\(Int(finalImage.size.height)) @\(finalImage.scale)x scale")
+        if let jpegData = finalImage.jpegData(compressionQuality: 0.6) {
+            print("📐 RESIZED JPEG (0.6 quality): \(jpegData.count / 1024)KB")
+        }
+        print("═══════════════════════════════════")
+        print("")
         #endif
         return finalImage
     }
 
     /// Normalizes image orientation so pixel data matches visual display
+    /// Preserves original scale during orientation fix
     private func fixImageOrientation(image: UIImage) -> UIImage? {
         // If image is already correctly oriented, return it
         if image.imageOrientation == .up {
@@ -284,6 +309,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         }
 
         // Render the image in its correct orientation
+        // Note: This preserves the original image.scale, which is fine here
+        // The resizeImage() function will normalize to @1x later
         UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
         image.draw(in: CGRect(origin: .zero, size: image.size))
         let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
@@ -358,8 +385,15 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
     }
 
     /// Resizes image to target size for API upload
+    /// CRITICAL: Uses explicit @1x scale to avoid bloated file sizes
     private func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage? {
-        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        // 🚨 BUG FIX: UIGraphicsImageRenderer defaults to device scale (@2x or @3x)
+        // This causes 1024x1024 to become 2048x2048 or 3072x3072 internally!
+        // Force @1x scale to get true 1024x1024 pixel dimensions
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1.0  // ← CRITICAL: Force @1x scale
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
         return renderer.image { context in
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
@@ -529,49 +563,65 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             // Check cache for existing album with completed Phase 2
             let cachedAlbum = self.checkCachedAlbum(artistName: artistName, albumTitle: albumTitle)
-            let _ = cachedAlbum?.phase2Completed == true  // Future: could skip Phase 2 if cached
 
-            // Fetch artwork FIRST (don't show transition screen until artwork is ready)
-            print("🎨 [TWO-TIER] Fetching artwork before showing transition...")
-            let artworkFetchStart = Date()
-            let artworkResult = await self.executeArtworkFetch(
+            // Check if we can use cached Phase 2 review
+            let shouldSkipPhase2 = cachedAlbum?.phase2Completed == true
+            if shouldSkipPhase2 {
+                print("💾 [CACHE] Using cached Phase 2 review for \(albumTitle)")
+            }
+
+            // OPTIMIZATION: Parallelize artwork fetch and Phase 2 review
+            print("🚀 [OPTIMIZATION] Starting artwork fetch and Phase 2 in parallel...")
+            let parallelStart = Date()
+
+            async let artworkTask = self.executeArtworkFetch(
                 artistName: artistName,
                 albumTitle: albumTitle
             )
-            let artworkTime = Date().timeIntervalSince(artworkFetchStart)
-            print("⏱️ [TIMING] Artwork fetch took: \(String(format: "%.2f", artworkTime))s")
 
-            // NOW transition to .identified (artwork is ready)
+            // Only run Phase 2 if not cached
+            async let phase2Task = shouldSkipPhase2
+                ? (response: cachedAlbum?.toPhase2Response(), failed: false)
+                : self.executePhase2(
+                    artistName: artistName,
+                    albumTitle: albumTitle,
+                    releaseYear: phase1Response.releaseYear ?? "Unknown",
+                    genres: phase1Response.genres ?? [],
+                    recordLabel: phase1Response.recordLabel ?? "Unknown"
+                  )
+
+            // Wait for artwork FIRST (for UX - need artwork before showing "We found" screen)
+            let finalArtworkResult = await artworkTask
+            print("⏱️ [TIMING] Artwork ready - transitioning to .identified state")
+
+            // Transition to .identified state NOW (artwork is ready)
             await MainActor.run {
                 self.scanState = .identified
             }
 
-            // Stay in .identified for 2.5 seconds to show "We found [album]"
-            // (gives user time to see the result before showing album details)
-            try await Task.sleep(nanoseconds: 2_500_000_000) // 2.5s
+            // Stay in .identified for 1.0 second to show "We found [album]"
+            // Phase 2 continues running in background during this time
+            try await Task.sleep(nanoseconds: 1_000_000_000) // 1.0s
 
-            // Start Phase 2 review generation
+            // Now wait for Phase 2 to complete (if not already done)
+            let finalPhase2Result = await phase2Task
+
+            let parallelTime = Date().timeIntervalSince(parallelStart)
+            print("⏱️ [TIMING] Parallel execution (artwork + Phase 2) took: \(String(format: "%.2f", parallelTime))s")
+
+            // Transition to loading review state
             await MainActor.run {
                 self.scanState = .loadingReview
             }
 
-            // PHASE 2: Review Generation (WITH web search)
-            let phase2Result = await self.executePhase2(
-                artistName: artistName,
-                albumTitle: albumTitle,
-                releaseYear: phase1Response.releaseYear ?? "Unknown",
-                genres: phase1Response.genres ?? [],
-                recordLabel: phase1Response.recordLabel ?? "Unknown"
-            )
-
             // Save to CoreData (artwork result from earlier fetch)
             let savedAlbum = try await self.saveTwoTierAlbum(
                 phase1: phase1Response,
-                phase2: phase2Result.response,
-                phase2Failed: phase2Result.failed,
-                musicbrainzID: artworkResult.mbid,
-                artworkData: artworkResult.data,
-                artworkFailed: artworkResult.failed
+                phase2: finalPhase2Result.response,
+                phase2Failed: finalPhase2Result.failed,
+                musicbrainzID: finalArtworkResult.mbid,
+                artworkData: finalArtworkResult.data,
+                artworkFailed: finalArtworkResult.failed
             )
 
             // Complete
@@ -610,7 +660,10 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
     private func identifySinglePrompt(image: UIImage) async {
         let totalStart = Date()
-        print("⏱️ [SINGLE-PROMPT] ========== STARTING SINGLE-PROMPT IDENTIFICATION ==========")
+        print("")
+        print("═══════════════════════════════════════════════════════════")
+        print("🚀 [TIMING] SCAN STARTED")
+        print("═══════════════════════════════════════════════════════════")
 
         // Reset deep cut flag
         await MainActor.run {
@@ -623,7 +676,10 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             }
 
             let call1Start = Date()
-            print("🔍 [ID Call 1] Starting single-prompt identification...")
+            let cumulativeAtCall1Start = Date().timeIntervalSince(totalStart)
+            print("")
+            print("┌─ 🔍 [ID CALL 1] Single-Prompt Identification")
+            print("│  ⏱️  Start: +\(String(format: "%.2f", cumulativeAtCall1Start))s (cumulative)")
 
             guard let openAIService = LLMServiceFactory.getService() as? OpenAIAPIService else {
                 throw APIError.invalidResponse // Should only be used with OpenAI
@@ -631,7 +687,10 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             let identificationResponse = try await openAIService.executeSinglePromptIdentification(image: image)
             let call1Time = Date().timeIntervalSince(call1Start)
-            print("⏱️ [TIMING] ID Call 1 took: \(String(format: "%.2f", call1Time))s")
+            let cumulativeAfterCall1 = Date().timeIntervalSince(totalStart)
+            print("│  ✅ Complete")
+            print("│  ⏱️  Duration: \(String(format: "%.2f", call1Time))s")
+            print("└─ ⏱️  Cumulative: +\(String(format: "%.2f", cumulativeAfterCall1))s")
 
             var finalArtistName: String
             var finalAlbumTitle: String
@@ -654,20 +713,23 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             case .searchNeeded(let searchRequest):
                 // Low confidence - need web search (deep cut!)
-                print("🔍 [ID Call 1] Search needed: \(searchRequest.searchRequest.reason)")
-                print("🔍 [ID Call 1] Query: \(searchRequest.searchRequest.query)")
+                print("")
+                print("┌─ 🔍 [SEARCH GATE] Validation Check")
+                print("│  Reason: \(searchRequest.searchRequest.reason)")
+                print("│  Query: \(searchRequest.searchRequest.query)")
 
                 // SEARCH GATE: Validate if search is worth attempting
                 let extractedText = searchRequest.searchRequest.observation.extractedText
                 let textConfidence = searchRequest.searchRequest.observation.textConfidence
                 let meaningfulChars = extractedText.filter { !$0.isWhitespace }.count
 
-                print("🔍 [Search Gate] Extracted text: '\(extractedText)' (\(meaningfulChars) chars, \(textConfidence) confidence)")
+                print("│  Text: '\(extractedText)'")
+                print("│  Chars: \(meaningfulChars) | Confidence: \(textConfidence)")
 
                 guard meaningfulChars >= 3 && textConfidence != "low" else {
-                    print("⛔ [Search Gate] BLOCKED - Insufficient text data for search")
-                    print("⛔ [Search Gate] Criteria: Need 3+ chars AND medium/high confidence")
-                    print("⛔ [Search Gate] Got: \(meaningfulChars) chars, \(textConfidence) confidence")
+                    print("│  ⛔ BLOCKED - Insufficient text data")
+                    print("│  Criteria: 3+ chars AND medium/high confidence")
+                    print("└─ ❌ Search Gate Failed")
 
                     await MainActor.run {
                         self.scanState = .identificationFailed
@@ -678,7 +740,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                     return
                 }
 
-                print("✅ [Search Gate] PASSED - Text sufficient for search")
+                print("│  ✅ PASSED - Text sufficient for search")
+                print("└─ ⏱️  Cumulative: +\(String(format: "%.2f", Date().timeIntervalSince(totalStart)))s")
 
                 // Trigger "deep cut" message in UI
                 await MainActor.run {
@@ -686,19 +749,26 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
                 // ID CALL 2: Search finalization
                 let call2Start = Date()
-                print("🔍 [ID Call 2] Executing search with query: \(searchRequest.searchRequest.query)")
+                let cumulativeAtCall2Start = Date().timeIntervalSince(totalStart)
+                print("")
+                print("┌─ 🔍 [ID CALL 2] Search Finalization (with web search)")
+                print("│  ⏱️  Start: +\(String(format: "%.2f", cumulativeAtCall2Start))s (cumulative)")
+                print("│  Query: \(searchRequest.searchRequest.query)")
 
                 let searchResponse = try await openAIService.executeSearchFinalization(
                     image: image,
                     searchRequest: searchRequest.searchRequest
                 )
                 let call2Time = Date().timeIntervalSince(call2Start)
-                print("⏱️ [TIMING] ID Call 2 took: \(String(format: "%.2f", call2Time))s")
+                let cumulativeAfterCall2 = Date().timeIntervalSince(totalStart)
 
                 // Handle Call 2 result
                 switch searchResponse {
                 case .success(let successResponse):
-                    print("✅ [ID Call 2] Search confirmed: \(successResponse.albumTitle) by \(successResponse.artistName)")
+                    print("│  ✅ Complete")
+                    print("│  Result: \(successResponse.albumTitle) by \(successResponse.artistName)")
+                    print("│  ⏱️  Duration: \(String(format: "%.2f", call2Time))s")
+                    print("└─ ⏱️  Cumulative: +\(String(format: "%.2f", cumulativeAfterCall2))s")
 
                     finalArtistName = successResponse.artistName
                     finalAlbumTitle = successResponse.albumTitle
@@ -758,55 +828,107 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
             // Check cache for existing album with completed Phase 2
             let cachedAlbum = self.checkCachedAlbum(artistName: finalArtistName, albumTitle: finalAlbumTitle)
-            let _ = cachedAlbum?.phase2Completed == true  // Future: could skip Phase 2 if cached
 
-            // Fetch artwork FIRST (don't show transition screen until artwork is ready)
-            print("🎨 [SINGLE-PROMPT] Fetching artwork before showing transition...")
-            let artworkFetchStart = Date()
-            let artworkResult = await self.executeArtworkFetch(
+            // Check if we can use cached Phase 2 review
+            let shouldSkipPhase2 = cachedAlbum?.phase2Completed == true
+            if shouldSkipPhase2 {
+                print("💾 [CACHE] Using cached Phase 2 review for \(finalAlbumTitle)")
+            }
+
+            // OPTIMIZATION: Parallelize artwork fetch and Phase 2 review
+            let parallelStart = Date()
+            let cumulativeAtParallelStart = Date().timeIntervalSince(totalStart)
+            print("")
+            print("┌─ 🚀 [PARALLEL EXECUTION] Artwork + Phase 2")
+            print("│  ⏱️  Start: +\(String(format: "%.2f", cumulativeAtParallelStart))s (cumulative)")
+
+            async let artworkTask = self.executeArtworkFetch(
                 artistName: finalArtistName,
                 albumTitle: finalAlbumTitle
             )
-            let artworkTime = Date().timeIntervalSince(artworkFetchStart)
-            print("⏱️ [TIMING] Artwork fetch took: \(String(format: "%.2f", artworkTime))s")
 
-            // Reset deep cut flag and transition to .identified
+            // Only run Phase 2 if not cached
+            async let phase2Task = shouldSkipPhase2
+                ? (response: cachedAlbum?.toPhase2Response(), failed: false)
+                : self.executePhase2(
+                    artistName: finalArtistName,
+                    albumTitle: finalAlbumTitle,
+                    releaseYear: finalReleaseYear,
+                    genres: finalGenres,
+                    recordLabel: finalRecordLabel
+                  )
+
+            // Wait for artwork FIRST (for UX - need artwork before showing "We found" screen)
+            let artworkWaitStart = Date()
+            let finalArtworkResult = await artworkTask
+            let artworkWaitTime = Date().timeIntervalSince(artworkWaitStart)
+            let cumulativeAfterArtwork = Date().timeIntervalSince(totalStart)
+            print("│  ✅ Artwork ready (waited \(String(format: "%.2f", artworkWaitTime))s)")
+            print("│  ⏱️  Cumulative: +\(String(format: "%.2f", cumulativeAfterArtwork))s")
+
+            // Transition to .identified state NOW (artwork is ready)
             await MainActor.run {
                 self.scanState = .identified
             }
 
-            // Stay in .identified for 2.5 seconds to show "We found [album]"
-            try await Task.sleep(nanoseconds: 2_500_000_000) // 2.5s
+            // Stay in .identified for 1.0 second to show "We found [album]"
+            // Phase 2 continues running in background during this time
+            print("│  💤 UI delay: 1.0s (Phase 2 continues in background)")
+            try await Task.sleep(nanoseconds: 1_000_000_000) // 1.0s
 
-            // Start Phase 2 review generation
+            // Now wait for Phase 2 to complete (if not already done)
+            let phase2WaitStart = Date()
+            let finalPhase2Result = await phase2Task
+            let phase2WaitTime = Date().timeIntervalSince(phase2WaitStart)
+            let cumulativeAfterPhase2 = Date().timeIntervalSince(totalStart)
+
+            if phase2WaitTime < 0.1 {
+                print("│  ⚡ Phase 2 already complete (finished during UI delay)")
+            } else {
+                print("│  ✅ Phase 2 ready (waited \(String(format: "%.2f", phase2WaitTime))s)")
+            }
+
+            let parallelTime = Date().timeIntervalSince(parallelStart)
+            print("│  ⏱️  Total parallel time: \(String(format: "%.2f", parallelTime))s")
+            print("└─ ⏱️  Cumulative: +\(String(format: "%.2f", cumulativeAfterPhase2))s")
+
+            // Transition to loading review state
             await MainActor.run {
                 self.scanState = .loadingReview
             }
 
-            // PHASE 2: Review Generation (unchanged)
-            let phase2Result = await self.executePhase2(
-                artistName: finalArtistName,
-                albumTitle: finalAlbumTitle,
-                releaseYear: finalReleaseYear,
-                genres: finalGenres,
-                recordLabel: finalRecordLabel
-            )
-
             // Save to CoreData
+            let saveStart = Date()
+            let cumulativeAtSaveStart = Date().timeIntervalSince(totalStart)
+            print("")
+            print("┌─ 💾 [SAVE] CoreData")
+            print("│  ⏱️  Start: +\(String(format: "%.2f", cumulativeAtSaveStart))s (cumulative)")
+
             let savedAlbum = try await self.saveTwoTierAlbum(
                 phase1: phase1Response,
-                phase2: phase2Result.response,
-                phase2Failed: phase2Result.failed,
-                musicbrainzID: artworkResult.mbid,
-                artworkData: artworkResult.data,
-                artworkFailed: artworkResult.failed
+                phase2: finalPhase2Result.response,
+                phase2Failed: finalPhase2Result.failed,
+                musicbrainzID: finalArtworkResult.mbid,
+                artworkData: finalArtworkResult.data,
+                artworkFailed: finalArtworkResult.failed
             )
+
+            let saveTime = Date().timeIntervalSince(saveStart)
+            let totalTime = Date().timeIntervalSince(totalStart)
+            print("│  ✅ Complete")
+            print("│  ⏱️  Duration: \(String(format: "%.2f", saveTime))s")
+            print("└─ ⏱️  Cumulative: +\(String(format: "%.2f", totalTime))s")
 
             // Complete
             await MainActor.run {
-                let totalTime = Date().timeIntervalSince(totalStart)
-                print("⏱️ [TIMING] ========== SINGLE-PROMPT TOTAL: \(String(format: "%.2f", totalTime))s ==========")
-                print("✅ [SINGLE-PROMPT] Setting scannedAlbum to: \(savedAlbum.albumTitle) by \(savedAlbum.artistName)")
+                print("")
+                print("═══════════════════════════════════════════════════════════")
+                print("✅ [COMPLETE] SCAN FINISHED")
+                print("   Album: \(savedAlbum.albumTitle)")
+                print("   Artist: \(savedAlbum.artistName)")
+                print("   ⏱️  TOTAL TIME: \(String(format: "%.2f", totalTime))s")
+                print("═══════════════════════════════════════════════════════════")
+                print("")
                 self.scanState = .complete
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false
@@ -836,12 +958,12 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
     private func executePhase2(artistName: String, albumTitle: String, releaseYear: String, genres: [String], recordLabel: String) async -> (response: Phase2Response?, failed: Bool) {
         let phase2Start = Date()
-        print("🔑 [TWO-TIER Phase2] Starting review generation...")
+        let searchEnabled = subscriptionManager?.subscriptionTier == .ultra
+
+        print("   ├─ 📝 [PHASE 2] Review Generation")
+        print("   │  Tier: \(searchEnabled ? "Ultra (with search)" : "Base (no search)")")
 
         do {
-            // Only Ultra tier gets advanced search (Wikipedia links)
-            let searchEnabled = subscriptionManager?.subscriptionTier == .ultra
-
             let phase2Response = try await LLMServiceFactory.getService().generateReviewPhase2(
                 artistName: artistName,
                 albumTitle: albumTitle,
@@ -851,8 +973,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 searchEnabled: searchEnabled
             )
             let phase2Time = Date().timeIntervalSince(phase2Start)
-            print("⏱️ [TIMING] Phase 2 took: \(String(format: "%.2f", phase2Time))s")
-            print("✅ [TWO-TIER Phase2] Review generated successfully")
+            print("   │  ✅ Complete (\(String(format: "%.2f", phase2Time))s)")
 
             await MainActor.run {
                 self.phase2Data = phase2Response
@@ -867,18 +988,27 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
     private func executeArtworkFetch(artistName: String, albumTitle: String) async -> (mbid: String?, data: (highRes: Data?, thumbnail: Data?)?, failed: Bool) {
         let artStart = Date()
-        print("🎨 [TWO-TIER Artwork] Starting artwork fetch...")
+        print("   ├─ 🎨 [ARTWORK] Fetch")
 
         do {
+            // Step 1: MusicBrainz search
+            let mbStart = Date()
+            print("   │  ├─ 🔍 MusicBrainz search...")
             if let mbid = try await MusicBrainzService.shared.searchAlbum(artist: artistName, album: albumTitle) {
-                print("✅ [TWO-TIER Artwork] Found MBID: \(mbid)")
+                let mbTime = Date().timeIntervalSince(mbStart)
+                print("   │  │  ✅ Found MBID (\(String(format: "%.2f", mbTime))s)")
 
+                // Step 2: Cover Art Archive download
+                let artDownloadStart = Date()
+                print("   │  └─ 📥 Cover Art download...")
                 let artwork = await CoverArtService.shared.retrieveArtwork(mbid: mbid)
+                let artDownloadTime = Date().timeIntervalSince(artDownloadStart)
+
                 let artTime = Date().timeIntervalSince(artStart)
-                print("⏱️ [TIMING] Artwork fetch took: \(String(format: "%.2f", artTime))s")
 
                 if artwork.highRes != nil || artwork.thumbnail != nil {
-                    print("✅ [TWO-TIER Artwork] Artwork downloaded")
+                    print("   │     ✅ Downloaded (\(String(format: "%.2f", artDownloadTime))s)")
+                    print("   │  Total: \(String(format: "%.2f", artTime))s")
 
                     // Update UI with artwork
                     if let highResData = artwork.highRes, let image = UIImage(data: highResData) {

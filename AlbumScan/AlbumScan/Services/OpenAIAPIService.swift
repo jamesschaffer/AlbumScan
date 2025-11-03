@@ -449,10 +449,11 @@ class OpenAIAPIService: LLMService {
     // MARK: - Helper Methods
 
     private func convertImageToBase64(_ image: UIImage) -> String? {
-        // Use much lower quality for API transmission
-        // OpenAI vision doesn't need high-res to read album text
-        // 0.4 quality on 1024x1024 image = ~300-500KB (vs 3MB at 0.8)
-        guard let imageData = image.jpegData(compressionQuality: 0.4) else {
+        // Balanced quality for API transmission
+        // 0.6 quality provides better text readability for difficult albums
+        // while keeping file size reasonable (~180KB for 1024x1024)
+        // This reduces LLM processing effort and improves accuracy
+        guard let imageData = image.jpegData(compressionQuality: 0.6) else {
             return nil
         }
         return imageData.base64EncodedString()
