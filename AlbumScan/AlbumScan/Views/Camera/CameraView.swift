@@ -91,56 +91,6 @@ struct CameraView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
 
-                #if DEBUG
-                // Debug Controls - positioned below logo
-                VStack(spacing: 8) {
-                    Text("🔧 Debug")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.orange)
-
-                    HStack(spacing: 8) {
-                        Button("Base") {
-                            subscriptionManager.debugSetTier(.base)
-                            subscriptionManager.debugPrintState()
-                        }
-                        .font(.system(size: 11))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(6)
-
-                        Button("Ultra") {
-                            subscriptionManager.debugSetTier(.ultra)
-                            subscriptionManager.debugPrintState()
-                        }
-                        .font(.system(size: 11))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.purple)
-                        .foregroundColor(.white)
-                        .cornerRadius(6)
-
-                        Button("Clear") {
-                            subscriptionManager.debugClearTier()
-                            scanLimitManager.resetForTesting()
-                            appState.searchEnabled = false
-                            subscriptionManager.debugPrintState()
-                        }
-                        .font(.system(size: 11))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(6)
-                    }
-                }
-                .padding(12)
-                .background(Color.black.opacity(0.7))
-                .cornerRadius(12)
-                .position(x: geometry.size.width / 2, y: 140)
-                #endif
-
                 // Camera controls at bottom
                 VStack {
                     Spacer()
@@ -220,6 +170,56 @@ struct CameraView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 22)
+
+                    #if DEBUG
+                    // Debug Controls - positioned below scan button
+                    VStack(spacing: 8) {
+                        Text("🔧 Debug")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.orange)
+
+                        HStack(spacing: 8) {
+                            Button("Base") {
+                                subscriptionManager.debugSetTier(.base)
+                                subscriptionManager.debugPrintState()
+                            }
+                            .font(.system(size: 11))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(6)
+
+                            Button("Ultra") {
+                                subscriptionManager.debugSetTier(.ultra)
+                                subscriptionManager.debugPrintState()
+                            }
+                            .font(.system(size: 11))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.purple)
+                            .foregroundColor(.white)
+                            .cornerRadius(6)
+
+                            Button("Clear") {
+                                subscriptionManager.debugClearTier()
+                                scanLimitManager.resetForTesting()
+                                appState.searchEnabled = false
+                                subscriptionManager.debugPrintState()
+                            }
+                            .font(.system(size: 11))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.red)
+                            .foregroundColor(.white)
+                            .cornerRadius(6)
+                        }
+                    }
+                    .padding(12)
+                    .background(Color.black.opacity(0.7))
+                    .cornerRadius(12)
+                    .padding(.bottom, 20)
+                    #endif
                 }
             }
 
