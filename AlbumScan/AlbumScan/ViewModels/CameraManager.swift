@@ -71,24 +71,34 @@ class CameraManager: NSObject, ObservableObject {
             // Set session preset
             self.session.sessionPreset = .photo
 
-            // Add video input
-            guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-                  let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
+            // Add video input - Try back camera first, then front camera (for Simulator)
+            var videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+
+            // If no back camera (Simulator), try front camera
+            if videoDevice == nil {
+                #if DEBUG
+                print("⚠️ Back camera not available, trying front camera (Simulator)")
+                #endif
+                videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+            }
+
+            guard let device = videoDevice,
+                  let videoInput = try? AVCaptureDeviceInput(device: device),
                   self.session.canAddInput(videoInput) else {
                 #if DEBUG
-                print("Could not add video input")
+                print("❌ Could not add any video input")
                 #endif
                 DispatchQueue.main.async {
-                    self.error = NSError(domain: "CameraManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not add video input. Make sure you're running on a device with a camera."])
+                    self.error = NSError(domain: "CameraManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not add video input. Make sure you're running on a device with a camera or in a Simulator with camera enabled."])
                 }
                 return
             }
 
             // Set camera zoom to 1x (default)
             do {
-                try videoDevice.lockForConfiguration()
-                videoDevice.videoZoomFactor = 1.0
-                videoDevice.unlockForConfiguration()
+                try device.lockForConfiguration()
+                device.videoZoomFactor = 1.0
+                device.unlockForConfiguration()
             } catch {
                 #if DEBUG
                 print("Could not set zoom factor: \(error)")
@@ -96,6 +106,10 @@ class CameraManager: NSObject, ObservableObject {
             }
 
             self.session.addInput(videoInput)
+
+            #if DEBUG
+            print("✅ Video input added successfully")
+            #endif
 
             // Add photo output
             guard self.session.canAddOutput(self.photoOutput) else {
