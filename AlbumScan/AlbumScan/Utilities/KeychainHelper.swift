@@ -24,6 +24,23 @@ class KeychainHelper {
         return data.withUnsafeBytes { $0.load(as: Int.self) }
     }
 
+    /// Save a string value to Keychain
+    func save(_ value: String, forKey key: String) -> Bool {
+        guard let data = value.data(using: .utf8) else {
+            return false
+        }
+        return save(data, forKey: key)
+    }
+
+    /// Retrieve a string value from Keychain
+    func getString(forKey key: String) -> String? {
+        guard let data = get(forKey: key),
+              let string = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        return string
+    }
+
     /// Save data to Keychain
     func save(_ data: Data, forKey key: String) -> Bool {
         // Delete any existing item first

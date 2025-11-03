@@ -20,11 +20,54 @@ struct CameraView: View {
 
     @StateObject private var cameraManager = CameraManager()
     @State private var showingHistory = false
+    @State private var showSettings = false
+    @State private var showWelcomeSheet = false
     @State private var showErrorBanner = false
-    @State private var showingPaywall = false
     @State private var showingMaintenanceAlert = false
 
     let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
+
+    // Calculate settings sheet height based on subscription tier
+    private var settingsSheetHeight: CGFloat {
+        switch subscriptionManager.subscriptionTier {
+        case .none:
+            return 520  // Tab interface with features
+        case .base:
+            return 480  // Ultra upsell
+        case .ultra:
+            return 420  // Success message
+        }
+    }
+
+    private var settingsButton: some View {
+        Button(action: {
+            showSettings = true
+        }) {
+            ZStack {
+                Circle()
+                    .fill(Color.black.opacity(0.6))
+                    .frame(width: 64, height: 64)
+
+                Circle()
+                    .strokeBorder(brandGreen, lineWidth: 4)
+                    .frame(width: 64, height: 64)
+
+                // Show scan count or lightning bolt icon inside circle
+                // Show bolt if: user has subscription OR no scans remaining
+                if subscriptionManager.subscriptionTier != .none || scanLimitManager.remainingFreeScans == 0 {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+                } else {
+                    // Show scan count only for non-subscribers with scans remaining
+                    Text("\(scanLimitManager.remainingFreeScans)")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+        }
+        .buttonStyle(PressedButtonStyle())
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -48,15 +91,70 @@ struct CameraView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
 
+                #if DEBUG
+                // Debug Controls - positioned below logo
+                VStack(spacing: 8) {
+                    Text("🔧 Debug")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.orange)
+
+                    HStack(spacing: 8) {
+                        Button("Base") {
+                            subscriptionManager.debugSetTier(.base)
+                            subscriptionManager.debugPrintState()
+                        }
+                        .font(.system(size: 11))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+
+                        Button("Ultra") {
+                            subscriptionManager.debugSetTier(.ultra)
+                            subscriptionManager.debugPrintState()
+                        }
+                        .font(.system(size: 11))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.purple)
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+
+                        Button("Clear") {
+                            subscriptionManager.debugClearTier()
+                            scanLimitManager.resetForTesting()
+                            appState.searchEnabled = false
+                            subscriptionManager.debugPrintState()
+                        }
+                        .font(.system(size: 11))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+                    }
+                }
+                .padding(12)
+                .background(Color.black.opacity(0.7))
+                .cornerRadius(12)
+                .position(x: geometry.size.width / 2, y: 140)
+                #endif
+
                 // Camera controls at bottom
                 VStack {
                     Spacer()
 
                     // Bottom control bar container
                     HStack(alignment: .center, spacing: 0) {
-                        // Left side - placeholder for settings button
-                        Color.clear
-                            .frame(width: 64, height: 64)
+                        // Left side - scan counter/upgrade button (hide for Ultra subscribers)
+                        if subscriptionManager.subscriptionTier != .ultra {
+                            settingsButton
+                        } else {
+                            // Placeholder to maintain spacing when Ultra
+                            Color.clear
+                                .frame(width: 64, height: 64)
+                        }
 
                         Spacer()
 
@@ -165,6 +263,23 @@ struct CameraView: View {
         .fullScreenCover(isPresented: $showingHistory) {
             ScanHistoryView()
         }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .environmentObject(appState)
+                .environmentObject(subscriptionManager)
+                .environmentObject(scanLimitManager)
+                .presentationDetents([.height(settingsSheetHeight)])
+        }
+        .sheet(isPresented: $showWelcomeSheet) {
+            WelcomePurchaseSheet(onDismiss: {
+                showWelcomeSheet = false
+                appState.requestCameraPermission()
+            })
+            .environmentObject(appState)
+            .environmentObject(subscriptionManager)
+            .environmentObject(scanLimitManager)
+            .presentationDetents([.height(520)])
+        }
         .fullScreenCover(item: $cameraManager.scannedAlbum, onDismiss: {
             // Reset state when album details is manually dismissed
             cameraManager.scanState = .idle
@@ -175,6 +290,14 @@ struct CameraView: View {
         }
         .onAppear {
             cameraManager.startSession()
+
+            // Show welcome sheet on first launch
+            if appState.isFirstLaunch {
+                // Show sheet with a small delay to ensure camera view is visible
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showWelcomeSheet = true
+                }
+            }
 
             // Setup guide coordinates (use a small delay to ensure preview layer is sized)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -207,11 +330,6 @@ struct CameraView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingPaywall) {
-            PaywallView()
-                .environmentObject(subscriptionManager)
-                .environmentObject(scanLimitManager)
-        }
         .alert("Maintenance", isPresented: $showingMaintenanceAlert) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -234,9 +352,9 @@ struct CameraView: View {
         // Check 2: Scan limit (if not subscribed)
         guard scanLimitManager.canScan(isSubscribed: subscriptionManager.isSubscribed) else {
             #if DEBUG
-            print("🔴 [Scan] Blocked by scan limit - showing paywall")
+            print("🔴 [Scan] Blocked by scan limit - showing settings/upgrade")
             #endif
-            showingPaywall = true
+            showSettings = true
             return
         }
 
@@ -248,6 +366,7 @@ struct CameraView: View {
         // Pass managers to CameraManager for post-scan increment
         cameraManager.subscriptionManager = subscriptionManager
         cameraManager.scanLimitManager = scanLimitManager
+        cameraManager.appState = appState
 
         cameraManager.capturePhoto()
     }

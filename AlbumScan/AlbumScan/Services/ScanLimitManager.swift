@@ -10,12 +10,12 @@ class ScanLimitManager: ObservableObject {
 
     // MARK: - Published Properties
 
-    @Published private(set) var remainingFreeScans: Int = 10
+    @Published private(set) var remainingFreeScans: Int = 5
     @Published private(set) var totalScansUsed: Int = 0
 
     // MARK: - Constants
 
-    private let freeScanLimit = 10
+    private let freeScanLimit = 5  // Changed from 10 for freemium model
     private let userDefaultsKey = "scanCount"
     private let keychainKey = "scanCountBackup"
 
