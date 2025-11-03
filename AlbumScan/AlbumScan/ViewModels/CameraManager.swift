@@ -13,6 +13,7 @@ class CameraManager: NSObject, ObservableObject {
     // Subscription managers (injected from CameraView)
     var subscriptionManager: SubscriptionManager?
     var scanLimitManager: ScanLimitManager?
+    var appState: AppState?
 
     // Store framing guide coordinates for cropping
     var capturedGuideFrame: CGRect = .zero
@@ -824,12 +825,16 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         print("🔑 [TWO-TIER Phase2] Starting review generation...")
 
         do {
+            // Only Ultra tier gets advanced search (Wikipedia links)
+            let searchEnabled = subscriptionManager?.subscriptionTier == .ultra
+
             let phase2Response = try await LLMServiceFactory.getService().generateReviewPhase2(
                 artistName: artistName,
                 albumTitle: albumTitle,
                 releaseYear: releaseYear,
                 genres: genres,
-                recordLabel: recordLabel
+                recordLabel: recordLabel,
+                searchEnabled: searchEnabled
             )
             let phase2Time = Date().timeIntervalSince(phase2Start)
             print("⏱️ [TIMING] Phase 2 took: \(String(format: "%.2f", phase2Time))s")

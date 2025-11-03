@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 import UIKit
+import FirebaseCore
 
 @main
 struct AlbumScanApp: App {
@@ -13,6 +14,9 @@ struct AlbumScanApp: App {
     @StateObject private var remoteConfigManager = RemoteConfigManager.shared
 
     init() {
+        // Configure Firebase
+        FirebaseApp.configure()
+
         // Initialize Firebase Remote Config
         RemoteConfigManager.shared.initialize()
     }

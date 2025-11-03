@@ -1,8 +1,7 @@
 import SwiftUI
 import StoreKit
 
-struct SettingsView: View {
-    @EnvironmentObject var appState: AppState
+struct PurchaseView: View {
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     @EnvironmentObject var scanLimitManager: ScanLimitManager
     @Environment(\.dismiss) var dismiss
@@ -15,19 +14,35 @@ struct SettingsView: View {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Single comprehensive subscription component
+                // Header with dismiss button
+                HStack {
+                    Spacer()
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+
+                Spacer()
+
+                // Comprehensive subscription component
                 SubscriptionCardView(
                     onPurchaseSuccess: {
-                        // Purchase successful - tier is automatically detected and saved
+                        // Success! Dismiss view
+                        dismiss()
                     },
                     onError: { error in
                         errorMessage = error
                         showError = true
                     },
-                    onSkip: subscriptionManager.subscriptionTier == .none ? {
-                        // User has no subscription - allow them to use free scans
+                    onSkip: {
+                        // Use free scans - dismiss view
                         dismiss()
-                    } : nil, // Base/Ultra users don't need skip button
+                    },
                     hasScansRemaining: scanLimitManager.remainingFreeScans > 0
                 )
                 .padding(24)
@@ -36,7 +51,6 @@ struct SettingsView: View {
                         .fill(Color.white.opacity(0.1))
                 )
                 .padding(.horizontal, 20)
-                .padding(.vertical, 20)
                 .environmentObject(subscriptionManager)
 
                 Spacer()
@@ -50,29 +64,8 @@ struct SettingsView: View {
     }
 }
 
-struct BenefitRow: View {
-    let text: String
-    let color: Color
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 20))
-                .foregroundColor(color)
-                .frame(width: 20, alignment: .center)
-
-            Text(text)
-                .font(.system(size: 16))
-                .foregroundColor(.white.opacity(0.9))
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
 #Preview {
-    SettingsView()
-        .environmentObject(AppState())
+    PurchaseView()
         .environmentObject(SubscriptionManager.shared)
         .environmentObject(ScanLimitManager.shared)
 }

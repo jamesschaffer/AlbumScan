@@ -16,10 +16,20 @@
 		210597D52EAEE5C8001CDE4F /* SinglePromptResponses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210597D42EAEE5C8001CDE4F /* SinglePromptResponses.swift */; };
 		210597D72EAEE5DA001CDE4F /* single_prompt_identification.txt in Resources */ = {isa = PBXBuildFile; fileRef = 210597D62EAEE5DA001CDE4F /* single_prompt_identification.txt */; };
 		210597D92EAEE5E8001CDE4F /* search_finalization.txt in Resources */ = {isa = PBXBuildFile; fileRef = 210597D82EAEE5E8001CDE4F /* search_finalization.txt */; };
+		B311FEE2FEED46A6B4C2E76C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D4181B359EF0488BBDBB63FD /* GoogleService-Info.plist */; };
 		214CAA172EB3F2C6007A60F7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214CAA162EB3F2C6007A60F7 /* SettingsView.swift */; };
+		94C52AE97800BF21DEA956A8 /* PurchaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54B41ACE2194059FBBF0441 /* PurchaseView.swift */; };
+		B09F6105392F4BDAADC6C4B8 /* WelcomePurchaseSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA524DE915634D01AD20E3FD /* WelcomePurchaseSheet.swift */; };
+		95A88F8F525D4ED6AB1AAC6F /* ChooseYourPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E796B7ACDE3C473CBA72EC03 /* ChooseYourPlanView.swift */; };
+		214CAA1B2EB43618007A60F7 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214CAA1A2EB43618007A60F7 /* SubscriptionManager.swift */; };
+		214CAA1C2EB43618007A60F7 /* ScanLimitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214CAA192EB43618007A60F7 /* ScanLimitManager.swift */; };
+		214CAA1D2EB43618007A60F7 /* RemoteConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214CAA182EB43618007A60F7 /* RemoteConfigManager.swift */; };
+		214CAA212EB4378B007A60F7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 214CAA202EB4378B007A60F7 /* FirebaseCore */; };
+		214CAA232EB43796007A60F7 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 214CAA222EB43796007A60F7 /* FirebaseRemoteConfig */; };
 		21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8E2EA58A5C009C895F /* AppState.swift */; };
 		21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A842EA58A5C009C895F /* Album.swift */; };
 		21AB8AAF2EA58A5C009C895F /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8C2EA58A5C009C895F /* Config.swift */; };
+		5949627B0682488592A5609F /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A68B8519D44A86A39BD8F9 /* KeychainHelper.swift */; };
 		21AB8AB02EA58A5C009C895F /* ScanErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A982EA58A5C009C895F /* ScanErrorView.swift */; };
 		21AB8AB12EA58A5C009C895F /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A932EA58A5C009C895F /* CameraPreview.swift */; };
 		21AB8AB22EA58A5C009C895F /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A8F2EA58A5C009C895F /* CameraManager.swift */; };
@@ -33,7 +43,6 @@
 		21AB8ABA2EA58A5C009C895F /* AlbumScanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A9F2EA58A5C009C895F /* AlbumScanApp.swift */; };
 		21AB8ABB2EA58A5C009C895F /* AlbumScan.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A862EA58A5C009C895F /* AlbumScan.xcdatamodeld */; };
 		21AB8ABC2EA58A5C009C895F /* AlbumResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A852EA58A5C009C895F /* AlbumResponse.swift */; };
-		21AB8ABD2EA58A5C009C895F /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8A9C2EA58A5C009C895F /* WelcomeView.swift */; };
 		21AB8ABF2EA58A5C009C895F /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA92EA58A5C009C895F /* README.md */; };
 		21AB8AC02EA58A5C009C895F /* FILE_STRUCTURE.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA62EA58A5C009C895F /* FILE_STRUCTURE.md */; };
 		21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AAA2EA58A5C009C895F /* SETUP_GUIDE.md */; };
@@ -62,6 +71,12 @@
 		210597D62EAEE5DA001CDE4F /* single_prompt_identification.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = single_prompt_identification.txt; sourceTree = "<group>"; };
 		210597D82EAEE5E8001CDE4F /* search_finalization.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = search_finalization.txt; sourceTree = "<group>"; };
 		214CAA162EB3F2C6007A60F7 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B54B41ACE2194059FBBF0441 /* PurchaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseView.swift; sourceTree = "<group>"; };
+		EA524DE915634D01AD20E3FD /* WelcomePurchaseSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomePurchaseSheet.swift; sourceTree = "<group>"; };
+		E796B7ACDE3C473CBA72EC03 /* ChooseYourPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChooseYourPlanView.swift; sourceTree = "<group>"; };
+		214CAA182EB43618007A60F7 /* RemoteConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteConfigManager.swift; sourceTree = "<group>"; };
+		214CAA192EB43618007A60F7 /* ScanLimitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLimitManager.swift; sourceTree = "<group>"; };
+		214CAA1A2EB43618007A60F7 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
 		21914B312EA955D60039D3CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		21AB8A2E2EA58A02009C895F /* AlbumScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlbumScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		21AB8A842EA58A5C009C895F /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
@@ -69,6 +84,7 @@
 		21AB8A892EA58A5C009C895F /* ClaudeAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAPIService.swift; sourceTree = "<group>"; };
 		21AB8A8A2EA58A5C009C895F /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		21AB8A8C2EA58A5C009C895F /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		C3A68B8519D44A86A39BD8F9 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		21AB8A8E2EA58A5C009C895F /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		21AB8A8F2EA58A5C009C895F /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
 		21AB8A912EA58A5C009C895F /* AlbumDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumDetailsView.swift; sourceTree = "<group>"; };
@@ -77,7 +93,6 @@
 		21AB8A972EA58A5C009C895F /* PermissionErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionErrorView.swift; sourceTree = "<group>"; };
 		21AB8A982EA58A5C009C895F /* ScanErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanErrorView.swift; sourceTree = "<group>"; };
 		21AB8A9A2EA58A5C009C895F /* ScanHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryView.swift; sourceTree = "<group>"; };
-		21AB8A9C2EA58A5C009C895F /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		21AB8A9F2EA58A5C009C895F /* AlbumScanApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumScanApp.swift; sourceTree = "<group>"; };
 		21AB8AA02EA58A5C009C895F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		21AB8AA62EA58A5C009C895F /* FILE_STRUCTURE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FILE_STRUCTURE.md; sourceTree = "<group>"; };
@@ -90,6 +105,7 @@
 		21AB8AD42EA81F3E009C895F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		21B9102D2EA822B000C6E5B7 /* LaunchScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchScreenView.swift; sourceTree = "<group>"; };
 		21B910312EA91D9300C6E5B7 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
+		D4181B359EF0488BBDBB63FD /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		21B910332EA9481000C6E5B7 /* Bungee-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Bungee-Regular.ttf"; sourceTree = "<group>"; };
 		3FCE23C575394A75A62E6BF5 /* album_review.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = album_review.txt; sourceTree = "<group>"; };
 		65497B4506434630BFC0BA1A /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
@@ -101,22 +117,33 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				214CAA212EB4378B007A60F7 /* FirebaseCore in Frameworks */,
+				214CAA232EB43796007A60F7 /* FirebaseRemoteConfig in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		214CAA1F2EB4378B007A60F7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		21AB8A252EA58A02009C895F = {
 			isa = PBXGroup;
 			children = (
 				21B910312EA91D9300C6E5B7 /* Secrets.plist */,
+				D4181B359EF0488BBDBB63FD /* GoogleService-Info.plist */,
 				21AB8AD42EA81F3E009C895F /* Assets.xcassets */,
 				21AB8AA52EA58A5C009C895F /* AlbumScan */,
 				21AB8AA62EA58A5C009C895F /* FILE_STRUCTURE.md */,
 				21AB8AA82EA58A5C009C895F /* QUICK_START.md */,
 				21AB8AA92EA58A5C009C895F /* README.md */,
 				21AB8AAA2EA58A5C009C895F /* SETUP_GUIDE.md */,
+				214CAA1F2EB4378B007A60F7 /* Frameworks */,
 				21AB8A2F2EA58A02009C895F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -154,6 +181,9 @@
 		21AB8A8B2EA58A5C009C895F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				214CAA182EB43618007A60F7 /* RemoteConfigManager.swift */,
+				214CAA192EB43618007A60F7 /* ScanLimitManager.swift */,
+				214CAA1A2EB43618007A60F7 /* SubscriptionManager.swift */,
 				210597CE2EAE9633001CDE4F /* LLMService.swift */,
 				210597CF2EAE9633001CDE4F /* LLMServiceFactory.swift */,
 				210597D02EAE9633001CDE4F /* OpenAIAPIService.swift */,
@@ -169,6 +199,7 @@
 			isa = PBXGroup;
 			children = (
 				21AB8A8C2EA58A5C009C895F /* Config.swift */,
+				C3A68B8519D44A86A39BD8F9 /* KeychainHelper.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -216,12 +247,14 @@
 			path = History;
 			sourceTree = "<group>";
 		};
-		21AB8A9D2EA58A5C009C895F /* Welcome */ = {
+		7E916FB0A1C84F5C9BEDFDF0 /* Subscription */ = {
 			isa = PBXGroup;
 			children = (
-				21AB8A9C2EA58A5C009C895F /* WelcomeView.swift */,
+				B54B41ACE2194059FBBF0441 /* PurchaseView.swift */,
+				EA524DE915634D01AD20E3FD /* WelcomePurchaseSheet.swift */,
+				E796B7ACDE3C473CBA72EC03 /* ChooseYourPlanView.swift */,
 			);
-			path = Welcome;
+			path = Subscription;
 			sourceTree = "<group>";
 		};
 		21AB8A9E2EA58A5C009C895F /* Views */ = {
@@ -234,7 +267,7 @@
 				21AB8A962EA58A5C009C895F /* Camera */,
 				21AB8A992EA58A5C009C895F /* Error */,
 				21AB8A9B2EA58A5C009C895F /* History */,
-				21AB8A9D2EA58A5C009C895F /* Welcome */,
+				7E916FB0A1C84F5C9BEDFDF0 /* Subscription */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -309,6 +342,8 @@
 			);
 			name = AlbumScan;
 			packageProductDependencies = (
+				214CAA202EB4378B007A60F7 /* FirebaseCore */,
+				214CAA222EB43796007A60F7 /* FirebaseRemoteConfig */,
 			);
 			productName = AlbumScan;
 			productReference = 21AB8A2E2EA58A02009C895F /* AlbumScan.app */;
@@ -338,6 +373,9 @@
 			);
 			mainGroup = 21AB8A252EA58A02009C895F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				214CAA1E2EB43726007A60F7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 21AB8A2F2EA58A02009C895F /* Products */;
 			projectDirPath = "";
@@ -360,6 +398,7 @@
 				21B910342EA9481000C6E5B7 /* Bungee-Regular.ttf in Resources */,
 				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,
 				21B910322EA91D9300C6E5B7 /* Secrets.plist in Resources */,
+				B311FEE2FEED46A6B4C2E76C /* GoogleService-Info.plist in Resources */,
 				EFC56BF99C0B45BFB480023F /* album_review.txt in Resources */,
 				7D120A91786D49D084ADF179 /* album_review_ultra.txt in Resources */,
 				21AB8AD52EA81F3E009C895F /* Assets.xcassets in Resources */,
@@ -382,6 +421,7 @@
 				21AB8ACB2EA6DB9D009C895F /* CoverArtService.swift in Sources */,
 				21AB8ACC2EA6DB9D009C895F /* MusicBrainzService.swift in Sources */,
 				21AB8AAF2EA58A5C009C895F /* Config.swift in Sources */,
+				5949627B0682488592A5609F /* KeychainHelper.swift in Sources */,
 				21AB8AB02EA58A5C009C895F /* ScanErrorView.swift in Sources */,
 				210597D12EAE9633001CDE4F /* OpenAIAPIService.swift in Sources */,
 				210597D22EAE9633001CDE4F /* LLMServiceFactory.swift in Sources */,
@@ -390,12 +430,18 @@
 				21AB8AB22EA58A5C009C895F /* CameraManager.swift in Sources */,
 				21AB8AB32EA58A5C009C895F /* ContentView.swift in Sources */,
 				214CAA172EB3F2C6007A60F7 /* SettingsView.swift in Sources */,
+				94C52AE97800BF21DEA956A8 /* PurchaseView.swift in Sources */,
+				B09F6105392F4BDAADC6C4B8 /* WelcomePurchaseSheet.swift in Sources */,
+				95A88F8F525D4ED6AB1AAC6F /* ChooseYourPlanView.swift in Sources */,
 				21AB8AB42EA58A5C009C895F /* ClaudeAPIService.swift in Sources */,
 				21AB8AB52EA58A5C009C895F /* CameraView.swift in Sources */,
 				210597BF2EABDD27001CDE4F /* ScanState.swift in Sources */,
 				210597C02EABDD27001CDE4F /* Phase2Response.swift in Sources */,
 				210597C12EABDD27001CDE4F /* Phase1Response.swift in Sources */,
 				74034F4931A44D6C86F55EC5 /* Phase1AResponse.swift in Sources */,
+				214CAA1B2EB43618007A60F7 /* SubscriptionManager.swift in Sources */,
+				214CAA1C2EB43618007A60F7 /* ScanLimitManager.swift in Sources */,
+				214CAA1D2EB43618007A60F7 /* RemoteConfigManager.swift in Sources */,
 				21AB8AB62EA58A5C009C895F /* PermissionErrorView.swift in Sources */,
 				21AB8AB72EA58A5C009C895F /* ScanHistoryView.swift in Sources */,
 				21AB8AB82EA58A5C009C895F /* AlbumDetailsView.swift in Sources */,
@@ -403,7 +449,6 @@
 				21AB8ABA2EA58A5C009C895F /* AlbumScanApp.swift in Sources */,
 				21AB8ABB2EA58A5C009C895F /* AlbumScan.xcdatamodeld in Sources */,
 				21AB8ABC2EA58A5C009C895F /* AlbumResponse.swift in Sources */,
-				21AB8ABD2EA58A5C009C895F /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -629,6 +674,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		214CAA1E2EB43726007A60F7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		214CAA202EB4378B007A60F7 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 214CAA1E2EB43726007A60F7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		214CAA222EB43796007A60F7 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 214CAA1E2EB43726007A60F7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		21AB8A862EA58A5C009C895F /* AlbumScan.xcdatamodeld */ = {
