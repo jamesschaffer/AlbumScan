@@ -37,12 +37,11 @@ struct WelcomePurchaseSheet: View {
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color.white.opacity(0.1))
                 )
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
+                .padding(20)  // Consistent 20pt margin on all sides
                 .environmentObject(subscriptionManager)
-
-                Spacer()
             }
+            .frame(maxHeight: .infinity, alignment: .top)
+            .ignoresSafeArea(.all, edges: .vertical)
         }
         .alert("Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}

@@ -175,7 +175,6 @@ struct SubscriptionCardView: View {
             Text("You have AlbumScan Base")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(brandGreen)
-                .padding(.top, 8)
 
             Text("Upgrade to AlbumScan Ultra")
                 .font(.system(size: 28, weight: .bold))
