@@ -5,11 +5,18 @@ import AVFoundation
 import CoreData
 
 class AppState: ObservableObject {
+    // MARK: - Dev Mode Settings
+    #if DEBUG
+    // Set to true to always show welcome screen on launch (for testing)
+    private let FORCE_WELCOME_SCREEN = true
+    #endif
+
     @Published var isFirstLaunch: Bool = true
     @Published var cameraPermissionDenied: Bool = false
     @Published var hasScannedAlbums: Bool = false
 
     // MARK: - AlbumScan Ultra Search Toggle
+    // Note: Subscription state managed by SubscriptionManager
 
     @Published var searchEnabled: Bool {
         didSet {
@@ -21,11 +28,23 @@ class AppState: ObservableObject {
     }
 
     init() {
-        // Check if first launch
+        #if DEBUG
+        // Dev Mode: Force welcome screen if enabled
+        if FORCE_WELCOME_SCREEN {
+            self.isFirstLaunch = true
+            print("🔧 [DEV MODE] Forcing welcome screen to show")
+        } else {
+            let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
+            self.isFirstLaunch = !hasLaunchedBefore
+        }
+        #else
+        // Check if first launch (production)
         let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
         self.isFirstLaunch = !hasLaunchedBefore
+        #endif
 
         // Load search toggle state from UserDefaults
+        // Note: This will be automatically enabled when user subscribes
         self.searchEnabled = UserDefaults.standard.bool(forKey: "searchEnabled")
 
         // Defer album check to avoid initialization issues
