@@ -98,4 +98,17 @@ extension Album {
     @nonobjc public class func fetchRequest() -> NSFetchRequest<Album> {
         return NSFetchRequest<Album>(entityName: "Album")
     }
+
+    /// Convert cached Album to Phase2Response for reuse
+    func toPhase2Response() -> Phase2Response? {
+        guard phase2Completed else { return nil }
+
+        return Phase2Response(
+            contextSummary: contextSummary,
+            contextBullets: contextBulletPoints,
+            rating: rating,
+            recommendation: recommendation,
+            keyTracks: keyTracks
+        )
+    }
 }

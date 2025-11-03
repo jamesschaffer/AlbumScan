@@ -1,16 +1,21 @@
 import SwiftUI
 
 /// Unified loading view for two-tier album identification flow
-/// Handles all three states:
-/// 1. Identifying: "Flipping through every record bin..."
-/// 2. Identified: Artwork + "We found {album} by {artist}" (2 seconds)
-/// 3. Loading Review: Artwork + "Writing a review..."
+/// Handles all four states:
+/// 1. Identifying (ID Call 1 - first 3.5s): "Extracting text and examining album art..."
+/// 2. Identifying (ID Call 1 - remaining time): "Flipping through every record bin..."
+/// 3. Identified: Artwork + "We found {album} by {artist}" (2 seconds)
+/// 4. Loading Review: Artwork + "Writing a review..."
+///
+/// UX improvement: States 1-2 both occur during ID Call 1 to break up the 7-15s wait
 struct LoadingView: View {
     let scanState: ScanState
     let phase1Data: Phase1Response?
     let albumArtwork: UIImage?
 
     @State private var showingReviewMessage = false
+    @State private var showingRecordBinMessage = false
+    @State private var showAlbumContent = false  // Controls when to actually show album content (delayed for animation)
     @State private var ellipsisDots = 1
 
     // Animation states
@@ -33,9 +38,14 @@ struct LoadingView: View {
     let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
     let placeholderGray = Color(white: 0.2)
 
-    // Computed property: should we show the album found section?
+    // Computed property: should we show the album found section (based on scan state)?
     private var shouldShowAlbumSection: Bool {
         return scanState == .identified || scanState == .loadingReview || scanState == .complete
+    }
+
+    // Computed property: are we actually ready to display album content (after animation)?
+    private var displayAlbumSection: Bool {
+        return shouldShowAlbumSection && showAlbumContent
     }
 
     var body: some View {
@@ -59,14 +69,14 @@ struct LoadingView: View {
                     // Calculate top spacer to position text at exactly 50% screen height
                     // When album present: 50% - (albumSize + spacing)
                     // When album absent: 50%
-                    let hasAlbum = shouldShowAlbumSection
+                    let hasAlbum = displayAlbumSection
                     let topSpacerHeight = (geometry.size.height * textTopPosition) - (hasAlbum ? (albumSize + albumTextSpacing) : 0)
 
                     Spacer()
                         .frame(height: topSpacerHeight)
 
                     // Album cover (only shown in identified/review states)
-                    if shouldShowAlbumSection {
+                    if displayAlbumSection {
                         Group {
                             if let artwork = albumArtwork {
                                 Image(uiImage: artwork)
@@ -102,19 +112,22 @@ struct LoadingView: View {
             }
         }
         .onChange(of: shouldShowAlbumSection) { oldValue, newValue in
-            // When we transition to showing album section
+            // When we transition to showing album section (ID Call 1 complete, artwork ready)
             if !oldValue && newValue {
                 #if DEBUG
-                print("🎬 [LoadingView] Transitioning to album section, animating out old text")
+                print("🎬 [LoadingView] ID Call 1 completed, transitioning to album section")
                 #endif
 
-                // Slide out left
+                // Slide out current message (either "Extracting text..." or "Flipping through record bin...")
                 withAnimation(.easeIn(duration: 0.3)) {
                     offsetX = -UIScreen.main.bounds.width
                 }
 
-                // After slide completes, fade in album and text, then start 2-second timer
+                // After slide completes, switch content and show album section
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    // NOW switch to album content (after old content is off-screen)
+                    self.showAlbumContent = true
+
                     // Reset position and opacity
                     self.offsetX = 0
                     self.textOpacity = 0
@@ -150,11 +163,55 @@ struct LoadingView: View {
                 print("🎬 [LoadingView] View appeared with album section already visible, fading in album and starting timer")
                 #endif
 
+                // Skip intermediate states in this edge case
+                showingRecordBinMessage = true
+                showAlbumContent = true
+
                 withAnimation(.easeIn(duration: 0.4)) {
                     albumOpacity = 1.0
                 }
 
                 startReviewTransitionTimer()
+            } else {
+                // UX improvement: Transition from "Extracting text..." to "Flipping through record bin..."
+                // after 3.5 seconds to break up the long ID Call 1 wait
+                #if DEBUG
+                print("🎬 [LoadingView] Starting 3.5s timer to transition to record bin message")
+                #endif
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                    // Only transition if we're still in identifying state (not already moved to album section)
+                    guard !self.shouldShowAlbumSection else {
+                        #if DEBUG
+                        print("🎬 [LoadingView] Already moved to album section, skipping record bin transition")
+                        #endif
+                        return
+                    }
+
+                    #if DEBUG
+                    print("🎬 [LoadingView] Transitioning from extracting text to record bin message")
+                    #endif
+
+                    // Slide out "Extracting text..." message
+                    withAnimation(.easeIn(duration: 0.3)) {
+                        self.offsetX = -UIScreen.main.bounds.width
+                    }
+
+                    // After slide completes, show "Flipping through record bin..." message
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        // Update to record bin message
+                        self.showingRecordBinMessage = true
+
+                        // Reset position and opacity
+                        self.offsetX = 0
+                        self.textOpacity = 0
+
+                        // Fade in record bin message
+                        withAnimation(.easeIn(duration: 0.4)) {
+                            self.textOpacity = 1.0
+                        }
+                    }
+                }
             }
         }
     }
@@ -163,8 +220,19 @@ struct LoadingView: View {
 
     @ViewBuilder
     private func contentText(geometry: GeometryProxy) -> some View {
-        if !shouldShowAlbumSection {
-            // State 1: Identifying
+        if !displayAlbumSection && !showingRecordBinMessage {
+            // State 1: Initial identifying (ID Call 1)
+            (Text("Extracting text and examining album art")
+                .foregroundColor(messageColor) +
+             Text(String(repeating: ".", count: ellipsisDots))
+                .foregroundColor(brandGreen))
+                .font(.system(size: messageFontSize))
+                .lineSpacing(messageLineHeight)
+                .frame(maxWidth: geometry.size.width * textWidthPercentage, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else if showingRecordBinMessage && !displayAlbumSection {
+            // State 2: ID Call 1 continuing (after 3.5s transition)
             (Text("Flipping through every record bin in existence")
                 .foregroundColor(messageColor) +
              Text(String(repeating: ".", count: ellipsisDots))
@@ -175,7 +243,7 @@ struct LoadingView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            // State 2/3: Album found or writing review
+            // State 3/4: Album found or writing review
             Group {
                 if !showingReviewMessage {
                     foundMessageView(geometry: geometry)
