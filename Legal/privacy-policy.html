@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - AlbumScan</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #000;
+            border-bottom: 3px solid #00DE52;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #000;
+            margin-top: 30px;
+        }
+        .last-updated {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .contact {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy for AlbumScan</h1>
+        <p class="last-updated">Last Updated: January 2025</p>
+
+        <h2>Introduction</h2>
+        <p>AlbumScan ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we handle information when you use the AlbumScan mobile application (the "App").</p>
+
+        <h2>Information We Collect</h2>
+
+        <h3>Information You Provide Directly</h3>
+        <ul>
+            <li><strong>Camera Photos:</strong> When you use AlbumScan to scan an album cover, we temporarily process the image to identify the album. These images are sent to our AI service provider (OpenAI) for processing but are not stored by us.</li>
+            <li><strong>Scan History:</strong> Album information from your scans (artist name, album title, release year, genres, and review data) is stored locally on your device using Core Data. This data never leaves your device and is not transmitted to our servers.</li>
+        </ul>
+
+        <h3>Information Collected Automatically</h3>
+        <ul>
+            <li><strong>Device Information:</strong> We may collect basic device information through Firebase Remote Config to manage app features and settings. This does not include personally identifiable information.</li>
+            <li><strong>Subscription Status:</strong> If you purchase a subscription (AlbumScan Base or AlbumScan Ultra), Apple processes the transaction and we receive confirmation of your subscription status through StoreKit. We do not have access to your payment information.</li>
+            <li><strong>Usage Analytics:</strong> We use Firebase Remote Config to deliver app configuration. No personal usage data or analytics are collected.</li>
+        </ul>
+
+        <h2>How We Use Your Information</h2>
+        <p>We use the collected information for the following purposes:</p>
+        <ul>
+            <li><strong>Album Identification:</strong> Photos you scan are sent to OpenAI's API to identify the album using AI vision technology</li>
+            <li><strong>Review Generation:</strong> Album metadata is sent to OpenAI's API to generate contextual reviews and recommendations</li>
+            <li><strong>Local Storage:</strong> Your scan history is stored locally on your device for your personal reference</li>
+            <li><strong>Feature Management:</strong> Firebase Remote Config allows us to enable/disable features and manage app settings without requiring an app update</li>
+            <li><strong>Subscription Management:</strong> We verify your subscription status to provide appropriate features (Base vs. Ultra tier)</li>
+        </ul>
+
+        <h2>Third-Party Services</h2>
+        <p>AlbumScan uses the following third-party services:</p>
+
+        <h3>OpenAI</h3>
+        <p>We use OpenAI's GPT-4o API to identify albums and generate reviews. Images and album metadata are sent to OpenAI for processing. OpenAI's data usage is governed by their privacy policy: <a href="https://openai.com/policies/privacy-policy" target="_blank">https://openai.com/policies/privacy-policy</a></p>
+
+        <h3>Firebase (Google)</h3>
+        <p>We use Firebase Remote Config for app configuration management. Firebase's privacy policy can be found at: <a href="https://firebase.google.com/support/privacy" target="_blank">https://firebase.google.com/support/privacy</a></p>
+
+        <h3>Apple StoreKit</h3>
+        <p>In-app purchases are processed by Apple. Apple's privacy policy applies: <a href="https://www.apple.com/legal/privacy/" target="_blank">https://www.apple.com/legal/privacy/</a></p>
+
+        <h3>MusicBrainz</h3>
+        <p>We use the MusicBrainz API to retrieve album artwork. No personal information is sent to MusicBrainz.</p>
+
+        <h2>Data Storage and Security</h2>
+        <ul>
+            <li><strong>Local Storage:</strong> Your scan history is stored locally on your device using iOS Core Data. This data is included in your device backups if you have iCloud or iTunes backup enabled.</li>
+            <li><strong>No Cloud Storage:</strong> We do not store your scan history on our servers or in the cloud.</li>
+            <li><strong>Image Processing:</strong> Photos you scan are temporarily transmitted to OpenAI for identification and are not permanently stored by us or OpenAI.</li>
+            <li><strong>Security:</strong> We implement industry-standard security measures to protect data in transit using HTTPS encryption.</li>
+        </ul>
+
+        <h2>Data Retention</h2>
+        <ul>
+            <li>Scan history remains on your device until you delete the app or manually clear your history</li>
+            <li>Images sent for identification are processed in real-time and are not retained by AlbumScan</li>
+            <li>OpenAI may retain data according to their retention policy</li>
+        </ul>
+
+        <h2>Your Rights and Choices</h2>
+        <p>You have the following rights regarding your data:</p>
+        <ul>
+            <li><strong>Camera Access:</strong> You can revoke camera permissions at any time in iOS Settings → AlbumScan</li>
+            <li><strong>Delete Scan History:</strong> You can delete individual albums or your entire scan history within the app</li>
+            <li><strong>Subscription Management:</strong> You can manage or cancel your subscription through the App Store</li>
+            <li><strong>Delete All Data:</strong> Deleting the AlbumScan app from your device removes all locally stored data</li>
+        </ul>
+
+        <h2>Children's Privacy</h2>
+        <p>AlbumScan is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.</p>
+
+        <h2>Changes to This Privacy Policy</h2>
+        <p>We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last Updated" date at the top of this policy. Continued use of the App after changes constitutes acceptance of the updated policy.</p>
+
+        <h2>California Privacy Rights</h2>
+        <p>If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA). Since we do not sell personal information and only collect minimal data as described above, most CCPA requirements do not apply to AlbumScan.</p>
+
+        <h2>International Users</h2>
+        <p>AlbumScan is operated in the United States. If you are located outside the United States, please be aware that information we collect will be transferred to and processed in the United States.</p>
+
+        <div class="contact">
+            <h2>Contact Us</h2>
+            <p>If you have any questions about this Privacy Policy or our data practices, please contact us at:</p>
+            <p><strong>Email:</strong> support@albumscan.app</p>
+            <p><strong>Developer:</strong> James Schaffer</p>
+        </div>
+    </div>
+</body>
+</html>
