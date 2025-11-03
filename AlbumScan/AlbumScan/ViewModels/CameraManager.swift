@@ -10,8 +10,10 @@ class CameraManager: NSObject, ObservableObject {
     @Published var error: Error?
     @Published var scannedAlbum: Album?
 
-    // Reference to AppState for Ultra search toggle
-    private weak var appState: AppState?
+    // Subscription managers (injected from CameraView)
+    var subscriptionManager: SubscriptionManager?
+    var scanLimitManager: ScanLimitManager?
+    var appState: AppState?
 
     // Store framing guide coordinates for cropping
     var capturedGuideFrame: CGRect = .zero
@@ -55,11 +57,6 @@ class CameraManager: NSObject, ObservableObject {
         setupSession()
     }
 
-    /// Set the AppState reference after initialization
-    func setAppState(_ appState: AppState) {
-        self.appState = appState
-    }
-
     private func setupSession() {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
@@ -74,24 +71,34 @@ class CameraManager: NSObject, ObservableObject {
             // Set session preset
             self.session.sessionPreset = .photo
 
-            // Add video input
-            guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-                  let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
+            // Add video input - Try back camera first, then front camera (for Simulator)
+            var videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+
+            // If no back camera (Simulator), try front camera
+            if videoDevice == nil {
+                #if DEBUG
+                print("⚠️ Back camera not available, trying front camera (Simulator)")
+                #endif
+                videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+            }
+
+            guard let device = videoDevice,
+                  let videoInput = try? AVCaptureDeviceInput(device: device),
                   self.session.canAddInput(videoInput) else {
                 #if DEBUG
-                print("Could not add video input")
+                print("❌ Could not add any video input")
                 #endif
                 DispatchQueue.main.async {
-                    self.error = NSError(domain: "CameraManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not add video input. Make sure you're running on a device with a camera."])
+                    self.error = NSError(domain: "CameraManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not add video input. Make sure you're running on a device with a camera or in a Simulator with camera enabled."])
                 }
                 return
             }
 
             // Set camera zoom to 1x (default)
             do {
-                try videoDevice.lockForConfiguration()
-                videoDevice.videoZoomFactor = 1.0
-                videoDevice.unlockForConfiguration()
+                try device.lockForConfiguration()
+                device.videoZoomFactor = 1.0
+                device.unlockForConfiguration()
             } catch {
                 #if DEBUG
                 print("Could not set zoom factor: \(error)")
@@ -99,6 +106,10 @@ class CameraManager: NSObject, ObservableObject {
             }
 
             self.session.addInput(videoInput)
+
+            #if DEBUG
+            print("✅ Video input added successfully")
+            #endif
 
             // Add photo output
             guard self.session.canAddOutput(self.photoOutput) else {
@@ -194,7 +205,7 @@ class CameraManager: NSObject, ObservableObject {
 // MARK: - AVCapturePhotoCaptureDelegate
 
 extension CameraManager: AVCapturePhotoCaptureDelegate {
-    nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if let error = error {
             DispatchQueue.main.async {
                 self.error = error
@@ -571,6 +582,16 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.scanState = .complete
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false
+
+                // Increment scan count (only if not subscribed)
+                if let scanLimitManager = self.scanLimitManager,
+                   let subscriptionManager = self.subscriptionManager,
+                   !subscriptionManager.isSubscribed {
+                    scanLimitManager.incrementScanCount()
+                    #if DEBUG
+                    print("📊 [Scan] Incremented scan count - \(scanLimitManager.remainingFreeScans) remaining")
+                    #endif
+                }
             }
 
         } catch {
@@ -636,33 +657,28 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 print("🔍 [ID Call 1] Search needed: \(searchRequest.searchRequest.reason)")
                 print("🔍 [ID Call 1] Query: \(searchRequest.searchRequest.query)")
 
-                // Check if AlbumScan Ultra search is enabled
-                let searchEnabled = appState?.searchEnabled ?? false
-                #if DEBUG
-                print("🔍 [AlbumScan Ultra] Search enabled: \(searchEnabled)")
-                #endif
+                // SEARCH GATE: Validate if search is worth attempting
+                let extractedText = searchRequest.searchRequest.observation.extractedText
+                let textConfidence = searchRequest.searchRequest.observation.textConfidence
+                let meaningfulChars = extractedText.filter { !$0.isWhitespace }.count
 
-                guard searchEnabled else {
-                    // Search disabled - treat as identification failure
-                    print("⛔ [Search Disabled] AlbumScan Ultra required for deep cut albums")
-                    print("⛔ [Search Disabled] Enable Advanced Search in Settings to identify obscure albums")
+                print("🔍 [Search Gate] Extracted text: '\(extractedText)' (\(meaningfulChars) chars, \(textConfidence) confidence)")
+
+                guard meaningfulChars >= 3 && textConfidence != "low" else {
+                    print("⛔ [Search Gate] BLOCKED - Insufficient text data for search")
+                    print("⛔ [Search Gate] Criteria: Need 3+ chars AND medium/high confidence")
+                    print("⛔ [Search Gate] Got: \(meaningfulChars) chars, \(textConfidence) confidence")
 
                     await MainActor.run {
                         self.scanState = .identificationFailed
-                        self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: "Unable to identify this cover art"])
+                        self.error = NSError(domain: "CameraManager", code: -100, userInfo: [NSLocalizedDescriptionKey: "Unable to identify - album cover has insufficient readable text"])
                         self.isProcessing = false
                         self.isCaptureInitiated = false
                     }
                     return
                 }
 
-                // Ultra enabled - proceed to ID Call 2 (no gate validation)
-                let extractedText = searchRequest.searchRequest.observation.extractedText
-                let textConfidence = searchRequest.searchRequest.observation.textConfidence
-                let meaningfulChars = extractedText.filter { !$0.isWhitespace }.count
-
-                print("🔍 [AlbumScan Ultra] Bypassing search gate validation")
-                print("🔍 [ID Call 2] Extracted text: '\(extractedText)' (\(meaningfulChars) chars, \(textConfidence) confidence)")
+                print("✅ [Search Gate] PASSED - Text sufficient for search")
 
                 // Trigger "deep cut" message in UI
                 await MainActor.run {
@@ -794,6 +810,16 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 self.scanState = .complete
                 self.scannedAlbum = savedAlbum
                 self.isProcessing = false
+
+                // Increment scan count (only if not subscribed)
+                if let scanLimitManager = self.scanLimitManager,
+                   let subscriptionManager = self.subscriptionManager,
+                   !subscriptionManager.isSubscribed {
+                    scanLimitManager.incrementScanCount()
+                    #if DEBUG
+                    print("📊 [Scan] Incremented scan count - \(scanLimitManager.remainingFreeScans) remaining")
+                    #endif
+                }
             }
 
         } catch {
@@ -812,55 +838,10 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         let phase2Start = Date()
         print("🔑 [TWO-TIER Phase2] Starting review generation...")
 
-        // 🎯 COST OPTIMIZATION: Check cache first (90%+ cost savings)
-        if let cachedAlbum = checkCachedAlbum(artistName: artistName, albumTitle: albumTitle) {
-            if cachedAlbum.phase2Completed,
-               !cachedAlbum.contextSummary.isEmpty {
-                // Found valid cached review - USE IT!
-                let cachedResponse = Phase2Response(
-                    contextSummary: cachedAlbum.contextSummary,
-                    contextBullets: cachedAlbum.contextBulletPoints,
-                    rating: cachedAlbum.rating,
-                    recommendation: cachedAlbum.recommendation,
-                    keyTracks: cachedAlbum.keyTracks
-                )
-
-                let cacheTime = Date().timeIntervalSince(phase2Start)
-                print("⏱️ [TIMING] Phase 2 took: \(String(format: "%.2f", cacheTime))s")
-                print("✅ [CACHE HIT] Using cached review - NO API CALL")
-                print("💰 [COST SAVINGS] Saved ~$0.05 by using cache")
-
-                await MainActor.run {
-                    self.phase2Data = cachedResponse
-                }
-
-                return (cachedResponse, false)
-            }
-
-            // Check if we've already tried and failed recently (avoid retry loops)
-            if cachedAlbum.phase2Failed,
-               let lastAttempt = cachedAlbum.phase2LastAttempt {
-                let daysSinceAttempt = Calendar.current.dateComponents([.day], from: lastAttempt, to: Date()).day ?? 0
-
-                // Don't retry for 30 days (reviews are stable, failures are usually permanent)
-                if daysSinceAttempt < 30 {
-                    print("⚠️ [CACHE] Review failed \(daysSinceAttempt) days ago - skipping retry")
-                    print("💰 [COST SAVINGS] Avoided wasteful retry")
-                    return (nil, true)
-                }
-            }
-        }
-
-        // Cache miss - generate new review
-        print("📦 [CACHE MISS] Generating new review via API...")
-
-        // Get Ultra search toggle state
-        let searchEnabled = appState?.searchEnabled ?? false
-        #if DEBUG
-        print("🔍 [AlbumScan Ultra] Review generation with search enabled: \(searchEnabled)")
-        #endif
-
         do {
+            // Only Ultra tier gets advanced search (Wikipedia links)
+            let searchEnabled = subscriptionManager?.subscriptionTier == .ultra
+
             let phase2Response = try await LLMServiceFactory.getService().generateReviewPhase2(
                 artistName: artistName,
                 albumTitle: albumTitle,
@@ -973,64 +954,22 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
     // MARK: - Caching Helper
 
-    /// Normalizes album titles to de-dupe variants (Deluxe, Remastered, etc.)
-    /// Example: "Dark Side of the Moon (2011 Remaster)" → "Dark Side of the Moon"
-    private func normalizeAlbumTitle(_ title: String) -> String {
-        var normalized = title
-
-        // Remove common variant suffixes (case-insensitive)
-        let patterns = [
-            "\\s*\\(.*?Deluxe.*?\\)",
-            "\\s*\\(.*?Remaster.*?\\)",
-            "\\s*\\(.*?Reissue.*?\\)",
-            "\\s*\\(.*?Edition.*?\\)",
-            "\\s*\\(.*?Anniversary.*?\\)",
-            "\\s*\\(.*?Expanded.*?\\)",
-            "\\s*\\(.*?Bonus.*?\\)",
-            "\\s*\\[.*?Deluxe.*?\\]",
-            "\\s*\\[.*?Remaster.*?\\]",
-            "\\s*\\[.*?Reissue.*?\\]"
-        ]
-
-        for pattern in patterns {
-            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
-                normalized = regex.stringByReplacingMatches(
-                    in: normalized,
-                    range: NSRange(normalized.startIndex..., in: normalized),
-                    withTemplate: ""
-                )
-            }
-        }
-
-        return normalized.trimmingCharacters(in: .whitespaces)
-    }
-
     private func checkCachedAlbum(artistName: String, albumTitle: String) -> Album? {
         let context = PersistenceController.shared.container.viewContext
         let fetchRequest: NSFetchRequest<Album> = Album.fetchRequest()
 
-        // 🎯 COST OPTIMIZATION: Normalize title to match variants (20-30% cache hit improvement)
-        let normalizedTitle = normalizeAlbumTitle(albumTitle)
-
-        #if DEBUG
-        if normalizedTitle != albumTitle {
-            print("📦 [CACHE] Normalized '\(albumTitle)' → '\(normalizedTitle)'")
-        }
-        #endif
-
-        // Try exact match first, then normalized match
+        // Match on artist name and album title (case-insensitive)
         fetchRequest.predicate = NSPredicate(
-            format: "artistName ==[c] %@ AND (albumTitle ==[c] %@ OR albumTitle ==[c] %@)",
+            format: "artistName ==[c] %@ AND albumTitle ==[c] %@",
             artistName,
-            albumTitle,
-            normalizedTitle
+            albumTitle
         )
         fetchRequest.fetchLimit = 1
 
         do {
             let results = try context.fetch(fetchRequest)
             if let existing = results.first {
-                print("📦 [CACHE] Found existing album: \(existing.albumTitle) by \(artistName)")
+                print("📦 [CACHE] Found existing album: \(albumTitle) by \(artistName)")
                 print("📦 [CACHE] Phase2 completed: \(existing.phase2Completed), Phase2 failed: \(existing.phase2Failed)")
                 return existing
             }

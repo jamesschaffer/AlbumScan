@@ -1,6 +1,6 @@
 # Privacy Policy for AlbumScan
 
-**Last Updated:** October 24, 2025
+**Last Updated:** October 28, 2025
 
 ## Overview
 
@@ -51,6 +51,7 @@ We use the following third-party services:
 1. **Anthropic Claude API** - processes album cover images for identification
 2. **MusicBrainz API** - provides album metadata
 3. **Cover Art Archive** - provides official album artwork
+4. **Firebase Remote Config (Google)** - used solely for app configuration (e.g., maintenance mode). No personal data or usage information is sent to Firebase. Only anonymous configuration requests are made.
 
 ## Data Sharing
 
@@ -62,6 +63,28 @@ We do NOT:
 - Store your data on remote servers (except as necessary for API processing)
 
 Your album cover images are sent to Anthropic's API solely for identification purposes and are handled according to their privacy policy.
+
+## Subscription and In-App Purchases
+
+### Free Trial
+AlbumScan offers 10 free album scans to all users. Scan count is stored locally on your device using:
+- **UserDefaults** - for active tracking
+- **Keychain** - for persistence across app reinstalls (not linked to any user account)
+
+No personal information is required or collected for the free trial.
+
+### Subscription Information
+After using your free scans, you can subscribe for unlimited access:
+- **Subscription management** - handled entirely by Apple through the App Store
+- **Payment processing** - we never see or store your payment information
+- **Purchase verification** - handled locally on your device via StoreKit
+- **No user accounts** - subscriptions are tied to your Apple ID, not any account we create
+
+We do not:
+- Collect billing information (Apple handles this)
+- Store subscription data on our servers (we don't have servers)
+- Track individual users or their subscription status outside of your device
+- Share subscription information with third parties
 
 ## Your Rights
 
@@ -101,13 +124,15 @@ If you have questions about this privacy policy or your data, please contact:
 - **Anthropic Claude API:** https://www.anthropic.com/legal/privacy
 - **MusicBrainz:** https://musicbrainz.org/doc/About/Privacy_Policy
 - **Cover Art Archive:** Operated by Internet Archive - https://archive.org/about/terms.php
+- **Firebase (Google):** https://firebase.google.com/support/privacy
 
 ---
 
 ## Summary
 
-**What we collect:** Album cover photos (temporarily), scan results (stored locally)
-**Why we collect it:** To identify albums and provide music information
-**Where it goes:** Anthropic API (for identification), MusicBrainz/Cover Art Archive (for metadata)
-**What we don't do:** Sell data, track you, store data on our servers, share with advertisers
-**Your control:** Delete scans anytime, manage camera permissions, delete app to remove all data
+**What we collect:** Album cover photos (temporarily), scan results (stored locally), scan count (locally)
+**Why we collect it:** To identify albums, provide music information, and manage free trial limits
+**Where it goes:** Anthropic API (for identification), MusicBrainz/Cover Art Archive (for metadata), Firebase (anonymous config requests only)
+**Subscriptions:** Managed entirely by Apple, no payment info stored by us, no user accounts required
+**What we don't do:** Sell data, track you, store data on our servers, share with advertisers, collect analytics
+**Your control:** Delete scans anytime, manage camera permissions, manage subscriptions via Apple ID, delete app to remove all data

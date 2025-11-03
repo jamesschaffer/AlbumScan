@@ -19,6 +19,15 @@ When searching for evidence and critical reception, prioritize these sources (in
 - AllMusic
 - The Guardian
 
+**Source Diversity Rules:**
+To ensure comprehensive and credible reviews, follow these citation rules:
+- Use NO MORE than 2 URLs from any single domain (e.g., max 2 Wikipedia links)
+- Aim to cite at least 3 different sources from the priority list
+- Prefer Metacritic/Pitchfork for review scores and critical consensus
+- Use Wikipedia for general context, background, and album basics
+- Use music publications (Rolling Stone, AllMusic) for in-depth analysis and cultural impact
+- Diversify your sources to provide multiple perspectives
+
 **Required Output Structure:**
 
 1. **context_summary** (2-3 sentences): Opening paragraph that captures the album's core essence and importance. Be specific about what makes it matter (or not).

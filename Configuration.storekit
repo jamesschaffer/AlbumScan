@@ -1,0 +1,128 @@
+{
+  "identifier" : "F98C3B63",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "displayName" : "AlbumScan Premium",
+      "duration" : "P1Y",
+      "id" : "21590857",
+      "localizations" : [
+
+      ],
+      "name" : "AlbumScan Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6670472990",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "One-click search, concise reviews, and 8-tier recommendation system",
+              "displayName" : "AlbumScan Base",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "albumscan_base_annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "AlbumScan Base Annual",
+          "subscriptionGroupID" : "21590857",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "11.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6670472991",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Improved matches, expert reviews from Pitchfork and Rolling Stone, enhanced accuracy",
+              "displayName" : "AlbumScan Ultra",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "albumscan_ultra_annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "AlbumScan Ultra Annual",
+          "subscriptionGroupID" : "21590857",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
