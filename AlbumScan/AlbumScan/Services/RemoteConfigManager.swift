@@ -13,7 +13,7 @@ class RemoteConfigManager: ObservableObject {
     // MARK: - Published Properties
 
     @Published private(set) var scanningEnabled: Bool = true
-    @Published private(set) var freeScanLimit: Int = 10
+    @Published private(set) var freeScanLimit: Int = 5
     @Published private(set) var maintenanceMessage: String = ""
     @Published private(set) var isConfigLoaded: Bool = false
 
@@ -122,7 +122,7 @@ class RemoteConfigManager: ObservableObject {
     private func setDefaultValues() {
         let defaults: [String: NSObject] = [
             ConfigKey.scanningEnabled.rawValue: true as NSObject,
-            ConfigKey.freeScanLimit.rawValue: 10 as NSObject,
+            ConfigKey.freeScanLimit.rawValue: 5 as NSObject,
             ConfigKey.maintenanceMessage.rawValue: "" as NSObject
         ]
 
