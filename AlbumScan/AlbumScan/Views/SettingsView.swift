@@ -1,11 +1,21 @@
 import SwiftUI
 import StoreKit
 
+// PreferenceKey to measure content height (shared with WelcomePurchaseSheet)
+struct SettingsViewHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     @EnvironmentObject var scanLimitManager: ScanLimitManager
     @Environment(\.dismiss) var dismiss
+
+    @Binding var sheetHeight: CGFloat  // Expose measured height to parent
 
     @State private var showError = false
     @State private var errorMessage = ""
@@ -37,10 +47,37 @@ struct SettingsView: View {
                 )
                 .padding(20)  // Consistent 20pt margin on all sides
                 .environmentObject(subscriptionManager)
-
             }
-            .frame(maxHeight: .infinity, alignment: .top)
-            .ignoresSafeArea(.all, edges: .vertical)
+            .frame(maxWidth: .infinity)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(
+                GeometryReader { geometry in
+                    Color.clear
+                        .onChange(of: geometry.size) { oldSize, newSize in
+                            #if DEBUG
+                            print("📏 [SettingsView] Size changed: \(oldSize) → \(newSize)")
+                            #endif
+
+                            // Update whenever size changes (handles loading → loaded transitions)
+                            let cappedHeight = min(newSize.height, UIScreen.main.bounds.height * 0.9)
+
+                            #if DEBUG
+                            print("📏 [SettingsView] Setting sheet height to: \(cappedHeight)")
+                            #endif
+
+                            sheetHeight = cappedHeight
+                        }
+                        .onAppear {
+                            #if DEBUG
+                            print("📏 [SettingsView] Initial size on appear: \(geometry.size)")
+                            #endif
+
+                            // Set initial height
+                            let cappedHeight = min(geometry.size.height, UIScreen.main.bounds.height * 0.9)
+                            sheetHeight = cappedHeight
+                        }
+                }
+            )
         }
         .alert("Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}
@@ -71,8 +108,16 @@ struct BenefitRow: View {
 }
 
 #Preview {
-    SettingsView()
-        .environmentObject(AppState())
-        .environmentObject(SubscriptionManager.shared)
-        .environmentObject(ScanLimitManager.shared)
+    struct PreviewWrapper: View {
+        @State private var height: CGFloat = 520
+
+        var body: some View {
+            SettingsView(sheetHeight: $height)
+                .environmentObject(AppState())
+                .environmentObject(SubscriptionManager.shared)
+                .environmentObject(ScanLimitManager.shared)
+        }
+    }
+
+    return PreviewWrapper()
 }

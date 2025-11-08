@@ -24,20 +24,10 @@ struct CameraView: View {
     @State private var showWelcomeSheet = false
     @State private var showErrorBanner = false
     @State private var showingMaintenanceAlert = false
+    @State private var welcomeSheetHeight: CGFloat = 520  // Dynamic height for welcome sheet
+    @State private var settingsSheetHeight: CGFloat = 520  // Dynamic height for settings sheet
 
     let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
-
-    // Calculate settings sheet height based on subscription tier
-    private var settingsSheetHeight: CGFloat {
-        switch subscriptionManager.subscriptionTier {
-        case .none:
-            return 520  // Tab interface with features
-        case .base:
-            return 480  // Ultra upsell
-        case .ultra:
-            return 420  // Success message
-        }
-    }
 
     private var settingsButton: some View {
         Button(action: {
@@ -264,21 +254,24 @@ struct CameraView: View {
             ScanHistoryView()
         }
         .sheet(isPresented: $showSettings) {
-            SettingsView()
+            SettingsView(sheetHeight: $settingsSheetHeight)
                 .environmentObject(appState)
                 .environmentObject(subscriptionManager)
                 .environmentObject(scanLimitManager)
                 .presentationDetents([.height(settingsSheetHeight)])
         }
         .sheet(isPresented: $showWelcomeSheet) {
-            WelcomePurchaseSheet(onDismiss: {
-                showWelcomeSheet = false
-                appState.requestCameraPermission()
-            })
+            WelcomePurchaseSheet(
+                onDismiss: {
+                    showWelcomeSheet = false
+                    appState.requestCameraPermission()
+                },
+                sheetHeight: $welcomeSheetHeight
+            )
             .environmentObject(appState)
             .environmentObject(subscriptionManager)
             .environmentObject(scanLimitManager)
-            .presentationDetents([.height(520)])
+            .presentationDetents([.height(welcomeSheetHeight)])
         }
         .fullScreenCover(item: $cameraManager.scannedAlbum, onDismiss: {
             // Reset state when album details is manually dismissed
