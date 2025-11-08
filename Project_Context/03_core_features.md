@@ -213,48 +213,70 @@
 
 ### Feature 8: Progress Indicators
 - **Priority:** MUST-HAVE (User Feedback)
-- **Description:** Loading states provide feedback during multi-second processing
+- **Description:** Loading states provide feedback during multi-second processing with progressive messaging
 - **Implementation:**
-  - Three distinct loading states with custom messages:
-    1. Identifying: "Flipping through every record bin in existence..."
-    2. Identified: "We found [Album] by [Artist]" (with artwork)
-    3. Loading Review: "Writing a review that's somehow both pretentious and correct..."
-  - Animated ellipsis (...) on states 1 and 3 (cycles every 0.5 seconds)
-  - Slide-in/slide-out transitions between states
-  - Album artwork fades in during identified state
-  - Brand green color for dynamic text elements (album name, artist name)
+  - Four distinct loading messages with strategic timing:
+    1. Identifying (0-3.5s): "Extracting text and examining album art..."
+    2. Identifying (3.5s+): "Flipping through every record bin in existence..."
+    3. Identified (2s hold): "We found [Album] by [Artist]" (with artwork)
+    4. Loading Review: "Writing a review that's somehow both pretentious and correct..."
+  - Animated ellipsis (...) on states 1, 2, and 4 (cycles every 0.5 seconds)
+  - Slide-in/slide-out transitions between states (0.3s exit, 0.4s entrance)
+  - Album artwork (150px) fades in during identified state
+  - Text positioned at 50% screen height consistently
+  - Brand green color for dynamic text elements (ellipsis, album name, artist name)
   - Logo displayed at top of all loading screens
+  - UX improvement: Breaking ID Call 1 into two messages reduces perceived wait time
 - **User Story:** "As a user, I want to know what's happening during processing so I don't think the app is frozen"
+- **Timing:** Total scan time 5-18 seconds broken into progressive stages to maintain engagement
 
-### Feature 9: AlbumScan Ultra Settings
-- **Priority:** NICE-TO-HAVE (Premium Feature)
-- **Description:** Settings screen with Advanced Search toggle for AlbumScan Ultra functionality
+### Feature 9: Two-Tier Subscription System
+- **Priority:** MUST-HAVE (Monetization)
+- **Description:** StoreKit 2 subscription system with two tiers (Base and Ultra) plus free trial
 - **Implementation:**
-  - **Settings Button:** Gear icon, bottom-left of camera controls (64x64, green border, black bg)
-  - **Sheet Presentation:** Fixed 460pt height, no X button (swipe-to-dismiss)
-  - **Ultra Benefits Card:** Black background with green accents
-    - Title: "AlbumScan Ultra"
-    - Price: "$11.99/year"
-    - Four benefit bullets with green checkmarks:
-      - Advanced search for obscure albums
-      - Enhanced accuracy for modern releases (2020+)
-      - Detailed reviews with cited sources
-      - Support continued development
-    - Toggle: "Enable Advanced Search" (green tint when ON)
-  - **State Persistence:** UserDefaults saves toggle state across app launches
-  - **Model Switching:** Toggle controls which model/prompt is used for reviews:
-    - **OFF (Free):** `gpt-4o` with `album_review.txt` (no search)
-    - **ON (Ultra):** `gpt-4o-search-preview` with `album_review_ultra.txt` (with search + source prioritization)
-  - **Search Gate Bypass:** When Ultra is enabled, bypasses the ID Call 2 search gate (3-char/confidence requirements) to allow identification of more obscure albums
-- **User Story:** "As a user, I want to toggle advanced search features so I can get more detailed reviews with cited sources for my favorite albums"
+  - **Free Tier:**
+    - 5 free scans per user
+    - Keychain + UserDefaults persistence (survives reinstall ~95%)
+    - ScanLimitManager tracks usage
+  - **Base Subscription ($4.99/year):**
+    - 120 scans per month
+    - ID Call 1 only (no web search capability)
+    - StoreKit product: `albumscan_base_annual`
+    - Best for: Casual users scanning well-known albums
+  - **Ultra Subscription ($11.99/year):**
+    - 120 scans per month
+    - Full two-tier identification (ID Call 1 + ID Call 2 with search)
+    - StoreKit product: `albumscan_ultra_annual`
+    - Advanced search for obscure albums
+    - Enhanced accuracy for modern releases (2020+)
+    - Detailed reviews with cited sources (when "Enable Advanced Search" toggle is ON)
+    - Best for: Serious collectors scanning deep cuts
+  - **SubscriptionManager Service:**
+    - Handles purchase, restore, verification via StoreKit 2
+    - Transaction listener for renewals and updates
+    - Keychain persistence for subscription tier
+    - Subscription status broadcast to AppState
+  - **WelcomePurchaseSheet:**
+    - Onboarding screen showing subscription options
+    - SubscriptionCardView component for purchase UI
+    - Displays when user exhausts free scans or on first launch
+  - **Settings Screen:**
+    - Gear icon, bottom-left of camera controls (64x64, green border, black bg)
+    - Sheet presentation with Ultra benefits card
+    - "Enable Advanced Search" toggle (Ultra subscribers only)
+    - Toggle controls review model: Free (`gpt-4o`) vs Ultra (`gpt-4o-search-preview`)
+  - **Search Gate Behavior:**
+    - Base subscribers: Search gate enforced (ID Call 2 blocked)
+    - Ultra subscribers: Search gate bypassed when "Enable Advanced Search" is ON
+- **User Story:** "As a user, I want flexible subscription options that match my usage level and feature needs"
 - **Acceptance Criteria:**
-  - Settings button visible on camera view (lower-left position)
-  - Tapping settings opens sheet with Ultra benefits
-  - Toggle switches between free and Ultra models
-  - State persists across app restarts
-  - When Ultra ON: uses search-enabled model with prioritized sources
-  - When Ultra ON: bypasses search gate for obscure album identification
-  - Sheet dismisses via swipe-down gesture
+  - Free tier allows 5 scans before requiring subscription
+  - Base tier provides affordable access ($4.99/year) with basic identification
+  - Ultra tier provides advanced features ($11.99/year) including search capability
+  - Monthly limits (120 scans) prevent abuse
+  - Purchase and restore work correctly via StoreKit 2
+  - Subscription tier persists across app restarts (Keychain)
+  - Scan count persists across app reinstalls (Keychain)
 
 ---
 
@@ -269,9 +291,13 @@
 | Branded Launch Screen | ✅ Complete | 1.5 second display with fade |
 | Framing Guide | ✅ Complete | Square green-bordered guide |
 | Error Banner | ✅ Complete | Top slide-down, auto-dismiss |
-| Progress Indicators | ✅ Complete | Three states with animations |
-| AlbumScan Ultra Settings | ✅ Complete | Settings button + toggle + state persistence |
+| Progress Indicators | ✅ Complete | Four-stage messages with progressive timing |
+| Two-Tier Subscription System | ✅ Complete | Free (5 scans), Base ($4.99), Ultra ($11.99) with StoreKit 2 |
 
 ---
 
-**Document Accuracy:** This document reflects the actual implementation as of October 30, 2025, verified against CameraManager.swift, CameraView.swift, SettingsView.swift, AppState.swift, OpenAIAPIService.swift, LoadingView.swift, AlbumDetailsView.swift, ScanHistoryView.swift, and ScanState.swift.
+**Document Accuracy:** This document reflects the actual implementation as of November 4, 2025, verified against CameraManager.swift, CameraView.swift, SettingsView.swift, AppState.swift, OpenAIAPIService.swift, LoadingView.swift, AlbumDetailsView.swift, ScanHistoryView.swift, ScanState.swift, SubscriptionManager.swift, ScanLimitManager.swift, and WelcomePurchaseSheet.swift.
+
+---
+
+**Last Updated:** November 4, 2025

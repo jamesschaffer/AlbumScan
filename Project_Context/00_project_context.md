@@ -56,16 +56,32 @@ Complete migration from Claude API to OpenAI API. Implemented two-tier identific
 Implemented aggressive caching, title normalization, prompt optimizations, and switched to regular `gpt-4o` for reviews (eliminating hidden search costs). Achieved 98% cost reduction ($5.15/day → $0.10/day). Final architecture: Two-tier identification (ID Call 1 + conditional ID Call 2) → Artwork Retrieval → Review Generation.
 
 ### Version 1.4 (Subscription Implementation - October 2025)
-Added freemium model: 10 free scans with Keychain persistence, $4.99/year unlimited subscription, Firebase Remote Config kill switch, StoreKit 2 validation.
+Implemented freemium model: 10 free scans with Keychain persistence, $4.99/year unlimited subscription, Firebase Remote Config kill switch, StoreKit 2 validation.
+
+### Version 1.5 (Two-Tier Subscription & App Store Submission - November 2025)
+**Finalized subscription system with two tiers:**
+- **Free:** 5 free scans (down from 10) with Keychain + UserDefaults persistence
+- **Base:** $4.99/year - 120 scans/month, ID Call 1 only (no search capability)
+- **Ultra:** $11.99/year - 120 scans/month, full two-tier identification with search
+
+**Loading UX improvements:**
+- Split ID Call 1 into two progressive messages (0-3.5s and 3.5s+)
+- Four-stage loading experience breaks up perceived wait time
+
+**App Store readiness:**
+- Privacy Policy and Terms of Service added (docs/privacy-policy.html, docs/terms-of-service.html)
+- Debug controls repositioned for cleaner screenshots
+- App submitted to iOS App Store for review
 
 ---
 
-## CURRENT STATE (October 29, 2025)
+## CURRENT STATE (November 4, 2025)
 
-**Active Branch:** project-context (documentation restructure)
-**Production Branch:** main (cost optimizations merged)
+**Active Branch:** main
+**Production Branch:** main (two-tier subscription + App Store submission complete)
 **API Costs:** $0.10/day for 100 scans (98% reduction achieved)
-**Pending Work:** Subscription testing, App Store Connect setup, real-world testing
+**App Status:** Submitted to App Store for review
+**Subscription Status:** Fully implemented with StoreKit 2 (Base + Ultra tiers)
 
 ---
 
@@ -124,3 +140,7 @@ Added freemium model: 10 free scans with Keychain persistence, $4.99/year unlimi
 - **Cost per 100 scans:** $0.10/day
 
 **Status:** Table of contents now accurately reflects the current two-tier architecture and complete project evolution history
+
+---
+
+**Last Updated:** November 4, 2025

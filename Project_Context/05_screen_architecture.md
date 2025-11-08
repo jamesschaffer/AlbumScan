@@ -23,7 +23,7 @@
   - SCAN button → Loading Screen 1 (Identification)
 
 ### Loading Screen 1: Identification + Artwork Retrieval
-- **Purpose:** Indicates album identification and artwork retrieval in progress (two-tier system)
+- **Purpose:** Indicates album identification and artwork retrieval in progress (two-tier system) with progressive messaging to reduce perceived wait time
 - **Processing:**
   - **ID Call 1:** Single-prompt identification using `gpt-4o` (2-4 seconds, 80-90% success rate)
   - **ID Call 2 (Conditional):** Search finalization using `gpt-4o-search-preview` - only when Call 1 returns "search needed" (3-5 seconds, 10-20% of scans)
@@ -31,11 +31,16 @@
   - **Artwork Retrieval:** Fetches high-resolution artwork from MusicBrainz + Cover Art Archive after identification succeeds (1-2 seconds)
 - **Key Elements:**
   - AlbumScan logo at top center
-  - Animated text with trailing ellipsis (...): "Flipping through every record bin in existence..."
+  - **Two-stage messaging during ID Call 1 (UX improvement):**
+    - **Stage 1a (0-3.5s):** "Extracting text and examining album art..."
+    - **Stage 1b (3.5s+):** "Flipping through every record bin in existence..."
+    - Transition at 3.5s breaks up perceived wait time
+    - Slide-out animation (0.3s) when transitioning between messages
   - Text animation: ellipsis cycles through 1, 2, 3 dots every 0.5 seconds
-  - Dynamic album name and artist displayed in brand green once identified
+  - Text positioned at 50% screen height consistently
+  - Text width: 75% of screen width, left-aligned
   - No cancel button
-  - Black background, white/green text
+  - Black background, white text with brand green ellipsis
 - **Duration:**
   - Without search: 5-7 seconds (Call 1 + artwork + review)
   - With search: 8-13 seconds (Call 1 + Call 2 + artwork + review)
@@ -223,13 +228,16 @@
 
 ## Verification Summary
 
-**Document Accuracy:** This document has been verified against the actual codebase implementation as of October 30, 2025.
+**Document Accuracy:** This document has been verified against the actual codebase implementation as of November 4, 2025.
 
 **Files Verified:**
 - `CameraView.swift` (Screen 1 - camera interface, settings/history buttons, error banner, framing guide)
 - `SettingsView.swift` (Settings Screen - Ultra benefits card, toggle, sheet presentation)
 - `CameraManager.swift` (cropping logic, framing guide positioning, identification flow, timing)
-- `LoadingView.swift` (Loading Screens 1-3 - messages, animations, transitions)
+- `LoadingView.swift` (Loading Screens 1-3 - four-stage messages, animations, transitions)
+- `SubscriptionManager.swift` (two-tier subscription system)
+- `ScanLimitManager.swift` (free scan tracking)
+- `WelcomePurchaseSheet.swift` (subscription onboarding)
 - `AlbumDetailsView.swift` (Album Details Screen - layout, typography, close button, failure states)
 - `ScanHistoryView.swift` (Scan History Screen - list implementation, camera button)
 - `WelcomeView.swift` (Welcome Screen - first launch)
@@ -238,50 +246,30 @@
 - `ContentView.swift` (app routing logic)
 - `ScanErrorView.swift` (confirmed exists but NOT used)
 
-**Major Corrections Made:**
-1. **Architecture Update:** Changed from "Phase 1A/1B/2/3" to "Two-Tier Identification System (ID Call 1, ID Call 2, Review Generation)"
-2. **New Screen Added (October 30, 2025):** Settings Screen for AlbumScan Ultra functionality
-   - Settings button added to Camera View (bottom-left, gear icon)
-   - Sheet presentation with Ultra benefits card and toggle
-   - State persistence via UserDefaults
-3. **Screen 1 Camera View:**
-   - Corrected history icon: hamburger (three lines), not clock symbol
-   - Added vertical positioning detail: 1.5% downward adjustment
-   - Confirmed cropping to guide boundaries
-4. **Loading Screen 1:**
-   - Updated to two-tier identification architecture with conditional search
-   - Added search gate validation details
-   - Corrected timing: 5-7 seconds without search, 8-13 with search
-   - Changed error navigation: Error banner (not full-screen error view)
-5. **Loading Screen 2:**
-   - Corrected hold time: 2.5 seconds total (not 2 seconds)
-   - Added logo and layout details
-6. **Loading Screen 3:**
-   - Removed "minimum display time" claim (not enforced in code)
-   - Added cache behavior details
-   - Removed retry button mention
-7. **Album Details Screen:**
-   - Fixed recommendation system: 8-tier contextual labels (NOT 4 emoji categories)
-   - Corrected close button position: bottom right (not top right)
-   - Removed non-existent history icon
-   - Removed all "Retry Review" button mentions
-   - Added specific typography details (font sizes, Helvetica Neue, Bungee for ratings)
-8. **Scan History Screen:**
-   - Changed "SCAN button" to "Camera icon button"
-   - Removed non-existent history icon
-   - Added swipe-to-delete behavior details
-9. **Error Handling:**
-   - Replaced "Scan Error Screen" with "Error Banner (Identification Failure)"
-   - Documented actual implementation: top slide-down banner with auto-dismiss
-   - Added note that ScanErrorView.swift exists but is not used
+**Major Updates (November 4, 2025):**
+1. **Loading Screen 1 Enhancement:** Two-stage progressive messaging added
+   - Stage 1a (0-3.5s): "Extracting text and examining album art..."
+   - Stage 1b (3.5s+): "Flipping through every record bin in existence..."
+   - 3.5-second transition timer (LoadingView.swift:182)
+   - Slide-out animation (0.3s) between messages
+   - UX improvement: Breaks up perceived wait time during ID Call 1
+2. **Subscription System:** Two-tier model fully implemented
+   - Free: 5 scans with Keychain + UserDefaults persistence
+   - Base: $4.99/year, 120 scans/month, ID Call 1 only
+   - Ultra: $11.99/year, 120 scans/month, full two-tier with search
+3. **Text Positioning:** Consistently at 50% screen height (LoadingView.swift:73)
+4. **Album Artwork Size:** 150px square in Loading Screen 2 (LoadingView.swift:27)
 
 **Evidence-Based Changes:**
+- LoadingView.swift:182 - 3.5 second timer triggers message transition
+- LoadingView.swift:219-255 - Four distinct content text states
+- LoadingView.swift:27 - Album size constant: 150px
+- LoadingView.swift:34 - Text width: 75% of screen width
 - Framing guide: 20px margins, 4px green border, vertical adjustment of 1.5%
-- Cropping: Confirmed via `cropToGuide()` function in CameraManager.swift:312
 - History button: Three horizontal rectangles (lines 90-98 in CameraView.swift)
-- Loading Screen 2 hold: 2.5 seconds (line 750 in CameraManager.swift)
+- Loading Screen 2 hold: 2.5 seconds (CameraManager.swift:750)
 - Error banner: Spring animation, 3-second auto-dismiss, red background
-- Album details close button: Bottom right with green border (line 300 in AlbumDetailsView.swift)
+- Album details close button: Bottom right with green border
 - Recommendation system: 8 tiers defined in album_review.txt prompt
 
 **Architecture Verified:**
@@ -289,3 +277,7 @@
 - Review generation: gpt-4o (no search capability) with cache check
 - State machine: `.idle → .identifying → .identified → .loadingReview → .complete` (ScanState.swift)
 - Error states: `.identificationFailed` triggers banner, `.reviewFailed` shows partial results
+
+---
+
+**Last Updated:** November 4, 2025

@@ -1,8 +1,8 @@
 # PROJECT SUMMARY
 # AlbumScan - Music Album Discovery iOS App
 
-**Version:** 1.3 (Two-Tier Identification with Cost Optimizations)
-**Last Updated:** October 29, 2025
+**Version:** 1.5 (Two-Tier Subscription & App Store Submission)
+**Last Updated:** November 4, 2025
 **Platform:** iOS (Minimum iOS 16+)
 **Development Stack:** Swift + SwiftUI
 **Current API Provider:** OpenAI
@@ -84,24 +84,40 @@ The app underwent major cost optimization in October 2025, achieving a **98% cos
 
 ## MONETIZATION STRATEGY
 
-### Freemium Model (In Development)
+### Freemium Model (Implemented - November 2025)
 
 **Free Tier:**
-- 10 free scans per user
-- Stored in iOS Keychain (survives app reinstall)
-- 95% reinstall protection (only tech-savvy users can bypass)
+- 5 free scans per user
+- Stored in iOS Keychain + UserDefaults (survives app reinstall)
+- 95% reinstall protection via Keychain persistence
 
-**Unlimited Subscription:**
+**Base Subscription:**
 - **Price:** $4.99/year (USA only at launch)
-- **Features:** Unlimited album scans
+- **Features:** 120 scans per month, ID Call 1 only (no web search capability)
+- **Use Case:** Casual users scanning well-known albums
 - **Implementation:** StoreKit 2 with local transaction validation (no backend)
-- **Kill Switch:** Firebase Remote Config for emergency controls
+
+**Ultra Subscription:**
+- **Price:** $11.99/year (USA only at launch)
+- **Features:** 120 scans per month, full two-tier identification with web search
+- **Use Case:** Serious collectors scanning obscure/deep-cut albums
+- **Search Access:** ID Call 2 enabled for difficult identifications
+
+**Shared Features (Both Tiers):**
+- Monthly scan limit: 120 scans per month
+- Keychain persistence for subscription tier tracking
+- Firebase Remote Config kill switch for emergency controls
+- StoreKit 2 purchase, restore, and verification
 
 **Unit Economics:**
-- Cost per scan: ~$0.10 (average with cache hits)
-- Annual revenue per subscriber: $4.99
-- Break-even: ~50 scans/year per subscriber
-- Target user: Music enthusiasts who scan >10 albums/year
+- Cost per scan (Base user): ~$0.01 (ID Call 1 only, no search)
+- Cost per scan (Ultra user): ~$0.01-0.04 (with conditional search)
+- Cost per scan (cached): $0.00 (70-80% hit rate after initial usage)
+- Annual revenue per Base subscriber: $4.99
+- Annual revenue per Ultra subscriber: $11.99
+- Break-even Base: ~50 scans/year (~4 scans/month)
+- Break-even Ultra: ~120 scans/year (~10 scans/month)
+- Target user: Music enthusiasts who scan regularly and value identification accuracy
 
 **Privacy-First Design:**
 - Local StoreKit validation (no user accounts)
@@ -175,22 +191,30 @@ The app underwent major cost optimization in October 2025, achieving a **98% cos
 ## CURRENT STATE & NEXT STEPS
 
 **Production Status:**
-- Main branch has merged cost optimizations (98% reduction achieved)
-- Current daily cost: $0.10 for 100 scans
+- Main branch: Two-tier subscription system fully implemented
+- App Store: Submitted for review (November 2025)
+- Current daily cost: $0.10 for 100 scans (98% reduction achieved)
 - OpenAI as primary provider
 
-**In Development (subscription-setup branch):**
-- Freemium subscription system
-- 10 free scans with Keychain persistence
-- $4.99/year unlimited subscription
-- Firebase Remote Config integration
-- StoreKit 2 local validation
+**Subscription System (Implemented):**
+- Two-tier freemium model: Free (5 scans), Base ($4.99/year), Ultra ($11.99/year)
+- Monthly scan limits: 120 scans/month for subscribers
+- StoreKit 2: Purchase, restore, and verification complete
+- Keychain + UserDefaults persistence for scan counts and subscription tiers
+- Firebase Remote Config integration for kill switches
+- WelcomePurchaseSheet for onboarding and upsell
 
-**Pending Work:**
-- Subscription system testing
-- App Store Connect subscription product setup
-- Real-world testing at record stores
+**App Store Readiness (Complete):**
+- Privacy Policy and Terms of Service published (docs/privacy-policy.html, docs/terms-of-service.html)
+- Debug controls repositioned for cleaner screenshots
+- App Store Connect: Products configured (albumscan_base_annual, albumscan_ultra_annual)
+- App submitted to App Store for review
+
+**Next Steps:**
+- Monitor App Store review process
+- Real-world testing at record stores post-launch
 - Long-term cost monitoring to validate 98% savings
+- User feedback collection for v2.0 improvements
 
 ---
 
@@ -216,6 +240,12 @@ The app underwent major cost optimization in October 2025, achieving a **98% cos
    - Keychain-based reinstall protection
    - No user accounts or cloud sync required
 
+5. **Two-Tier Subscription Model**
+   - Base tier: Affordable entry point for casual users ($4.99/year)
+   - Ultra tier: Advanced features for serious collectors ($11.99/year)
+   - Differentiator: Search capability (ID Call 2) only available in Ultra
+   - Monthly limits prevent abuse while allowing generous usage (120 scans/month)
+
 ---
 
-**Document Purpose:** This summary provides an accurate snapshot of AlbumScan's current architecture, costs, and strategic direction as of October 29, 2025, reflecting the successful implementation of cost optimization strategies.
+**Document Purpose:** This summary provides an accurate snapshot of AlbumScan's current architecture, costs, and strategic direction as of November 4, 2025, reflecting the successful implementation of cost optimization strategies and two-tier subscription model ahead of App Store launch.
