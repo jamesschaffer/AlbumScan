@@ -9,8 +9,10 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Cam
 ```
 Launch App → Camera View
   → Tap "SCAN" Button
-  → Loading Screen 1: "Flipping through every record bin in existence..."
-     (Runs ID Call 1: Single-prompt identification, 2-4 sec)
+  → Loading Screen 1a: "Extracting text and examining album art..."
+     (First 3.5 seconds of ID Call 1: Single-prompt identification)
+  → Loading Screen 1b: "Flipping through every record bin in existence..."
+     (Remaining time of ID Call 1, typically 0-4 more seconds)
      (If search needed: Runs ID Call 2 with search gate validation, 3-5 sec)
      (After identification succeeds: Artwork retrieval, 1-2 sec)
   → Loading Screen 2: Shows album artwork + "We found {Album Title} by {Artist Name}"
@@ -23,6 +25,8 @@ Launch App → Camera View
 ```
 
 **Timing:** 8-13 seconds for new album with search, 5-7 seconds without search, instant for cached reviews
+
+**UX Improvement:** Breaking ID Call 1 into two progressive messages (1a→1b transition at 3.5s) reduces perceived wait time and maintains user engagement during the longest processing step.
 
 ### Flow 3: Album Scan - Identification Failed
 ```
@@ -107,39 +111,46 @@ Camera View → Tap Settings Button (gear icon, bottom-left)
 
 ## Verification Summary
 
-**Document Accuracy:** This document has been verified against the actual codebase implementation as of October 30, 2025.
+**Document Accuracy:** This document has been verified against the actual codebase implementation as of November 4, 2025.
 
 **Files Verified:**
 - `CameraManager.swift` (identification flow, timing, error handling, Ultra search bypass)
 - `CameraView.swift` (error banner implementation, UI buttons, settings button)
 - `SettingsView.swift` (Ultra benefits card, toggle, sheet presentation)
 - `AppState.swift` (searchEnabled state management)
-- `LoadingView.swift` (loading state messages and transitions)
+- `LoadingView.swift` (four-stage loading messages and transitions)
 - `AlbumDetailsView.swift` (review failure handling, no retry button)
 - `ScanHistoryView.swift` (history list, swipe-to-delete, camera button)
 - `ContentView.swift` (app routing, first launch, permission handling)
 - `WelcomeView.swift` (onboarding screen)
 - `PermissionErrorView.swift` (camera permission denied screen)
 - `ScanState.swift` (state machine validation)
+- `SubscriptionManager.swift` (two-tier subscription system)
+- `ScanLimitManager.swift` (free scan tracking)
+- `WelcomePurchaseSheet.swift` (subscription onboarding)
 
-**Major Corrections Made:**
-1. **Architecture Update**: Changed from "Four-Phase" to "Two-Tier Identification System"
-2. **New Flow Added (October 30, 2025)**: Flow 10 - Access Settings and Toggle AlbumScan Ultra
-3. **Error Handling**: Corrected Flow 3 to describe error banner (not full-screen error view)
-4. **Review Retry**: Removed non-existent "Retry Review" button from Flow 4
-5. **Button Labels**: Corrected Flow 6 to describe camera icon button (not "SCAN" button)
-6. **Timing Estimates**: Updated with accurate timing from actual implementation
-7. **Cache Behavior**: Added note about instant cached review display in Flow 8
+**Major Updates (November 4, 2025):**
+1. **Loading Experience Enhancement**: Flow 2 now shows four-stage progression:
+   - Stage 1a: "Extracting text and examining album art..." (0-3.5s)
+   - Stage 1b: "Flipping through every record bin in existence..." (3.5s+)
+   - Stage 2: "We found [Album] by [Artist]" with artwork (2s hold)
+   - Stage 3: "Writing a review..." (3-5s or instant)
+2. **UX Improvement**: Breaking ID Call 1 into two messages reduces perceived wait time
+3. **Subscription System**: Two-tier model (Base $4.99, Ultra $11.99) fully implemented
+4. **Scan Limits**: Free users get 5 scans, subscribers get 120 scans/month
 
 **Evidence-Based Changes:**
+- LoadingView.swift:182 - 3.5 second timer triggers transition from "Extracting text..." to "Flipping through record bin..."
+- LoadingView.swift:219-255 - Four distinct content text states implemented
 - Error banner slides down from top, auto-dismisses after 3 seconds (spring animation)
-- Loading screens show three distinct states with specific messages
 - Review failure shows suggestion message only, no interactive retry button
-- History view has camera icon button (circular, green border, bottom right)
-- Swipe-to-delete supports full swipe for immediate deletion
-- Settings button (gear icon) added to camera view (bottom-left)
+- Settings button (gear icon) on camera view (bottom-left)
 - Ultra toggle affects future scans, not cached reviews
 
 **No Implementation Found:**
 - `ScanErrorView.swift` exists in codebase but is NOT used in actual flow
 - Full-screen error view with "TRY AGAIN" button is not part of current implementation
+
+---
+
+**Last Updated:** November 4, 2025
