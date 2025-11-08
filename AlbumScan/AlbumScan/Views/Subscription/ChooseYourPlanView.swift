@@ -37,21 +37,34 @@ struct SubscriptionCardView: View {
         }
     }
 
+    // Check if products are still loading
+    private var areProductsLoading: Bool {
+        return subscriptionManager.isLoading ||
+               (subscriptionManager.availableBaseProduct == nil &&
+                subscriptionManager.availableUltraProduct == nil &&
+                subscriptionManager.subscriptionTier == .none)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Show different UI based on current subscription tier
-            switch subscriptionManager.subscriptionTier {
-            case .none:
-                // No subscription - Show "Choose Your Plan"
-                noSubscriptionView
+            // Show loading state if products haven't loaded yet
+            if areProductsLoading {
+                loadingView
+            } else {
+                // Show different UI based on current subscription tier
+                switch subscriptionManager.subscriptionTier {
+                case .none:
+                    // No subscription - Show "Choose Your Plan"
+                    noSubscriptionView
 
-            case .base:
-                // Base subscriber - Show upgrade to Ultra
-                baseUpgradeView
+                case .base:
+                    // Base subscriber - Show upgrade to Ultra
+                    baseUpgradeView
 
-            case .ultra:
-                // Ultra subscriber - Show success state
-                ultraSuccessView
+                case .ultra:
+                    // Ultra subscriber - Show success state
+                    ultraSuccessView
+                }
             }
         }
     }
@@ -163,7 +176,7 @@ struct SubscriptionCardView: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .padding(.top, 20)
+                .padding(.top, 10)
             }
         }
     }
@@ -188,7 +201,7 @@ struct SubscriptionCardView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 BenefitRow(text: "Improve matches on obscure and new albums", color: brandGreen)
-                BenefitRow(text: "Access reviews from credible industry experts - Pitchform, Rolling Stone, etc.", color: brandGreen)
+                BenefitRow(text: "Access reviews from credible industry experts - Pitchfork, Rolling Stone, etc.", color: brandGreen)
                 BenefitRow(text: "Benefit from improved scoring and categorozation accuracy", color: brandGreen)
             }
             .padding(.top, 8)
@@ -212,6 +225,22 @@ struct SubscriptionCardView: View {
             .disabled(isPurchasing || !isProductAvailable)
             .padding(.top, 16)
         }
+    }
+
+    // MARK: - Loading View
+
+    private var loadingView: some View {
+        VStack(alignment: .center, spacing: 20) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: brandGreen))
+                .scaleEffect(1.5)
+
+            Text("Loading subscription options...")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
     }
 
     // MARK: - Ultra Success View
