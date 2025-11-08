@@ -85,7 +85,7 @@ struct SubscriptionCardView: View {
                         Text("Base")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(selectedTier == .base ? .white : .white.opacity(0.6))
-                        Text("$4.99/yr")
+                        Text(subscriptionManager.availableBaseProduct?.displayPrice ?? "$4.99/yr")
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(selectedTier == .base ? brandGreen : .white.opacity(0.6))
                     }
@@ -106,7 +106,7 @@ struct SubscriptionCardView: View {
                         Text("Ultra")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(selectedTier == .ultra ? .white : .white.opacity(0.6))
-                        Text("$11.99/yr")
+                        Text(subscriptionManager.availableUltraProduct?.displayPrice ?? "$11.99/yr")
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(selectedTier == .ultra ? brandGreen : .white.opacity(0.6))
                     }
@@ -147,8 +147,8 @@ struct SubscriptionCardView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
                         Text(selectedTier == .base
-                             ? "Buy Base - $4.99"
-                             : "Buy Ultra - $11.99")
+                             ? "Buy Base - \(subscriptionManager.availableBaseProduct?.displayPrice ?? "$4.99")"
+                             : "Buy Ultra - \(subscriptionManager.availableUltraProduct?.displayPrice ?? "$11.99")")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                     }
@@ -195,7 +195,7 @@ struct SubscriptionCardView: View {
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("$11.99/year")
+            Text(subscriptionManager.availableUltraProduct?.displayPrice ?? "$11.99/year")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(brandGreen)
 
