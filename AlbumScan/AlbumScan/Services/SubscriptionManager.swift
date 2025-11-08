@@ -129,6 +129,11 @@ class SubscriptionManager: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        // Ensure isLoading is reset even if an error is thrown
+        defer {
+            isLoading = false
+        }
+
         #if DEBUG
         print("💳 [Subscription] Starting purchase for \(tier.rawValue)...")
         print("   Product: \(selectedProduct.displayName) - \(selectedProduct.displayPrice)")
@@ -177,14 +182,17 @@ class SubscriptionManager: ObservableObject {
             #endif
             throw error
         }
-
-        isLoading = false
     }
 
     /// Restore previous purchases
     func restorePurchases() async throws {
         isLoading = true
         errorMessage = nil
+
+        // Ensure isLoading is reset even if an error is thrown
+        defer {
+            isLoading = false
+        }
 
         #if DEBUG
         print("🔄 [Subscription] Restoring purchases...")
@@ -211,8 +219,6 @@ class SubscriptionManager: ObservableObject {
             #endif
             throw error
         }
-
-        isLoading = false
     }
 
     /// Check current subscription status
