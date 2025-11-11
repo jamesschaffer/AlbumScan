@@ -24,6 +24,8 @@ class SubscriptionManager: ObservableObject {
     @Published private(set) var availableBaseProduct: Product?
     @Published private(set) var availableUltraProduct: Product?
     @Published var errorMessage: String?
+    @Published private(set) var productsLoadFailed: Bool = false
+    @Published private(set) var hasAttemptedLoad: Bool = false
 
     // MARK: - Constants
 
@@ -41,6 +43,9 @@ class SubscriptionManager: ObservableObject {
     // MARK: - Initialization
 
     private init() {
+        let initStartTime = Date()
+        print("⏱️ [TIMING] SubscriptionManager init started at \(initStartTime.timeIntervalSince1970)")
+
         // Load saved subscription tier from Keychain
         loadSubscriptionTier()
 
@@ -49,12 +54,28 @@ class SubscriptionManager: ObservableObject {
 
         #if DEBUG
         print("💳 [Subscription] Manager initialized")
+        let initDuration = Date().timeIntervalSince(initStartTime) * 1000
+        print("⏱️ [TIMING] Manager init completed in \(String(format: "%.2f", initDuration))ms")
         #endif
 
         // Check current subscription status
+        // IMPORTANT: Load products FIRST so UI has pricing data
         Task {
-            await checkSubscriptionStatus()
+            let taskStartTime = Date()
+            print("⏱️ [TIMING] Starting background tasks (loadProducts + checkStatus)")
+
+            // Load products first - this is fast and UI needs them
             await loadProducts()
+
+            let afterLoadTime = Date()
+            print("⏱️ [TIMING] loadProducts completed in \(String(format: "%.2f", afterLoadTime.timeIntervalSince(taskStartTime)))s")
+
+            // Check subscription status second - this is slower but can happen in background
+            await checkSubscriptionStatus()
+
+            let afterStatusTime = Date()
+            print("⏱️ [TIMING] checkSubscriptionStatus completed in \(String(format: "%.2f", afterStatusTime.timeIntervalSince(afterLoadTime)))s")
+            print("⏱️ [TIMING] Total initialization time: \(String(format: "%.2f", afterStatusTime.timeIntervalSince(initStartTime)))s")
         }
     }
 
@@ -66,11 +87,36 @@ class SubscriptionManager: ObservableObject {
 
     /// Load available subscription products from App Store
     func loadProducts() async {
+        let loadStartTime = Date()
+        print("⏱️ [TIMING] Starting product load at \(loadStartTime.timeIntervalSince1970)")
+
         isLoading = true
         errorMessage = nil
+        productsLoadFailed = false
+        hasAttemptedLoad = true
+
+        // Add timeout of 15 seconds
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: 15_000_000_000) // 15 seconds
+            if isLoading {
+                #if DEBUG
+                print("⏱️ [Subscription] Load timeout after 15 seconds")
+                #endif
+            }
+        }
 
         do {
+            let beforeFetchTime = Date()
+            print("⏱️ [TIMING] Calling Product.products() after \(String(format: "%.2f", beforeFetchTime.timeIntervalSince(loadStartTime) * 1000))ms")
+
             let products = try await Product.products(for: [Self.baseProductID, Self.ultraProductID])
+
+            let afterFetchTime = Date()
+            let fetchDuration = afterFetchTime.timeIntervalSince(beforeFetchTime)
+            print("⏱️ [TIMING] Product.products() completed in \(String(format: "%.2f", fetchDuration))s")
+
+            // Cancel timeout if we got a response
+            timeoutTask.cancel()
 
             #if DEBUG
             print("📦 [Subscription] Loaded \(products.count) products")
@@ -91,15 +137,19 @@ class SubscriptionManager: ObservableObject {
             }
 
             if availableBaseProduct == nil || availableUltraProduct == nil {
-                errorMessage = "Some subscription products not available"
+                productsLoadFailed = true
+                errorMessage = "Some subscription products are not available. Please try again later."
                 #if DEBUG
                 print("⚠️ [Subscription] Missing products - Base: \(availableBaseProduct != nil), Ultra: \(availableUltraProduct != nil)")
                 #endif
             }
         } catch {
-            errorMessage = "Failed to load subscriptions: \(error.localizedDescription)"
+            timeoutTask.cancel()
+            productsLoadFailed = true
+            errorMessage = "Unable to connect to the App Store. Please check your connection and try again."
             #if DEBUG
             print("❌ [Subscription] Load error: \(error)")
+            print("   Error details: \(error.localizedDescription)")
             #endif
         }
 
@@ -126,29 +176,33 @@ class SubscriptionManager: ObservableObject {
             throw SubscriptionError.productNotAvailable
         }
 
-        isLoading = true
+        // Note: Don't set isLoading here - it's for product loading only
+        // The view tracks purchase state with isPurchasing
         errorMessage = nil
-
-        // Ensure isLoading is reset even if an error is thrown
-        defer {
-            isLoading = false
-        }
 
         #if DEBUG
         print("💳 [Subscription] Starting purchase for \(tier.rawValue)...")
         print("   Product: \(selectedProduct.displayName) - \(selectedProduct.displayPrice)")
+        let purchaseCallStart = Date()
+        print("⏱️ [TIMING] About to call Product.purchase() at \(purchaseCallStart.timeIntervalSince1970)")
         #endif
 
         do {
             let result = try await selectedProduct.purchase()
+
+            #if DEBUG
+            let purchaseCallEnd = Date()
+            let purchaseCallDuration = purchaseCallEnd.timeIntervalSince(purchaseCallStart)
+            print("⏱️ [TIMING] Product.purchase() returned after \(String(format: "%.2f", purchaseCallDuration))s")
+            #endif
 
             switch result {
             case .success(let verification):
                 // Verify the transaction
                 let transaction = try checkVerified(verification)
 
-                // Update subscription status
-                await checkSubscriptionStatus()
+                // Update subscription status - force refresh since we just purchased
+                await checkSubscriptionStatus(forceRefresh: true)
 
                 // Finish the transaction
                 await transaction.finish()
@@ -200,7 +254,7 @@ class SubscriptionManager: ObservableObject {
 
         do {
             try await AppStore.sync()
-            await checkSubscriptionStatus()
+            await checkSubscriptionStatus(forceRefresh: true)  // Force refresh when restoring
 
             if isSubscribed {
                 #if DEBUG
@@ -222,11 +276,28 @@ class SubscriptionManager: ObservableObject {
     }
 
     /// Check current subscription status
-    func checkSubscriptionStatus() async {
+    /// - Parameter forceRefresh: If true, will overwrite cache even if no subscription found (for restore purchases)
+    func checkSubscriptionStatus(forceRefresh: Bool = false) async {
+        let checkStart = Date()
+        print("⏱️ [TIMING] checkSubscriptionStatus: Starting entitlements check (forceRefresh: \(forceRefresh))")
+
         var detectedTier: SubscriptionTier = .none
 
         // Check for active subscription entitlements
+        // Add timeout to prevent hanging
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+            if !Task.isCancelled {
+                print("⏱️ [TIMING] checkSubscriptionStatus: Timeout after 3 seconds")
+            }
+        }
+
+        var entitlementCount = 0
         for await result in Transaction.currentEntitlements {
+            timeoutTask.cancel() // Cancel timeout if we get results
+            entitlementCount += 1
+            print("⏱️ [TIMING] checkSubscriptionStatus: Processing entitlement #\(entitlementCount)")
+
             do {
                 let transaction = try checkVerified(result)
 
@@ -261,18 +332,52 @@ class SubscriptionManager: ObservableObject {
             }
         }
 
+        // Cancel timeout task now that loop completed
+        timeoutTask.cancel()
+
         // Update subscription state
         isSubscribed = (detectedTier != .none)
 
         // Save detected tier to Keychain if it changed
+        // IMPORTANT: Only overwrite cache if we found an ACTUAL subscription
+        // Don't overwrite to .none unless forceRefresh=true (restore purchases)
+        // (protects against sandbox/entitlements quirks)
         if detectedTier != subscriptionTier {
-            saveSubscriptionTier(detectedTier)
-            #if DEBUG
-            print("📝 [Subscription] Tier changed: \(subscriptionTier.rawValue) → \(detectedTier.rawValue)")
-            #endif
+            // If we detected a subscription (base or ultra), always save it
+            if detectedTier != .none {
+                saveSubscriptionTier(detectedTier)
+                #if DEBUG
+                print("📝 [Subscription] Tier changed: \(subscriptionTier.rawValue) → \(detectedTier.rawValue)")
+                #endif
+            }
+            // If we detected .none but had a subscription before
+            else if subscriptionTier != .none {
+                if forceRefresh {
+                    // User explicitly ran restore - trust the result
+                    saveSubscriptionTier(.none)
+                    #if DEBUG
+                    print("📝 [Subscription] Force refresh: Clearing cached subscription")
+                    #endif
+                } else {
+                    // Background check - don't overwrite cache
+                    #if DEBUG
+                    print("⚠️ [Subscription] Status check found no subscription, but cache shows \(subscriptionTier.rawValue)")
+                    print("   Keeping cached tier. Run restore purchases to force refresh.")
+                    #endif
+                    // Keep the cached tier for now
+                    isSubscribed = true // Trust the cache
+                }
+            }
+            // If both are .none, no need to save
         } else {
+            // No change detected, keep current tier
             subscriptionTier = detectedTier
         }
+
+        let checkEnd = Date()
+        let checkDuration = checkEnd.timeIntervalSince(checkStart)
+        print("⏱️ [TIMING] checkSubscriptionStatus: Completed in \(String(format: "%.2f", checkDuration))s")
+        print("⏱️ [TIMING] checkSubscriptionStatus: Processed \(entitlementCount) entitlements")
 
         #if DEBUG
         if !isSubscribed {
@@ -290,8 +395,8 @@ class SubscriptionManager: ObservableObject {
                 do {
                     let transaction = try self.checkVerified(result)
 
-                    // Update subscription status on main actor
-                    await self.checkSubscriptionStatus()
+                    // Update subscription status on main actor - force refresh for transaction updates
+                    await self.checkSubscriptionStatus(forceRefresh: true)
 
                     // Finish the transaction
                     await transaction.finish()
@@ -352,7 +457,7 @@ class SubscriptionManager: ObservableObject {
     /// Force refresh subscription status (Debug only)
     func debugRefreshStatus() async {
         print("🔄 [Subscription] Debug: Force refreshing status...")
-        await checkSubscriptionStatus()
+        await checkSubscriptionStatus(forceRefresh: true)
     }
 
     /// Simulate subscription for UI testing (Debug only)
