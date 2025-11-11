@@ -19,6 +19,35 @@ struct SubscriptionCardView: View {
 
     private let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
 
+    // Fallback pricing when StoreKit unavailable
+    private let fallbackBasePrice = "$4.99/year"
+    private let fallbackUltraPrice = "$11.99/year"
+    private let fallbackBasePriceShort = "$4.99"
+    private let fallbackUltraPriceShort = "$11.99"
+
+    // Helper computed properties for prices with fallback
+    private var basePriceDisplay: String {
+        subscriptionManager.availableBaseProduct?.displayPrice ?? fallbackBasePriceShort
+    }
+
+    private var ultraPriceDisplay: String {
+        subscriptionManager.availableUltraProduct?.displayPrice ?? fallbackUltraPriceShort
+    }
+
+    private var basePriceFullDisplay: String {
+        if let product = subscriptionManager.availableBaseProduct {
+            return "\(product.displayPrice)/yr"
+        }
+        return fallbackBasePrice
+    }
+
+    private var ultraPriceFullDisplay: String {
+        if let product = subscriptionManager.availableUltraProduct {
+            return "\(product.displayPrice)/yr"
+        }
+        return fallbackUltraPrice
+    }
+
     // Check if the selected product is available
     private var isProductAvailable: Bool {
         if subscriptionManager.subscriptionTier == .base {
@@ -39,18 +68,38 @@ struct SubscriptionCardView: View {
 
     // Check if products are still loading
     private var areProductsLoading: Bool {
-        return subscriptionManager.isLoading ||
-               (subscriptionManager.availableBaseProduct == nil &&
-                subscriptionManager.availableUltraProduct == nil &&
-                subscriptionManager.subscriptionTier == .none)
+        // Show loading if:
+        // 1. Haven't attempted to load yet (initial state), OR
+        // 2. Currently loading
+        // This prevents showing UI with nil products
+        return !subscriptionManager.hasAttemptedLoad || subscriptionManager.isLoading
+    }
+
+    // Check if products failed to load
+    private var didProductsFailToLoad: Bool {
+        return subscriptionManager.hasAttemptedLoad &&
+               subscriptionManager.productsLoadFailed &&
+               !subscriptionManager.isLoading
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Show loading state if products haven't loaded yet
+            // Show loading state if products are loading
             if areProductsLoading {
                 loadingView
-            } else {
+                    .onAppear {
+                        print("⏱️ [TIMING] Subscription view showing LOADING state")
+                    }
+            }
+            // Show error state if products failed to load
+            else if didProductsFailToLoad {
+                errorView
+                    .onAppear {
+                        print("⏱️ [TIMING] Subscription view showing ERROR state")
+                    }
+            }
+            // Show normal subscription UI
+            else {
                 // Show different UI based on current subscription tier
                 switch subscriptionManager.subscriptionTier {
                 case .none:
@@ -76,6 +125,11 @@ struct SubscriptionCardView: View {
             Text("Choose Your Plan")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.white)
+                .onAppear {
+                    print("⏱️ [TIMING] Subscription view READY - products loaded, UI interactive")
+                    print("⏱️ [TIMING] Base product: \(subscriptionManager.availableBaseProduct?.displayName ?? "nil")")
+                    print("⏱️ [TIMING] Ultra product: \(subscriptionManager.availableUltraProduct?.displayName ?? "nil")")
+                }
 
             // Tab Selector
             HStack(spacing: 0) {
@@ -85,7 +139,7 @@ struct SubscriptionCardView: View {
                         Text("Base")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(selectedTier == .base ? .white : .white.opacity(0.6))
-                        Text(subscriptionManager.availableBaseProduct?.displayPrice ?? "$4.99/yr")
+                        Text(basePriceFullDisplay)
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(selectedTier == .base ? brandGreen : .white.opacity(0.6))
                     }
@@ -106,7 +160,7 @@ struct SubscriptionCardView: View {
                         Text("Ultra")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(selectedTier == .ultra ? .white : .white.opacity(0.6))
-                        Text(subscriptionManager.availableUltraProduct?.displayPrice ?? "$11.99/yr")
+                        Text(ultraPriceFullDisplay)
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(selectedTier == .ultra ? brandGreen : .white.opacity(0.6))
                     }
@@ -147,8 +201,8 @@ struct SubscriptionCardView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
                         Text(selectedTier == .base
-                             ? "Buy Base - \(subscriptionManager.availableBaseProduct?.displayPrice ?? "$4.99")"
-                             : "Buy Ultra - \(subscriptionManager.availableUltraProduct?.displayPrice ?? "$11.99")")
+                             ? "Buy Base - \(basePriceDisplay)"
+                             : "Buy Ultra - \(ultraPriceDisplay)")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                     }
@@ -195,7 +249,7 @@ struct SubscriptionCardView: View {
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(subscriptionManager.availableUltraProduct?.displayPrice ?? "$11.99/year")
+            Text(ultraPriceFullDisplay)
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(brandGreen)
 
@@ -263,9 +317,9 @@ struct SubscriptionCardView: View {
 
             #if DEBUG
             Button(action: {
-                // Debug reset - reload subscription status
+                // Debug reset - reload subscription status with force refresh
                 Task {
-                    await subscriptionManager.checkSubscriptionStatus()
+                    await subscriptionManager.checkSubscriptionStatus(forceRefresh: true)
                 }
             }) {
                 Text("Refresh Status (Debug)")
@@ -277,12 +331,81 @@ struct SubscriptionCardView: View {
         }
     }
 
+    // MARK: - Error View
+
+    private var errorView: some View {
+        VStack(alignment: .center, spacing: 20) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 48))
+                .foregroundColor(.orange)
+
+            Text("Unable to Load Subscriptions")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+
+            Text(subscriptionManager.errorMessage ?? "Could not connect to the App Store. Please check your internet connection and try again.")
+                .font(.system(size: 15))
+                .foregroundColor(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+
+            Button(action: {
+                Task {
+                    await subscriptionManager.loadProducts()
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Try Again")
+                        .font(.system(size: 18, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(brandGreen)
+                .cornerRadius(12)
+            }
+            .padding(.top, 8)
+
+            // Optional skip button if provided
+            if let skipAction = onSkip, hasScansRemaining {
+                Button(action: skipAction) {
+                    HStack(spacing: 4) {
+                        Text("Use your 5 free scans")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.top, 10)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
+
     // MARK: - Actions
 
     private func handlePurchase() {
+        let buttonTapTime = Date()
+        print("⏱️ [TIMING] Button tapped at \(buttonTapTime.timeIntervalSince1970)")
+
         isPurchasing = true
 
+        let stateUpdateTime = Date()
+        let stateUpdateDelay = stateUpdateTime.timeIntervalSince(buttonTapTime) * 1000
+        print("⏱️ [TIMING] State updated after \(String(format: "%.2f", stateUpdateDelay))ms")
+
         Task {
+            let taskStartTime = Date()
+            let taskDelay = taskStartTime.timeIntervalSince(buttonTapTime) * 1000
+            print("⏱️ [TIMING] Task started after \(String(format: "%.2f", taskDelay))ms from button tap")
+
             do {
                 // Determine which tier to purchase
                 let tierToPurchase: SubscriptionTier
@@ -294,7 +417,15 @@ struct SubscriptionCardView: View {
                     tierToPurchase = selectedTier
                 }
 
+                let beforePurchaseTime = Date()
+                print("⏱️ [TIMING] Calling purchase() after \(String(format: "%.2f", beforePurchaseTime.timeIntervalSince(buttonTapTime) * 1000))ms")
+
                 try await subscriptionManager.purchase(tier: tierToPurchase)
+
+                let afterPurchaseTime = Date()
+                let purchaseDuration = afterPurchaseTime.timeIntervalSince(beforePurchaseTime)
+                print("⏱️ [TIMING] Purchase completed in \(String(format: "%.2f", purchaseDuration))s")
+                print("⏱️ [TIMING] Total time from button tap: \(String(format: "%.2f", afterPurchaseTime.timeIntervalSince(buttonTapTime)))s")
 
                 // Success! Call success callback
                 await MainActor.run {
