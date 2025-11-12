@@ -197,8 +197,36 @@ class CameraManager: NSObject, ObservableObject {
                 return
             }
 
+            // Additional safety check: Verify photoOutput connection is valid
+            guard self.photoOutput.connection(with: .video) != nil else {
+                #if DEBUG
+                print("❌ Photo output has no valid video connection")
+                #endif
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -5, userInfo: [NSLocalizedDescriptionKey: "Camera connection is invalid. Please restart the app."])
+                    self.isProcessing = false
+                    self.isCaptureInitiated = false
+                    self.scanState = .idle
+                }
+                return
+            }
+
             let settings = AVCapturePhotoSettings()
             settings.flashMode = .auto
+
+            // Final safety check before capture
+            guard self.session.isRunning, self.session.outputs.contains(self.photoOutput) else {
+                #if DEBUG
+                print("❌ Session state changed before capture")
+                #endif
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -6, userInfo: [NSLocalizedDescriptionKey: "Camera session was interrupted. Please try again."])
+                    self.isProcessing = false
+                    self.isCaptureInitiated = false
+                    self.scanState = .idle
+                }
+                return
+            }
 
             self.photoOutput.capturePhoto(with: settings, delegate: self)
         }
