@@ -6,6 +6,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var isProcessing = false
     @Published var capturedImage: UIImage?
     @Published var error: Error?
+    @Published var scannedAlbum: Album?
 
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
@@ -22,6 +23,11 @@ class CameraManager: NSObject, ObservableObject {
 
             self.session.beginConfiguration()
 
+            defer {
+                // Always commit configuration, even if setup fails
+                self.session.commitConfiguration()
+            }
+
             // Set session preset
             self.session.sessionPreset = .photo
 
@@ -30,7 +36,19 @@ class CameraManager: NSObject, ObservableObject {
                   let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
                   self.session.canAddInput(videoInput) else {
                 print("Could not add video input")
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not add video input. Make sure you're running on a device with a camera."])
+                }
                 return
+            }
+
+            // Set camera zoom to 1x (default)
+            do {
+                try videoDevice.lockForConfiguration()
+                videoDevice.videoZoomFactor = 1.0
+                videoDevice.unlockForConfiguration()
+            } catch {
+                print("Could not set zoom factor: \(error)")
             }
 
             self.session.addInput(videoInput)
@@ -38,13 +56,14 @@ class CameraManager: NSObject, ObservableObject {
             // Add photo output
             guard self.session.canAddOutput(self.photoOutput) else {
                 print("Could not add photo output")
+                DispatchQueue.main.async {
+                    self.error = NSError(domain: "CameraManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Could not add photo output."])
+                }
                 return
             }
 
             self.session.addOutput(self.photoOutput)
             self.photoOutput.isHighResolutionCaptureEnabled = false
-
-            self.session.commitConfiguration()
         }
     }
 
@@ -110,14 +129,23 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
     }
 
     private func processImage(_ image: UIImage) -> UIImage {
-        // Crop to square and resize to 1024x1024
-        let size = min(image.size.width, image.size.height)
+        // Calculate the guide size matching the UI (screen width - 40px margins)
+        let screenWidth = UIScreen.main.bounds.width
+        let guideSize = screenWidth - 40
+
+        // Calculate the ratio between guide size and image size
+        let imageWidth = image.size.width
+        let imageHeight = image.size.height
+
+        // The camera captures full screen, so we need to crop to the center square
+        // matching the guide dimensions
+        let cropSize = min(imageWidth, imageHeight)
         let origin = CGPoint(
-            x: (image.size.width - size) / 2,
-            y: (image.size.height - size) / 2
+            x: (imageWidth - cropSize) / 2,
+            y: (imageHeight - cropSize) / 2
         )
 
-        let cropRect = CGRect(origin: origin, size: CGSize(width: size, height: size))
+        let cropRect = CGRect(origin: origin, size: CGSize(width: cropSize, height: cropSize))
 
         guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
             return image
@@ -125,7 +153,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
         let croppedImage = UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
 
-        // Resize to 1024x1024
+        // Resize to 1024x1024 for API
         let targetSize = CGSize(width: 1024, height: 1024)
         let renderer = UIGraphicsImageRenderer(size: targetSize)
         let resizedImage = renderer.image { context in
@@ -136,34 +164,71 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
     }
 
     private func identifyAlbum(image: UIImage) async {
+        print("🎵 [CameraManager] Starting album identification...")
         do {
+            print("🎵 [CameraManager] Calling Claude API...")
             let response = try await ClaudeAPIService.shared.identifyAlbum(image: image)
+            print("🎵 [CameraManager] API Response received - Album: \(response.albumTitle) by \(response.artistName)")
 
-            // Download album art if URL provided
-            var artData: Data?
-            if let artURL = response.albumArtURL,
-               let url = URL(string: artURL) {
-                artData = try? await downloadImage(from: url)
+            // Step 2: Search MusicBrainz for MBID
+            print("🔍 [CameraManager] Searching MusicBrainz...")
+            var musicbrainzID: String?
+            var artworkData: (highRes: Data?, thumbnail: Data?)?
+            var artworkRetrievalFailed = false
+
+            do {
+                if let mbid = try await MusicBrainzService.shared.searchAlbum(
+                    artist: response.artistName,
+                    album: response.albumTitle
+                ) {
+                    musicbrainzID = mbid
+                    print("✅ [CameraManager] Found MBID: \(mbid)")
+
+                    // Step 3: Download artwork from Cover Art Archive
+                    print("🎨 [CameraManager] Downloading artwork...")
+                    let artwork = await CoverArtService.shared.retrieveArtwork(mbid: mbid)
+
+                    if artwork.highRes != nil || artwork.thumbnail != nil {
+                        artworkData = artwork
+                        print("✅ [CameraManager] Artwork downloaded successfully")
+                    } else {
+                        print("⚠️ [CameraManager] No artwork available for this album")
+                        artworkRetrievalFailed = true
+                    }
+                } else {
+                    print("⚠️ [CameraManager] Album not found on MusicBrainz")
+                    artworkRetrievalFailed = true
+                }
+            } catch {
+                print("⚠️ [CameraManager] Artwork retrieval error (non-blocking): \(error.localizedDescription)")
+                artworkRetrievalFailed = true
             }
 
-            // Save to CoreData
-            _ = try PersistenceController.shared.saveAlbum(from: response, imageData: artData)
+            // Save to CoreData (artwork failure doesn't block this)
+            print("🎵 [CameraManager] Saving to CoreData...")
+            let savedAlbum = try PersistenceController.shared.saveAlbum(
+                from: response,
+                musicbrainzID: musicbrainzID,
+                artworkData: artworkData,
+                artworkRetrievalFailed: artworkRetrievalFailed
+            )
+            print("🎵 [CameraManager] Successfully saved to CoreData")
 
-            // TODO: Navigate to album details view
-            // For now, just stop processing
+            // Set the scanned album to trigger navigation
             await MainActor.run {
+                print("🎵 [CameraManager] Identification complete!")
+                self.scannedAlbum = savedAlbum
                 self.isProcessing = false
             }
         } catch {
+            print("❌ [CameraManager] Error during identification: \(error.localizedDescription)")
+            if let apiError = error as? APIError {
+                print("❌ [CameraManager] API Error details: \(apiError)")
+            }
             await MainActor.run {
                 self.error = error
                 self.isProcessing = false
             }
         }
-    }
-
-    private func downloadImage(from url: URL) async throws -> Data {
-        let (data, _) = try await URLSession.shared.data(from: url)
-        return data
     }
 }

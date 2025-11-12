@@ -2,7 +2,7 @@ import Foundation
 import CoreData
 
 @objc(Album)
-public class Album: NSManagedObject {
+public class Album: NSManagedObject, Identifiable {
     @NSManaged public var id: UUID
     @NSManaged public var albumTitle: String
     @NSManaged public var artistName: String
@@ -18,8 +18,14 @@ public class Album: NSManagedObject {
     @NSManaged public var keyTracksData: Data?
 
     // Album Art
-    @NSManaged public var albumArtData: Data?
-    @NSManaged public var albumArtURL: String?
+    @NSManaged public var albumArtData: Data? // Legacy field - kept for backward compatibility
+    @NSManaged public var albumArtURL: String? // Legacy field - kept for backward compatibility
+
+    // Album Art (MusicBrainz + Cover Art Archive)
+    @NSManaged public var musicbrainzID: String? // MBID for future reference
+    @NSManaged public var albumArtThumbnailData: Data? // Cached 200x200 JPEG for history
+    @NSManaged public var albumArtHighResData: Data? // Cached 500px JPEG for detail view
+    @NSManaged public var albumArtRetrievalFailed: Bool // Track if artwork lookup failed
 
     // Metadata
     @NSManaged public var scannedDate: Date

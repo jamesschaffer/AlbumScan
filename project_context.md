@@ -103,6 +103,24 @@ The app uses AI-powered album identification (Claude API) to provide instant con
   - Works with various cover conditions (worn, angled, partially visible)
   - Stores only the album cover art, NOT the user's original photo
 
+#### Sub-Feature 1A: High-Resolution Album Artwork Retrieval
+- **Priority:** MUST-HAVE (Required for Feature 3 display)
+- **Description:** After Claude API identifies an album, retrieve high-resolution album artwork from MusicBrainz + Cover Art Archive
+- **Technical Approach:** Sequential API calls using artist + album metadata
+- **User Story:** "As a user, I want to see high-quality album artwork so that I can visually identify and appreciate the album"
+- **Acceptance Criteria:**
+  - After Claude API returns album identification (artist name + album title), immediately initiate MusicBrainz artwork search
+  - Search MusicBrainz API using artist name and album title to find release MBID (MusicBrainz ID)
+  - Use MBID to query Cover Art Archive API for album artwork
+  - Retrieve highest quality artwork available (prefer "front" cover image)
+  - If Cover Art Archive returns no results, fall back to placeholder: "Album art unavailable"
+  - Cache retrieved artwork locally (both thumbnail for history and high-res for detail view)
+  - Total artwork retrieval should complete within 2-3 seconds after album identification
+  - Handle multiple release variants by selecting the first matching result (prefer original/main release)
+  - Artwork URLs should be stored in Album entity for offline reference
+  - If MusicBrainz search returns no matches, still display album details with placeholder artwork
+  - Artwork retrieval failure should NEVER block album information display
+
 ### Feature 2: Cultural Context & Quality Assessment
 - **Priority:** MUST-HAVE (Core differentiator)
 - **Description:** AI-powered concise album review providing critical assessment, cultural significance, and buying recommendation - explicitly NOT financial value or pricing information
@@ -215,6 +233,11 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
 - **Key Elements:**
   - Full-screen live camera feed
   - Square framing guide overlay (to center album covers)
+    - The area outside the guide overlay should be black with 80% opacity
+    - This square should be large as possible with ~20px margin on the left and right of the screen
+    - This square should be positioned perfecting center measured from the top and bottom of the iphone
+  - When the picture is taken, you need to crop everything that is outside the guide so other records in the background are not included
+  - You need to set the camera lens to the 1x default zoom
   - Large "SCAN" button at bottom
   - History icon (clock symbol) - only visible after first successful scan
 - **Navigation:** 
@@ -235,7 +258,10 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
 ### Screen 3: Album Details
 - **Purpose:** Display album information and cultural context
 - **Key Elements:**
-  - High-res album artwork (or "Album art unavailable" placeholder)
+  - High-res album artwork from Cover Art Archive (minimum 500x500px when available, scales up to full width of screen)
+  -   If artwork unavailable: Display centered placeholder with text "Album art unavailable" on neutral gray background
+  -   Artwork should fill width of screen with appropriate aspect ratio (typically square for albums)
+  -   Loading state: Show shimmer/skeleton placeholder while artwork downloads
   - Artist name and album title (prominent)
   - Recommendation badge with emoji (ESSENTIAL/RECOMMENDED/SKIP/AVOID)
   - Cultural context summary (2-3 sentences)
@@ -312,6 +338,13 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
 - Future-proof as Apple's recommended approach
 - Easier to prototype UI changes quickly
 
+#### Networking & Image Handling
+- **HTTP Client:** URLSession (native iOS)
+- **Image Caching:** NSCache for in-memory caching + FileManager for persistent disk cache
+- **Image Loading:** SwiftUI AsyncImage with custom caching layer
+- **Async/Await:** Modern Swift concurrency for sequential API calls
+- **Image Formats:** JPEG (primary), PNG (fallback)
+
 ---
 
 ## API INTEGRATION
@@ -345,6 +378,90 @@ Launch App (First Time) → Welcome Screen → Camera Permission Request → Use
   "album_art_url": "string (optional)"
 }
 ```
+### MusicBrainz API
+- **Purpose:** Search for album releases and retrieve MusicBrainz IDs (MBIDs)
+- **Endpoint:** `https://musicbrainz.org/ws/2/release`
+- **Authentication:** None required (open API)
+- **Rate Limiting:** 1 request per second (implement with delay if needed)
+- **User Agent Required:** Must include custom User-Agent header with app name and contact email
+  - Format: `AppName/1.0 (contact@email.com)`
+- **Query Parameters:**
+  - `query`: Lucene-style search query combining artist and album
+  - `fmt`: Response format (use `json`)
+  - `limit`: Number of results (use `5` to handle multiple variants)
+- **Search Strategy:**
+  - Primary search: `artist:{artist_name} AND release:{album_title}`
+  - If no results: Try fuzzy search with `artist:{artist_name} release:{album_title}~`
+  - Select first result with matching artist name (case-insensitive)
+- **Response Contains:** Release MBID, release title, artist credit, date, country
+- **Caching:** Cache MBIDs with album metadata to avoid repeat searches
+
+**Example Request:**
+```
+GET https://musicbrainz.org/ws/2/release?query=artist:Radiohead%20AND%20release:OK%20Computer&fmt=json&limit=5
+```
+
+### Cover Art Archive API
+- **Purpose:** Retrieve high-resolution album artwork using MusicBrainz release ID
+- **Endpoint:** `https://coverartarchive.org/release/{mbid}`
+- **Authentication:** None required (open API)
+- **Rate Limiting:** No strict limits, but respect reasonable use
+- **Image Selection Priority:**
+  1. `front` image (primary album cover)
+  2. First available image if no front designation
+  3. Prefer larger images (check `thumbnails` object for sizes)
+- **Response Contains:** Array of images with URLs, types, and thumbnail variants
+- **Image Sizes Available:**
+  - `small`: 250px
+  - `large`: 500px  
+  - `original`: Full resolution (often 1000-1500px)
+- **Download Strategy:** 
+  - Download `large` (500px) for detail view
+  - Generate thumbnail (200x200) from large image for history list
+  - Store both in local cache
+- **404 Handling:** Common for obscure releases - gracefully fall back to placeholder
+
+**Example Request:**
+```
+GET https://coverartarchive.org/release/67a63246-0de4-4cd8-8ce2-35f0e17f652b
+```
+
+**Example Response Structure:**
+```json
+{
+  "images": [
+    {
+      "types": ["Front"],
+      "front": true,
+      "image": "https://coverartarchive.org/release/.../front.jpg",
+      "thumbnails": {
+        "small": "https://...-250.jpg",
+        "large": "https://...-500.jpg"
+      }
+    }
+  ]
+}
+```
+
+### API Call Sequence for Album Identification
+1. **Claude Vision API** (3-5 seconds)
+   - Send album cover photo
+   - Receive: Album metadata + cultural context
+   
+2. **MusicBrainz Search API** (0.5-1 second)
+   - Query: artist name + album title from Claude response
+   - Receive: Release MBID
+   
+3. **Cover Art Archive API** (0.5-1 second)
+   - Query: Release MBID
+   - Receive: Artwork URLs
+   
+4. **Image Download** (0.5-1 second)
+   - Download large (500px) image
+   - Generate thumbnail (200px)
+   - Cache both locally
+
+**Total Time:** 5-8 seconds from scan to full display
 
 ### Recommendation Emojis (Hardcoded in App)
 - **ESSENTIAL:** 💎 (diamond)
@@ -375,9 +492,12 @@ Album {
   recommendation: String // ESSENTIAL/RECOMMENDED/SKIP/AVOID
   keyTracks: [String]
   
-  // Album Art
-  albumArtData: Data? // cached thumbnail
-  albumArtURL: String? // high-res reference
+  // Album Art (MusicBrainz + Cover Art Archive)
+  musicbrainzID: String? // MBID for future reference
+  albumArtURL: String? // Cover Art Archive URL (large/500px)
+  albumArtThumbnailData: Data? // Cached 200x200 JPEG for history
+  albumArtHighResData: Data? // Cached 500px JPEG for detail view
+  albumArtRetrievalFailed: Bool // Track if artwork lookup failed
   
   // Metadata
   scannedDate: Date
@@ -480,6 +600,14 @@ User taps SCAN → Capture at 1024x1024 → Compress to JPEG (1-2MB) → Send to
    - Route to Scan Error Screen (Screen 5)
    - Single "TRY AGAIN" action for all error types
 
+6. **Album Artwork Retrieval Failures**
+   - MusicBrainz search returns no results → Use placeholder, continue display
+   - Cover Art Archive returns 404 → Use placeholder, continue display
+   - Network timeout during artwork download → Use placeholder, continue display
+   - Image download fails or corrupted → Use placeholder, continue display
+   - **Important:** All artwork failures are non-blocking - album information always displays
+   - Consider retry logic: If artwork fails, store flag and allow manual refresh in future
+
 ### Networking
 - **Framework:** URLSession (native iOS)
 - **Timeout:** 10 seconds
@@ -500,6 +628,11 @@ User taps SCAN → Capture at 1024x1024 → Compress to JPEG (1-2MB) → Send to
 - Camera capture → API call → Parse response → Save to CoreData
 - Navigation flows
 - Error handling paths
+- MusicBrainz search → Parse MBID → Cover Art Archive query → Image download → Cache storage
+- Test artwork retrieval with popular albums (high success rate)
+- Test artwork retrieval with obscure albums (expect some failures)
+- Test placeholder display when artwork unavailable
+- Test offline behavior (cached artwork displays, non-cached shows placeholder)
 
 ### Manual Testing
 - **Critical:** Test at actual record stores with real albums
@@ -507,6 +640,11 @@ User taps SCAN → Capture at 1024x1024 → Compress to JPEG (1-2MB) → Send to
 - Test obscure vs popular albums
 - Test error scenarios (airplane mode, denied permissions)
 - Test on multiple iPhone models if possible
+- Test artwork quality on various iPhone screen sizes
+- Test artwork loading speed on slow network connections
+- Test albums with multiple releases (ensure correct variant selected)
+- Test non-English album titles and artist names
+- Test albums known to be missing from Cover Art Archive
 
 ### Test Data
 - Maintain a list of known albums for testing
@@ -561,6 +699,38 @@ User taps SCAN → Capture at 1024x1024 → Compress to JPEG (1-2MB) → Send to
 
 ---
 
+## IMPLEMENTATION NOTES
+
+### Artwork Retrieval Priority
+- Speed is critical: Users should see album info + artwork within 5-8 seconds total
+- Artwork retrieval happens in parallel with UI rendering of text content
+- Never block album information display waiting for artwork
+- Implement aggressive timeout (5 seconds max for entire artwork retrieval process)
+
+### Caching Strategy
+- **Memory Cache:** NSCache holds recently viewed artwork (limit to 20-30 images)
+- **Disk Cache:** FileManager stores all downloaded artwork permanently
+- **Cache Key:** Use MBID or fallback to "{artist}_{album_title}" hash
+- **Cache Invalidation:** No automatic expiration (artwork doesn't change)
+
+### User-Agent Header (REQUIRED)
+MusicBrainz requires a proper User-Agent or requests may be blocked:
+```
+User-Agent: VinylID/1.0 (james@jamesschaffer.com)
+```
+
+### Rate Limiting Compliance
+- MusicBrainz: Maximum 1 request per second
+- Implement 1-second delay between searches if needed
+- Cover Art Archive: No strict limits, but don't hammer the API
+- Consider implementing exponential backoff for retries
+
+### Placeholder Artwork Design
+- Neutral gray background (#E5E5E5 for light mode, #2C2C2C for dark mode)
+- Centered text: "Album art unavailable"
+- Match aspect ratio of album covers (1:1 square)
+- Subtle icon (optional): music note or vinyl record symbol
+
 ## DEVELOPMENT NOTES
 
 ### Prompt Management
@@ -585,7 +755,7 @@ The Claude API prompt will be maintained as a separate versioned artifact. This 
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** October 19, 2025  
+**Document Version:** 1.1  
+**Last Updated:** October 20, 2025  
 **Status:** Ready for development  
-**Next Steps:** Begin Phase 1 - Swift/SwiftUI learning and environment setup
+**Next Steps:** Fix album artwork

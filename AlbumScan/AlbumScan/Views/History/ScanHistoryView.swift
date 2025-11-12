@@ -52,16 +52,6 @@ struct ScanHistoryView: View {
             }
             .navigationTitle("Scan History")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "clock")
-                            .foregroundColor(.primary)
-                    }
-                }
-            }
         }
         .fullScreenCover(isPresented: $showingCamera) {
             CameraView()
@@ -90,14 +80,23 @@ struct AlbumHistoryRow: View {
             showingDetails = true
         }) {
             HStack(spacing: 12) {
-                // Thumbnail
-                if let artData = album.albumArtData,
-                   let uiImage = UIImage(data: artData) {
+                // Thumbnail (prefer thumbnail data from MusicBrainz, fallback to legacy)
+                if let thumbnailData = album.albumArtThumbnailData,
+                   let uiImage = UIImage(data: thumbnailData) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 60, height: 60)
                         .cornerRadius(6)
+                        .clipped()
+                } else if let legacyArtData = album.albumArtData,
+                          let uiImage = UIImage(data: legacyArtData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 60, height: 60)
+                        .cornerRadius(6)
+                        .clipped()
                 } else {
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
@@ -116,9 +115,13 @@ struct AlbumHistoryRow: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
 
-                    Text(album.scannedDate, style: .date)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 4) {
+                        Text(album.recommendationEnum.emoji)
+                            .font(.caption)
+                        Text(album.recommendation)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
 
                 Spacer()

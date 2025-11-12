@@ -2,6 +2,9 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="24.0.0" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Album" representedClassName="Album" syncable="YES">
         <attribute name="albumArtData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="albumArtHighResData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="albumArtRetrievalFailed" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="albumArtThumbnailData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
         <attribute name="albumArtURL" optional="YES" attributeType="String"/>
         <attribute name="albumTitle" attributeType="String"/>
         <attribute name="artistName" attributeType="String"/>
@@ -11,6 +14,7 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="keyTracksData" optional="YES" attributeType="Binary"/>
         <attribute name="lastViewedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="musicbrainzID" optional="YES" attributeType="String"/>
         <attribute name="rating" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="rawAPIResponse" optional="YES" attributeType="String"/>
         <attribute name="recommendation" attributeType="String"/>

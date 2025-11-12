@@ -31,6 +31,9 @@
 		21AB8AC22EA58A5C009C895F /* album_scan_prompt.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8A832EA58A5C009C895F /* album_scan_prompt.md */; };
 		21AB8AC32EA58A5C009C895F /* project_context.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA72EA58A5C009C895F /* project_context.md */; };
 		21AB8AC42EA58A5C009C895F /* QUICK_START.md in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AA82EA58A5C009C895F /* QUICK_START.md */; };
+		21AB8AC62EA6AE19009C895F /* album_identification_v1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 21AB8AC52EA6AE19009C895F /* album_identification_v1.txt */; };
+		21AB8ACB2EA6DB9D009C895F /* CoverArtService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8AC92EA6DB9D009C895F /* CoverArtService.swift */; };
+		21AB8ACC2EA6DB9D009C895F /* MusicBrainzService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21AB8ACA2EA6DB9D009C895F /* MusicBrainzService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +62,9 @@
 		21AB8AA92EA58A5C009C895F /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		21AB8AAA2EA58A5C009C895F /* SETUP_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SETUP_GUIDE.md; sourceTree = "<group>"; };
 		21AB8AAB2EA58A5C009C895F /* AlbumScan.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = AlbumScan.xcdatamodel; sourceTree = "<group>"; };
+		21AB8AC52EA6AE19009C895F /* album_identification_v1.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = album_identification_v1.txt; sourceTree = "<group>"; };
+		21AB8AC92EA6DB9D009C895F /* CoverArtService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverArtService.swift; sourceTree = "<group>"; };
+		21AB8ACA2EA6DB9D009C895F /* MusicBrainzService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBrainzService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +120,8 @@
 		21AB8A8B2EA58A5C009C895F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				21AB8AC92EA6DB9D009C895F /* CoverArtService.swift */,
+				21AB8ACA2EA6DB9D009C895F /* MusicBrainzService.swift */,
 				21AB8A892EA58A5C009C895F /* ClaudeAPIService.swift */,
 				21AB8A8A2EA58A5C009C895F /* PersistenceController.swift */,
 			);
@@ -196,6 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				21AB8A872EA58A5C009C895F /* Models */,
+				5FDE54BFF94A4D7F8F5B98D8 /* Prompts */,
 				21AB8A882EA58A5C009C895F /* Resources */,
 				21AB8A8B2EA58A5C009C895F /* Services */,
 				21AB8A8D2EA58A5C009C895F /* Utilities */,
@@ -229,6 +238,14 @@
 				21AB8AA42EA58A5C009C895F /* AlbumScanUITests */,
 			);
 			path = AlbumScan;
+			sourceTree = "<group>";
+		};
+		5FDE54BFF94A4D7F8F5B98D8 /* Prompts */ = {
+			isa = PBXGroup;
+			children = (
+				21AB8AC52EA6AE19009C895F /* album_identification_v1.txt */,
+			);
+			path = Prompts;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -292,6 +309,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21AB8AC62EA6AE19009C895F /* album_identification_v1.txt in Resources */,
 				21AB8ABF2EA58A5C009C895F /* README.md in Resources */,
 				21AB8AC02EA58A5C009C895F /* FILE_STRUCTURE.md in Resources */,
 				21AB8AC12EA58A5C009C895F /* SETUP_GUIDE.md in Resources */,
@@ -310,6 +328,8 @@
 			files = (
 				21AB8AAC2EA58A5C009C895F /* AppState.swift in Sources */,
 				21AB8AAD2EA58A5C009C895F /* Album.swift in Sources */,
+				21AB8ACB2EA6DB9D009C895F /* CoverArtService.swift in Sources */,
+				21AB8ACC2EA6DB9D009C895F /* MusicBrainzService.swift in Sources */,
 				21AB8AAE2EA58A5C009C895F /* SearchPreLoaderView.swift in Sources */,
 				21AB8AAF2EA58A5C009C895F /* Config.swift in Sources */,
 				21AB8AB02EA58A5C009C895F /* ScanErrorView.swift in Sources */,
@@ -463,6 +483,7 @@
 				DEVELOPMENT_TEAM = XWBF92D63J;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "AlbumScan needs access to your camera to identify album covers and help you discover music.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -495,6 +516,7 @@
 				DEVELOPMENT_TEAM = XWBF92D63J;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "AlbumScan needs access to your camera to identify album covers and help you discover music.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
