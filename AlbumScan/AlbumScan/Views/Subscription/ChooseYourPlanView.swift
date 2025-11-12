@@ -1,6 +1,18 @@
 import SwiftUI
 import StoreKit
 
+// MARK: - Legal URLs (Required for App Store)
+
+/// Legal URLs for Terms of Use and Privacy Policy
+/// Hosted on GitHub Pages: https://jamesschaffer.github.io/AlbumScan/
+enum LegalConstants {
+    /// Privacy Policy URL (required for App Store)
+    static let privacyPolicyURL = "https://jamesschaffer.github.io/AlbumScan/privacy-policy.html"
+
+    /// Terms of Use / EULA URL (custom terms of service)
+    static let termsOfUseURL = "https://jamesschaffer.github.io/AlbumScan/terms-of-service.html"
+}
+
 /// Comprehensive subscription component that handles all subscription states
 /// Automatically shows the appropriate UI based on current subscription tier:
 /// - .none: Shows "Choose Your Plan" with Base/Ultra tabs (and optional skip button)
@@ -232,6 +244,10 @@ struct SubscriptionCardView: View {
                 }
                 .padding(.top, 10)
             }
+
+            // Legal links (required for App Store subscription approval)
+            LegalLinksView()
+                .padding(.top, 16)
         }
     }
 
@@ -278,6 +294,10 @@ struct SubscriptionCardView: View {
             }
             .disabled(isPurchasing || !isProductAvailable)
             .padding(.top, 16)
+
+            // Legal links (required for App Store subscription approval)
+            LegalLinksView()
+                .padding(.top, 16)
         }
     }
 
@@ -444,6 +464,36 @@ struct SubscriptionCardView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Legal Links View
+
+/// Displays Privacy Policy and Terms of Use links (required for App Store)
+struct LegalLinksView: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            // Privacy Policy link
+            Link(destination: URL(string: LegalConstants.privacyPolicyURL)!) {
+                Text("Privacy Policy")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.6))
+                    .underline()
+            }
+
+            Text("•")
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.6))
+
+            // Terms of Use link
+            Link(destination: URL(string: LegalConstants.termsOfUseURL)!) {
+                Text("Terms of Use")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.6))
+                    .underline()
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

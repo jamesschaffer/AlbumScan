@@ -2,7 +2,11 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var appState = AppState()
-    @StateObject private var subscriptionManager = SubscriptionManager.shared
+
+    // Receive environment objects from App level (don't create new instances)
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @EnvironmentObject var scanLimitManager: ScanLimitManager
+    @EnvironmentObject var remoteConfigManager: RemoteConfigManager
 
     var body: some View {
         Group {
@@ -12,6 +16,9 @@ struct ContentView: View {
             } else {
                 CameraView()
                     .environmentObject(appState)
+                    .environmentObject(subscriptionManager)
+                    .environmentObject(scanLimitManager)
+                    .environmentObject(remoteConfigManager)
             }
         }
     }
