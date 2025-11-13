@@ -141,7 +141,6 @@ class CameraManager: NSObject, ObservableObject {
     }
 
     func capturePhoto() {
-        let scanStartTime = Date()
         #if DEBUG
         print("📸 [CAPTURE] ========================================")
         print("📸 [CAPTURE] NEW SCAN STARTED")
