@@ -227,6 +227,14 @@ struct SubscriptionCardView: View {
             .disabled(isPurchasing || !isProductAvailable)
             .padding(.top, 16)
 
+            // Auto-renewal notice (required by Apple)
+            Text("Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.")
+                .font(.system(size: 11))
+                .foregroundColor(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
+                .padding(.top, 12)
+                .padding(.horizontal, 8)
+
             // Optional "Use free scans" button or "out of scans" message
             if let skipAction = onSkip {
                 Button(action: skipAction) {
@@ -246,7 +254,7 @@ struct SubscriptionCardView: View {
             }
 
             // Legal links (required for App Store subscription approval)
-            LegalLinksView()
+            LegalLinksView(onError: onError)
                 .padding(.top, 16)
         }
     }
@@ -295,8 +303,16 @@ struct SubscriptionCardView: View {
             .disabled(isPurchasing || !isProductAvailable)
             .padding(.top, 16)
 
+            // Auto-renewal notice (required by Apple)
+            Text("Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.")
+                .font(.system(size: 11))
+                .foregroundColor(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
+                .padding(.top, 12)
+                .padding(.horizontal, 8)
+
             // Legal links (required for App Store subscription approval)
-            LegalLinksView()
+            LegalLinksView(onError: onError)
                 .padding(.top, 16)
         }
     }
@@ -469,31 +485,102 @@ struct SubscriptionCardView: View {
 
 // MARK: - Legal Links View
 
-/// Displays Privacy Policy and Terms of Use links (required for App Store)
+/// Displays Privacy Policy, Terms of Use links, Restore Purchases, and Manage Subscription (required for App Store)
 struct LegalLinksView: View {
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @Environment(\.openURL) var openURL
+    let onError: (String) -> Void
+
+    @State private var isRestoring = false
+
     var body: some View {
-        HStack(spacing: 8) {
-            // Privacy Policy link
-            Link(destination: URL(string: LegalConstants.privacyPolicyURL)!) {
-                Text("Privacy Policy")
+        VStack(spacing: 12) {
+            // Legal links row
+            HStack(spacing: 8) {
+                // Privacy Policy link
+                Link(destination: URL(string: LegalConstants.privacyPolicyURL)!) {
+                    Text("Privacy Policy")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.6))
+                        .underline()
+                }
+
+                Text("•")
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.6))
-                    .underline()
+
+                // Terms of Use link
+                Link(destination: URL(string: LegalConstants.termsOfUseURL)!) {
+                    Text("Terms of Use")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.6))
+                        .underline()
+                }
             }
+            .frame(maxWidth: .infinity)
 
-            Text("•")
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.6))
+            // Action buttons row
+            HStack(spacing: 16) {
+                // Restore Purchases button
+                Button(action: handleRestore) {
+                    HStack(spacing: 6) {
+                        if isRestoring {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white.opacity(0.6)))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 11, weight: .medium))
+                            Text("Restore Purchases")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                    }
+                    .foregroundColor(.white.opacity(0.6))
+                }
+                .disabled(isRestoring)
 
-            // Terms of Use link
-            Link(destination: URL(string: LegalConstants.termsOfUseURL)!) {
-                Text("Terms of Use")
+                Text("•")
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.6))
-                    .underline()
+
+                // Manage Subscription button
+                Button(action: handleManageSubscription) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 11, weight: .medium))
+                        Text("Manage Subscription")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(.white.opacity(0.6))
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func handleRestore() {
+        isRestoring = true
+
+        Task {
+            do {
+                try await subscriptionManager.restorePurchases()
+                await MainActor.run {
+                    isRestoring = false
+                }
+            } catch {
+                await MainActor.run {
+                    onError(error.localizedDescription)
+                    isRestoring = false
+                }
             }
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    private func handleManageSubscription() {
+        // Open iOS subscription management in App Store
+        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+            openURL(url)
+        }
     }
 }
 
