@@ -86,6 +86,7 @@ class SubscriptionManager: ObservableObject {
     // MARK: - Public Methods
 
     /// Load available subscription products from App Store
+    /// Implements retry logic with exponential backoff (3 attempts max)
     func loadProducts() async {
         let loadStartTime = Date()
         print("⏱️ [TIMING] Starting product load at \(loadStartTime.timeIntervalSince1970)")
@@ -95,62 +96,95 @@ class SubscriptionManager: ObservableObject {
         productsLoadFailed = false
         hasAttemptedLoad = true
 
-        // Add timeout of 15 seconds
+        // Add timeout of 30 seconds
         let timeoutTask = Task {
-            try? await Task.sleep(nanoseconds: 15_000_000_000) // 15 seconds
+            try? await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
             if isLoading {
                 #if DEBUG
-                print("⏱️ [Subscription] Load timeout after 15 seconds")
+                print("⏱️ [Subscription] Load timeout after 30 seconds")
                 #endif
             }
         }
 
-        do {
-            let beforeFetchTime = Date()
-            print("⏱️ [TIMING] Calling Product.products() after \(String(format: "%.2f", beforeFetchTime.timeIntervalSince(loadStartTime) * 1000))ms")
+        // Retry logic: 3 attempts with exponential backoff
+        let maxAttempts = 3
+        var lastError: Error?
 
-            let products = try await Product.products(for: [Self.baseProductID, Self.ultraProductID])
+        for attempt in 1...maxAttempts {
+            do {
+                #if DEBUG
+                if attempt > 1 {
+                    print("🔄 [Subscription] Retry attempt \(attempt) of \(maxAttempts)")
+                }
+                #endif
 
-            let afterFetchTime = Date()
-            let fetchDuration = afterFetchTime.timeIntervalSince(beforeFetchTime)
-            print("⏱️ [TIMING] Product.products() completed in \(String(format: "%.2f", fetchDuration))s")
+                let beforeFetchTime = Date()
+                print("⏱️ [TIMING] Calling Product.products() (attempt \(attempt)) after \(String(format: "%.2f", beforeFetchTime.timeIntervalSince(loadStartTime) * 1000))ms")
 
-            // Cancel timeout if we got a response
-            timeoutTask.cancel()
+                let products = try await Product.products(for: [Self.baseProductID, Self.ultraProductID])
 
-            #if DEBUG
-            print("📦 [Subscription] Loaded \(products.count) products")
-            #endif
+                let afterFetchTime = Date()
+                let fetchDuration = afterFetchTime.timeIntervalSince(beforeFetchTime)
+                print("⏱️ [TIMING] Product.products() completed in \(String(format: "%.2f", fetchDuration))s")
 
-            for product in products {
-                if product.id == Self.baseProductID {
-                    availableBaseProduct = product
+                // Cancel timeout if we got a response
+                timeoutTask.cancel()
+
+                #if DEBUG
+                print("📦 [Subscription] Loaded \(products.count) products")
+                #endif
+
+                for product in products {
+                    if product.id == Self.baseProductID {
+                        availableBaseProduct = product
+                        #if DEBUG
+                        print("✅ [Subscription] Base loaded: \(product.displayName) - \(product.displayPrice)")
+                        #endif
+                    } else if product.id == Self.ultraProductID {
+                        availableUltraProduct = product
+                        #if DEBUG
+                        print("✅ [Subscription] Ultra loaded: \(product.displayName) - \(product.displayPrice)")
+                        #endif
+                    }
+                }
+
+                if availableBaseProduct == nil || availableUltraProduct == nil {
+                    productsLoadFailed = true
+                    errorMessage = "Some subscription products are not available. Please try again later."
                     #if DEBUG
-                    print("✅ [Subscription] Base loaded: \(product.displayName) - \(product.displayPrice)")
-                    #endif
-                } else if product.id == Self.ultraProductID {
-                    availableUltraProduct = product
-                    #if DEBUG
-                    print("✅ [Subscription] Ultra loaded: \(product.displayName) - \(product.displayPrice)")
+                    print("⚠️ [Subscription] Missing products - Base: \(availableBaseProduct != nil), Ultra: \(availableUltraProduct != nil)")
                     #endif
                 }
-            }
 
-            if availableBaseProduct == nil || availableUltraProduct == nil {
-                productsLoadFailed = true
-                errorMessage = "Some subscription products are not available. Please try again later."
+                // Success - exit retry loop
+                isLoading = false
+                return
+
+            } catch {
+                lastError = error
+                timeoutTask.cancel()
+
                 #if DEBUG
-                print("⚠️ [Subscription] Missing products - Base: \(availableBaseProduct != nil), Ultra: \(availableUltraProduct != nil)")
+                print("❌ [Subscription] Load error (attempt \(attempt)): \(error)")
+                print("   Error details: \(error.localizedDescription)")
                 #endif
+
+                // If this was the last attempt, set error state
+                if attempt == maxAttempts {
+                    productsLoadFailed = true
+                    errorMessage = "Unable to connect to the App Store. Please check your connection and try again."
+                    #if DEBUG
+                    print("❌ [Subscription] All \(maxAttempts) attempts failed")
+                    #endif
+                } else {
+                    // Exponential backoff: 2s for attempt 2, 4s for attempt 3
+                    let backoffSeconds = Double(attempt * 2)
+                    #if DEBUG
+                    print("⏱️ [Subscription] Waiting \(backoffSeconds)s before retry...")
+                    #endif
+                    try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+                }
             }
-        } catch {
-            timeoutTask.cancel()
-            productsLoadFailed = true
-            errorMessage = "Unable to connect to the App Store. Please check your connection and try again."
-            #if DEBUG
-            print("❌ [Subscription] Load error: \(error)")
-            print("   Error details: \(error.localizedDescription)")
-            #endif
         }
 
         isLoading = false
