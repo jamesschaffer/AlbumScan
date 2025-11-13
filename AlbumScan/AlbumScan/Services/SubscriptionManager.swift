@@ -108,7 +108,6 @@ class SubscriptionManager: ObservableObject {
 
         // Retry logic: 3 attempts with exponential backoff
         let maxAttempts = 3
-        var lastError: Error?
 
         for attempt in 1...maxAttempts {
             do {
@@ -161,7 +160,6 @@ class SubscriptionManager: ObservableObject {
                 return
 
             } catch {
-                lastError = error
                 timeoutTask.cancel()
 
                 #if DEBUG
