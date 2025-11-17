@@ -211,7 +211,20 @@ class CameraManager: NSObject, ObservableObject {
             }
 
             let settings = AVCapturePhotoSettings()
-            settings.flashMode = .auto
+
+            // CRITICAL iPad Fix: Only set flash mode if device supports it
+            // iPad cameras don't have flash, so setting flashMode causes crash
+            if self.photoOutput.supportedFlashModes.contains(.auto) {
+                settings.flashMode = .auto
+                #if DEBUG
+                print("📸 [CAPTURE] Flash set to auto (device supports flash)")
+                #endif
+            } else {
+                // Device doesn't support flash (iPad) - leave at default (.off)
+                #if DEBUG
+                print("📸 [CAPTURE] Flash not supported on this device (iPad)")
+                #endif
+            }
 
             // Final safety check before capture
             guard self.session.isRunning, self.session.outputs.contains(self.photoOutput) else {
