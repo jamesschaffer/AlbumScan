@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - AlbumScan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .legal-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: var(--spacing-xxl) var(--spacing-md);
+        }
+        .legal-content h1 {
+            margin-bottom: var(--spacing-lg);
+        }
+        .legal-content h2 {
+            font-size: 24px;
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-green);
+        }
+        .legal-content h3 {
+            font-size: 20px;
+            margin-top: var(--spacing-md);
+            margin-bottom: var(--spacing-xs);
+            color: var(--color-white);
+        }
+        .legal-content p, .legal-content li {
+            color: var(--color-gray-light);
+        }
+        .legal-content ul {
+            margin-left: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+        .legal-content li {
+            margin-bottom: var(--spacing-xs);
+        }
+        .legal-content a {
+            color: var(--color-green);
+        }
+        .legal-content a:hover {
+            text-decoration: underline;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: var(--spacing-lg);
+            color: var(--color-green);
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .last-updated {
+            color: var(--color-gray);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+        }
+        .summary-box {
+            background-color: var(--color-dark);
+            border-left: 3px solid var(--color-green);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+            border-radius: 0 8px 8px 0;
+        }
+        .summary-box p {
+            margin-bottom: var(--spacing-xs);
+        }
+        .summary-box strong {
+            color: var(--color-white);
+        }
+    </style>
+</head>
+<body>
+    <div class="legal-content">
+        <a href="index.html" class="back-link">← Back to AlbumScan</a>
+
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: October 28, 2025</p>
+
+        <h2>Overview</h2>
+        <p>AlbumScan is committed to protecting your privacy. This privacy policy explains how our app collects, uses, and safeguards your information.</p>
+
+        <h2>Information We Collect</h2>
+
+        <h3>Camera Access</h3>
+        <p>AlbumScan requires access to your device's camera to scan album covers. Photos are only captured when you actively tap the "SCAN" button. We do not access your photo library or store images without your explicit action.</p>
+
+        <h3>Album Scan Data</h3>
+        <p>When you scan an album cover, the following data is processed:</p>
+        <ul>
+            <li><strong>Photo of album cover</strong> - captured via camera and sent to Anthropic's Claude API for identification</li>
+            <li><strong>Album metadata</strong> - including artist name, album title, release year, genre, and rating information</li>
+            <li><strong>Album artwork</strong> - downloaded from MusicBrainz Cover Art Archive</li>
+        </ul>
+
+        <h3>Local Storage</h3>
+        <p>Album scan results are stored locally on your device using CoreData. This includes:</p>
+        <ul>
+            <li>Album title and artist name</li>
+            <li>Album artwork (thumbnail and high-resolution)</li>
+            <li>Album ratings and recommendations</li>
+            <li>Cultural context and track information</li>
+            <li>Scan date and timestamp</li>
+        </ul>
+
+        <h2>How We Use Your Information</h2>
+
+        <h3>Album Identification</h3>
+        <p>Photos you capture are sent to Anthropic's Claude API to identify the album. This is required for the core functionality of the app. Images are processed according to <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic's privacy policy</a>.</p>
+
+        <h3>Metadata Retrieval</h3>
+        <p>We query the following third-party services to enrich album information:</p>
+        <ul>
+            <li><strong>MusicBrainz</strong> - for album metadata (artist, title, release year, label, genre)</li>
+            <li><strong>Cover Art Archive</strong> - for official album artwork</li>
+        </ul>
+        <p>These services may log API requests according to their respective privacy policies.</p>
+
+        <h2>Data Storage and Security</h2>
+
+        <h3>Local Storage</h3>
+        <p>All scan history and album data is stored locally on your device. This data:</p>
+        <ul>
+            <li>Never leaves your device except during the initial scan process</li>
+            <li>Is not backed up to our servers (we don't have any servers)</li>
+            <li>Remains under your control at all times</li>
+            <li>Can be deleted at any time by deleting the app</li>
+        </ul>
+
+        <h3>Third-Party Services</h3>
+        <p>We use the following third-party services:</p>
+        <ul>
+            <li><strong>Anthropic Claude API</strong> - processes album cover images for identification</li>
+            <li><strong>MusicBrainz API</strong> - provides album metadata</li>
+            <li><strong>Cover Art Archive</strong> - provides official album artwork</li>
+            <li><strong>Firebase Remote Config (Google)</strong> - used solely for app configuration (e.g., maintenance mode). No personal data or usage information is sent to Firebase. Only anonymous configuration requests are made.</li>
+        </ul>
+
+        <h2>Data Sharing</h2>
+        <p>We do NOT:</p>
+        <ul>
+            <li>Sell your data to third parties</li>
+            <li>Share your data with advertisers</li>
+            <li>Track your behavior across other apps or websites</li>
+            <li>Collect analytics or usage statistics</li>
+            <li>Store your data on remote servers (except as necessary for API processing)</li>
+        </ul>
+        <p>Your album cover images are sent to Anthropic's API solely for identification purposes and are handled according to their privacy policy.</p>
+
+        <h2>Subscription and In-App Purchases</h2>
+
+        <h3>Free Trial</h3>
+        <p>AlbumScan offers 5 free album scans to all users. Scan count is stored locally on your device using:</p>
+        <ul>
+            <li><strong>UserDefaults</strong> - for active tracking</li>
+            <li><strong>Keychain</strong> - for persistence across app reinstalls (not linked to any user account)</li>
+        </ul>
+        <p>No personal information is required or collected for the free trial.</p>
+
+        <h3>Subscription Information</h3>
+        <p>After using your free scans, you can subscribe for continued access:</p>
+        <ul>
+            <li><strong>Subscription management</strong> - handled entirely by Apple through the App Store</li>
+            <li><strong>Payment processing</strong> - we never see or store your payment information</li>
+            <li><strong>Purchase verification</strong> - handled locally on your device via StoreKit</li>
+            <li><strong>No user accounts</strong> - subscriptions are tied to your Apple ID, not any account we create</li>
+        </ul>
+        <p>We do not:</p>
+        <ul>
+            <li>Collect billing information (Apple handles this)</li>
+            <li>Store subscription data on our servers (we don't have servers)</li>
+            <li>Track individual users or their subscription status outside of your device</li>
+            <li>Share subscription information with third parties</li>
+        </ul>
+
+        <h2>Your Rights</h2>
+        <p>You have the right to:</p>
+        <ul>
+            <li><strong>Access your data</strong> - all scan history is visible in the app</li>
+            <li><strong>Delete your data</strong> - swipe to delete individual albums or delete the app entirely</li>
+            <li><strong>Opt-out</strong> - you can stop using the app at any time</li>
+            <li><strong>Control camera access</strong> - manage camera permissions in iOS Settings</li>
+        </ul>
+
+        <h2>Children's Privacy</h2>
+        <p>AlbumScan does not knowingly collect information from children under 13. The app is designed for music enthusiasts of all ages and does not require or collect personal information beyond album scans.</p>
+
+        <h2>Changes to This Policy</h2>
+        <p>We may update this privacy policy from time to time. Changes will be reflected with an updated "Last Updated" date. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+
+        <h2>Data Retention</h2>
+        <ul>
+            <li><strong>Scan history</strong> - stored locally on your device until you delete it</li>
+            <li><strong>API requests</strong> - processed images are not retained by us (see Anthropic's policy)</li>
+            <li><strong>Cache data</strong> - album artwork and metadata may be cached locally for performance</li>
+        </ul>
+
+        <h2>Your Consent</h2>
+        <p>By using AlbumScan, you consent to this privacy policy.</p>
+
+        <h2>Contact Us</h2>
+        <p>If you have questions about this privacy policy or your data, please contact:</p>
+        <p>
+            <strong>Email:</strong> <a href="mailto:james@jamesschaffer.com">james@jamesschaffer.com</a>
+        </p>
+
+        <h2>Third-Party Privacy Policies</h2>
+        <ul>
+            <li><strong>Anthropic Claude API:</strong> <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">https://www.anthropic.com/legal/privacy</a></li>
+            <li><strong>MusicBrainz:</strong> <a href="https://musicbrainz.org/doc/About/Privacy_Policy" target="_blank" rel="noopener">https://musicbrainz.org/doc/About/Privacy_Policy</a></li>
+            <li><strong>Cover Art Archive:</strong> Operated by Internet Archive - <a href="https://archive.org/about/terms.php" target="_blank" rel="noopener">https://archive.org/about/terms.php</a></li>
+            <li><strong>Firebase (Google):</strong> <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">https://firebase.google.com/support/privacy</a></li>
+        </ul>
+
+        <div class="summary-box">
+            <h2 style="margin-top: 0;">Summary</h2>
+            <p><strong>What we collect:</strong> Album cover photos (temporarily), scan results (stored locally), scan count (locally)</p>
+            <p><strong>Why we collect it:</strong> To identify albums, provide music information, and manage free trial limits</p>
+            <p><strong>Where it goes:</strong> Anthropic API (for identification), MusicBrainz/Cover Art Archive (for metadata), Firebase (anonymous config requests only)</p>
+            <p><strong>Subscriptions:</strong> Managed entirely by Apple, no payment info stored by us, no user accounts required</p>
+            <p><strong>What we don't do:</strong> Sell data, track you, store data on our servers, share with advertisers, collect analytics</p>
+            <p><strong>Your control:</strong> Delete scans anytime, manage camera permissions, manage subscriptions via Apple ID, delete app to remove all data</p>
+        </div>
+
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="copyright">© 2025 AlbumScan. Made for people who dig for music, not money.</p>
+        </div>
+    </footer>
+</body>
+</html>

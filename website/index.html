@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Point your phone at any album cover. Get instant AI-powered reviews that tell you why it matters musically—not what it's worth on Discogs.">
+    <meta name="theme-color" content="#000000">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="AlbumScan - Know if it's worth buying before you leave the bin">
+    <meta property="og:description" content="AI-powered album reviews for vinyl collectors and record store browsers.">
+    <meta property="og:type" content="website">
+
+    <title>AlbumScan - AI Album Reviews for Vinyl Collectors</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- NAVIGATION -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">AlbumScan</a>
+            <ul class="nav-links">
+                <li><a href="#problem" class="nav-link">The Frustration</a></li>
+                <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+                <li><a href="#features" class="nav-link">Key Features</a></li>
+                <li><a href="#pricing" class="nav-link">Pricing</a></li>
+                <li><a href="#faq" class="nav-link">Questions</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- SECTION 1: HERO -->
+    <section id="hero" class="hero">
+        <div class="container">
+            <div class="hero-grid">
+                <div class="hero-content">
+                    <p class="eyebrow">FOR VINYL COLLECTORS & RECORD STORE BROWSERS</p>
+                    <h1>The ultimate music historian right in your pocket.</h1>
+                    <p class="subheadline">Point your phone at any album cover. Get instant AI-powered reviews that tell you why it matters musically—not what it's worth on Discogs.</p>
+
+                    <div class="cta-group">
+                        <a href="https://apps.apple.com/us/app/albumscan/id6754340981" class="btn btn-primary">
+                            <svg class="apple-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                            </svg>
+                            Download Free on iOS
+                        </a>
+                        <a href="#how-it-works" class="btn-text">See how it works ↓</a>
+                    </div>
+                </div>
+
+                <div class="hero-mockup">
+                    <!-- Placeholder for app mockup -->
+                    <div class="mockup-placeholder">
+                        <span>App Mockup</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 2: THE PROBLEM -->
+    <section id="problem" class="problem">
+        <div class="container">
+            <p class="section-label">THE FRUSTRATION</p>
+            <h2>Thousands of albums. Which ones deserve a spot in your collection?</h2>
+
+            <ul class="problem-list-horizontal">
+                <li>
+                    <svg class="problem-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                    </svg>
+                    <h3>Is this their best work or a dud?</h3>
+                    <p>The uncertainty builds with every flip. You're guessing, not deciding.</p>
+                </li>
+                <li>
+                    <svg class="problem-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+                    </svg>
+                    <h3>Most sites focus on pricing</h3>
+                    <p>Not whether the music is actually good. (Who cares if it's a VG+ if it sounds like a VG+?)</p>
+                </li>
+                <li>
+                    <svg class="problem-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+                    </svg>
+                    <h3>You forget faster than you flip</h3>
+                    <p>Even if you remember the cover, do you remember if it was their good one?</p>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SECTION 3: HOW IT WORKS -->
+    <section id="how-it-works" class="how-it-works">
+        <div class="container">
+            <p class="section-label">HOW IT WORKS</p>
+            <h2>From unknown cover to informed decision in seconds.</h2>
+
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-image">
+                        <div class="image-placeholder">UI Screenshot</div>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-number">1</div>
+                        <h3>Point & Scan</h3>
+                        <p>Aim at any album cover, tap SCAN. No typing, no searching, no barcode hunting.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-image">
+                        <div class="image-placeholder">UI Screenshot</div>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-number">2</div>
+                        <h3>AI Identifies It</h3>
+                        <p>Our AI recognizes the album from the cover art alone—even obscure deep cuts.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-image">
+                        <div class="image-placeholder">UI Screenshot</div>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-number">3</div>
+                        <h3>Get a Real Opinion</h3>
+                        <p>An honest assessment: cultural significance, critical reception, standout tracks, and a clear recommendation.</p>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-image">
+                        <div class="image-placeholder">UI Screenshot</div>
+                    </div>
+                    <div class="step-content">
+                        <div class="step-number">4</div>
+                        <h3>Save Your Finds</h3>
+                        <p>Every scan saves to your history. Remember that album you wanted to stream when you got home.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 4: FEATURES -->
+    <section id="features" class="features">
+        <div class="container">
+            <p class="section-label">KEY FEATURES</p>
+            <h2>More than identification. Actual insight.</h2>
+
+            <table class="feature-table">
+                <tbody>
+                    <tr>
+                        <td class="feature-name">Cultural Impact</td>
+                        <td class="feature-desc">Not just how it sounds—why it matters. Did it change a genre? Influence your favorite band? Sometimes the most important album isn't the most sonically impressive one.</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Dynamic Ratings</td>
+                        <td class="feature-desc">A score out of 10 plus a recommendation tier—from "Essential Classic" to "Avoid Entirely." Generated from AI trained on decades of critical consensus, not one person's opinion.</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Key Tracks</td>
+                        <td class="feature-desc">Instantly see which songs were the hits. Great for when you recognize an album but can't remember which track you were looking for.</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Scan History</td>
+                        <td class="feature-desc">Every album you scan is saved locally. Browse later, remember what caught your eye, build a log of your discoveries.</td>
+                    </tr>
+                    <tr class="feature-row-ultra">
+                        <td class="feature-name"><span class="ultra-label">Ultra Feature</span>Enhanced Matching</td>
+                        <td class="feature-desc">When AI knowledge alone isn't enough, Ultra searches the web in real-time. Identifies deep cuts, obscure pressings, and albums with minimal cover text that would otherwise go unrecognized.</td>
+                    </tr>
+                    <tr class="feature-row-ultra">
+                        <td class="feature-name"><span class="ultra-label">Ultra Feature</span>Enriched Reviews</td>
+                        <td class="feature-desc">Ultra blends AI knowledge with live search results from Pitchfork, Rolling Stone, Metacritic, and AllMusic. Real citations, real scores, real critical context.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- SECTION 5: PHILOSOPHY -->
+    <section class="philosophy">
+        <div class="container">
+            <p class="section-label">OUR PROMISE</p>
+            <h2>I built this for myself.</h2>
+            <div class="philosophy-content">
+                <p>After 10 years of collecting, I got tired of the same routine: standing in a record store, holding an album I half-recognized, googling reviews and losing the rhythm of the dig. Either you burn out and buy a dud, or you spend an hour researching and leave with nothing.</p>
+                <p>Building a thoughtful collection on a budget is hard. You can eyeball the sleeve condition, but knowing whether this is the album worth owning? That takes knowledge I didn't always have.</p>
+                <p>AlbumScan changed how I dig. Now I scan, set it aside, keep flipping, and read the review when it's ready. I buy with confidence instead of hope.</p>
+                <p class="highlight">This is not a price guide.</p>
+                <p>I don't need to obsess over pressing variations or chase vinyl as an investment. If it plays clean and sounds good, I'm happy. AlbumScan tells you if the music is worth your time—not what the cardboard is worth to someone else.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 6: PRICING -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <p class="section-label">SIMPLE PRICING</p>
+            <h2>Start free. Upgrade when you're hooked.</h2>
+
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Free</h3>
+                    <div class="price"><span class="amount">$0</span></div>
+                    <ul>
+                        <li>5 scans to try it out</li>
+                        <li>Full album reviews</li>
+                        <li>Scan history saved locally</li>
+                        <li>No account required</li>
+                    </ul>
+                    <a href="https://apps.apple.com/us/app/albumscan/id6754340981" class="btn btn-secondary">Download Free</a>
+                </div>
+
+                <div class="pricing-card">
+                    <h3>Base</h3>
+                    <div class="price"><span class="amount">$4.99</span><span class="period">/year</span></div>
+                    <ul>
+                        <li>120 scans per month</li>
+                        <li>Full album reviews</li>
+                        <li>Unlimited scan history</li>
+                        <li>Works great for casual browsing</li>
+                    </ul>
+                    <a href="https://apps.apple.com/us/app/albumscan/id6754340981" class="btn btn-secondary">Get Base</a>
+                    <p class="pricing-note">That's $0.42/month. Less than a damaged 45.</p>
+                </div>
+
+                <div class="pricing-card featured">
+                    <h3>Ultra</h3>
+                    <div class="price"><span class="amount">$11.99</span><span class="period">/year</span></div>
+                    <ul>
+                        <li>120 scans per month</li>
+                        <li>Advanced AI search for obscure albums</li>
+                        <li>Enhanced accuracy for modern releases (2020+)</li>
+                        <li>Detailed reviews with professional source citations</li>
+                        <li>For serious collectors and deep-cut hunters</li>
+                    </ul>
+                    <a href="https://apps.apple.com/us/app/albumscan/id6754340981" class="btn btn-primary">Get Ultra</a>
+                    <p class="pricing-note">$1/month to never miss a hidden gem.</p>
+                </div>
+            </div>
+
+            <p class="pricing-footer">All plans include unlimited scan history. No ads. No data selling. No subscriptions that auto-renew without warning—we'll remind you before renewal.</p>
+        </div>
+    </section>
+
+    <!-- SECTION 7: FAQ -->
+    <section id="faq" class="faq">
+        <div class="container">
+            <p class="section-label">QUESTIONS</p>
+
+            <div class="faq-list">
+                <details class="faq-item">
+                    <summary>What albums can it identify?</summary>
+                    <p>Most albums from the last 70+ years. Popular releases identify instantly. For deep cuts and obscure pressings, our Ultra tier uses web search to track them down. If an album exists and has been documented anywhere online, we can usually find it.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Does it work on CDs too?</summary>
+                    <p>Yes. Any album cover works—vinyl, CD, cassette, even a poster on a wall if you're feeling adventurous.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Why doesn't it show prices or pressing values?</summary>
+                    <p>By design. We built AlbumScan for people who care about the music, not the market. There are already apps for that. We're focused on helping you discover albums worth listening to.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>How accurate are the reviews?</summary>
+                    <p>Reviews are AI-generated fresh each time, synthesizing critical consensus, chart history, and cultural context. They're not perfect—think of them as a knowledgeable friend giving you their take, not an academic citation. We include a disclaimer because honesty matters.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>What's the difference between Base and Ultra?</summary>
+                    <p>Base works great for well-known albums—most of what you'll find at a typical record store. Ultra adds advanced web search for identifying obscure releases and provides reviews with cited professional sources (Pitchfork, Rolling Stone, etc.). If you're hunting deep cuts regularly, Ultra pays for itself.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Is my data private?</summary>
+                    <p>Your scans stay on your device. We don't have user accounts. We don't track you. We don't sell data. The only thing leaving your phone is the album image going to our AI for identification—and we don't store those.</p>
+                </details>
+
+                <details class="faq-item">
+                    <summary>Why the scan limits and subscription?</summary>
+                    <p>AI-powered search isn't cheap to run. Every scan costs real money on the backend—especially Ultra's web search features. The subscription model keeps AlbumScan sustainable so I can maintain it, improve it, and keep it running without taking a loss. I'd rather be upfront about that than shut down in six months.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 9: FINAL CTA -->
+    <section class="final-cta">
+        <div class="container">
+            <h2>Stop wondering. Start knowing.</h2>
+            <p>Download AlbumScan and turn your next record store trip into a discovery session.</p>
+
+            <a href="https://apps.apple.com/us/app/albumscan/id6754340981" class="btn btn-primary btn-large">
+                <svg class="apple-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                Download Free on iOS
+            </a>
+            <p class="micro-copy">Free to try. No account needed. Discover your first 5 albums on us.</p>
+        </div>
+    </section>
+
+    <!-- SECTION 10: FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="assets/logo-white.png" alt="AlbumScan" class="footer-logo">
+                </div>
+
+                <nav class="footer-links">
+                    <a href="privacy.html">Privacy Policy</a>
+                    <a href="terms.html">Terms of Service</a>
+                    <a href="mailto:contact@albumscan.app">Contact</a>
+                </nav>
+            </div>
+
+            <p class="copyright">© 2025 AlbumScan. Made for people who dig for music, not money.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scroll for nav links
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                if (targetSection) {
+                    const navHeight = document.querySelector('.nav').offsetHeight;
+                    const targetPosition = targetSection.offsetTop - navHeight;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Highlight active section on scroll
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -70% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>
