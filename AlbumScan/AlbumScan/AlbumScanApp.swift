@@ -2,6 +2,34 @@ import SwiftUI
 import CoreData
 import UIKit
 import FirebaseCore
+import FirebaseAppCheck
+
+// MARK: - Custom App Check Provider Factory
+// This is the official recommended approach from Firebase documentation.
+// We implement AppCheckProviderFactory protocol instead of using the convenience
+// classes (AppAttestProviderFactory) which may not be available in all build configs.
+
+class AlbumScanAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> (any AppCheckProvider)? {
+        #if DEBUG
+        // Use debug provider during development
+        // This generates debug tokens that must be registered in Firebase Console
+        let provider = AppCheckDebugProvider(app: app)
+        if let token = provider?.localDebugToken() {
+            print("🔐 [AppCheck] Debug token: \(token)")
+        }
+        return provider
+        #else
+        // Use App Attest in production (iOS 14+)
+        // Falls back to DeviceCheck for older iOS versions
+        if #available(iOS 14.0, *) {
+            return AppAttestProvider(app: app)
+        } else {
+            return DeviceCheckProvider(app: app)
+        }
+        #endif
+    }
+}
 
 @main
 struct AlbumScanApp: App {
@@ -14,6 +42,11 @@ struct AlbumScanApp: App {
     @StateObject private var remoteConfigManager = RemoteConfigManager.shared
 
     init() {
+        // Configure App Check BEFORE Firebase.configure()
+        // This enables device attestation for Cloud Functions calls
+        let providerFactory = AlbumScanAppCheckProviderFactory()
+        AppCheck.setAppCheckProviderFactory(providerFactory)
+
         // Configure Firebase
         FirebaseApp.configure()
 

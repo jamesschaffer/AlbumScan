@@ -787,4 +787,18 @@ Return only the JSON object, no additional text.
             throw APIError.invalidResponseFormat
         }
     }
+
+    // MARK: - Single-Prompt Flow (Not supported - use OpenAI or Cloud Functions)
+
+    /// Single-Prompt Identification - NOT SUPPORTED for Claude
+    /// Claude uses the legacy two-phase flow (executePhase1A + executePhase1B)
+    func executeSinglePromptIdentification(image: UIImage) async throws -> AlbumIdentificationResponse {
+        fatalError("executeSinglePromptIdentification is not supported for Claude. Use executePhase1A + executePhase1B instead.")
+    }
+
+    /// Search Finalization - NOT SUPPORTED for Claude
+    /// Claude uses the legacy two-phase flow
+    func executeSearchFinalization(image: UIImage, searchRequest: SearchRequest) async throws -> AlbumIdentificationResponse {
+        fatalError("executeSearchFinalization is not supported for Claude. Use executePhase1A + executePhase1B instead.")
+    }
 }

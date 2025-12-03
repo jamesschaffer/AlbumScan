@@ -107,3 +107,10 @@ build.log
 
 # Project-specific
 GTM.md
+
+# Firebase Functions
+functions/node_modules/
+functions/lib/
+functions/.secret.local
+functions/.env
+functions/.env.local
