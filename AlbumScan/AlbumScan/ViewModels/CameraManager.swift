@@ -721,11 +721,10 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             print("┌─ 🔍 [ID CALL 1] Single-Prompt Identification")
             print("│  ⏱️  Start: +\(String(format: "%.2f", cumulativeAtCall1Start))s (cumulative)")
 
-            guard let openAIService = LLMServiceFactory.getService() as? OpenAIAPIService else {
-                throw APIError.invalidResponse // Should only be used with OpenAI
-            }
+            // Get the configured LLM service (Cloud Functions, OpenAI, or Claude)
+            let llmService = LLMServiceFactory.getService()
 
-            let identificationResponse = try await openAIService.executeSinglePromptIdentification(image: image)
+            let identificationResponse = try await llmService.executeSinglePromptIdentification(image: image)
             let call1Time = Date().timeIntervalSince(call1Start)
             let cumulativeAfterCall1 = Date().timeIntervalSince(totalStart)
             print("│  ✅ Complete")
@@ -795,7 +794,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 print("│  ⏱️  Start: +\(String(format: "%.2f", cumulativeAtCall2Start))s (cumulative)")
                 print("│  Query: \(searchRequest.searchRequest.query)")
 
-                let searchResponse = try await openAIService.executeSearchFinalization(
+                let searchResponse = try await llmService.executeSearchFinalization(
                     image: image,
                     searchRequest: searchRequest.searchRequest
                 )

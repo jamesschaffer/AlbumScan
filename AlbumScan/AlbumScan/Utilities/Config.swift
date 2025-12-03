@@ -5,11 +5,13 @@ import Foundation
 enum LLMProvider {
     case claude
     case openAI
+    case cloudFunctions  // Secure proxy through Firebase Cloud Functions
 
     var name: String {
         switch self {
         case .claude: return "Claude"
         case .openAI: return "OpenAI"
+        case .cloudFunctions: return "Cloud Functions"
         }
     }
 }
@@ -17,8 +19,11 @@ enum LLMProvider {
 enum Config {
     // MARK: - LLM Configuration
 
-    /// Current LLM provider - switch between .claude or .openAI
-    static let currentProvider: LLMProvider = .openAI
+    /// Current LLM provider
+    /// - .cloudFunctions: (RECOMMENDED) Secure server-side API calls via Firebase
+    /// - .openAI: Direct API calls (API key in app bundle - NOT recommended for production)
+    /// - .claude: Legacy Claude API (deprecated)
+    static let currentProvider: LLMProvider = .cloudFunctions
 
     // MARK: - API Configuration
 

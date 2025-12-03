@@ -1,0 +1,23 @@
+# Compiled output
+lib/
+
+# Dependencies
+node_modules/
+
+# Local secrets (never commit)
+.secret.local
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
