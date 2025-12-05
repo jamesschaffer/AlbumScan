@@ -226,10 +226,9 @@ section {
    SECTION 1: Hero
    =================================== */
 .hero {
-    min-height: 100vh;
     display: flex;
     align-items: center;
-    padding: var(--spacing-xl) 0;
+    margin: 5% 0;
 }
 
 .hero-grid {
