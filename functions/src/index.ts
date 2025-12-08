@@ -719,38 +719,23 @@ export const generateReviewGemini = onCall(
       // Extract text from response
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const responseAny = response as any;
-      let text = "";
-
-      // Debug: log structure when we have issues
       const candidate = responseAny.candidates?.[0];
-      console.log(`[generateReviewGemini] Candidate keys: ${candidate ? Object.keys(candidate) : "no candidate"}`);
-      console.log(`[generateReviewGemini] Content keys: ${candidate?.content ? Object.keys(candidate.content) : "no content"}`);
-      console.log(`[generateReviewGemini] Parts count: ${candidate?.content?.parts?.length || 0}`);
-
-      // Log all parts to understand the structure
-      if (candidate?.content?.parts) {
-        candidate.content.parts.forEach((part: Record<string, unknown>, idx: number) => {
-          console.log(`[generateReviewGemini] Part ${idx} keys: ${Object.keys(part)}`);
-          if (part.text) {
-            console.log(`[generateReviewGemini] Part ${idx} text length: ${(part.text as string).length}`);
-            console.log(`[generateReviewGemini] Part ${idx} text preview: ${(part.text as string).substring(0, 200)}`);
-          }
-        });
-      }
+      let text = "";
 
       if (typeof response.text === "string") {
         text = response.text;
-      } else if (responseAny.candidates?.[0]?.content?.parts) {
+      } else if (candidate?.content?.parts) {
         // Concatenate all text parts (search grounding may return multiple parts)
-        const parts = responseAny.candidates[0].content.parts;
-        text = parts
+        text = candidate.content.parts
           .filter((part: Record<string, unknown>) => typeof part.text === "string")
           .map((part: Record<string, unknown>) => part.text)
           .join("");
       }
 
-      console.log(`[generateReviewGemini] Finish reason: ${responseAny.candidates?.[0]?.finishReason}`);
-      console.log(`[generateReviewGemini] Response received, length: ${text.length}`);
+      const finishReason = candidate?.finishReason || "unknown";
+      console.log(
+        `[generateReviewGemini] Response: ${text.length} chars, finish: ${finishReason}`
+      );
 
       // Clean up Gemini response - strip markdown code fences
       let cleanedText = text.trim();
@@ -767,9 +752,8 @@ export const generateReviewGemini = onCall(
       }
       const groundingChunks: GroundingChunk[] = groundingMetadata?.groundingChunks || [];
 
-      console.log(`[generateReviewGemini] Grounding chunks count: ${groundingChunks.length}`);
-      if (groundingChunks.length > 0) {
-        console.log(`[generateReviewGemini] Grounding sources: ${JSON.stringify(groundingChunks.slice(0, 5))}`);
+      if (useSearch) {
+        console.log(`[generateReviewGemini] Grounding sources: ${groundingChunks.length}`);
       }
 
       // Validate JSON and fix common Gemini issues
