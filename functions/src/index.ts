@@ -760,6 +760,18 @@ export const generateReviewGemini = onCall(
         cleanedText = cleanedText.replace(/^```\s*/, "").replace(/```\s*$/, "").trim();
       }
 
+      // Extract grounding sources from metadata
+      const groundingMetadata = candidate?.groundingMetadata;
+      interface GroundingChunk {
+        web?: { uri?: string; title?: string };
+      }
+      const groundingChunks: GroundingChunk[] = groundingMetadata?.groundingChunks || [];
+
+      console.log(`[generateReviewGemini] Grounding chunks count: ${groundingChunks.length}`);
+      if (groundingChunks.length > 0) {
+        console.log(`[generateReviewGemini] Grounding sources: ${JSON.stringify(groundingChunks.slice(0, 5))}`);
+      }
+
       // Validate JSON and fix common Gemini issues
       try {
         const parsed = JSON.parse(cleanedText);
@@ -769,6 +781,33 @@ export const generateReviewGemini = onCall(
             parsed.rating === undefined || !parsed.recommendation || !parsed.key_tracks) {
           console.error("[generateReviewGemini] Missing required fields in response");
           throw new Error("Missing required fields");
+        }
+
+        // Post-process: Add source citations to bullet points using grounding metadata
+        if (groundingChunks.length > 0 && useSearch && Array.isArray(parsed.context_bullets)) {
+          // Get unique sources (dedupe by title)
+          const seenTitles = new Set<string>();
+          const uniqueSources = groundingChunks
+            .filter((chunk: GroundingChunk) => {
+              if (!chunk.web?.uri || !chunk.web?.title) return false;
+              if (seenTitles.has(chunk.web.title)) return false;
+              seenTitles.add(chunk.web.title);
+              return true;
+            })
+            .slice(0, 6); // Limit to 6 unique sources
+
+          // Distribute sources across bullet points
+          if (uniqueSources.length > 0) {
+            const bulletsCount = parsed.context_bullets.length;
+            for (let i = 0; i < bulletsCount && i < uniqueSources.length; i++) {
+              const source = uniqueSources[i];
+              const domain = source.web?.title || "source";
+              const url = source.web?.uri || "";
+              // Append citation to bullet
+              parsed.context_bullets[i] = `${parsed.context_bullets[i]} ([${domain}](${url}))`;
+            }
+            console.log(`[generateReviewGemini] Added citations to ${Math.min(bulletsCount, uniqueSources.length)} bullet points`);
+          }
         }
 
         // Re-serialize to ensure clean JSON
