@@ -721,8 +721,12 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             print("┌─ 🔍 [ID CALL 1] Single-Prompt Identification")
             print("│  ⏱️  Start: +\(String(format: "%.2f", cumulativeAtCall1Start))s (cumulative)")
 
-            // Get the configured LLM service (Cloud Functions, OpenAI, or Claude)
+            // Get the configured LLM service with provider routing
+            #if DEBUG
+            let llmService = LLMServiceFactory.getService(for: appState?.selectedProvider ?? .openAI)
+            #else
             let llmService = LLMServiceFactory.getService()
+            #endif
 
             let identificationResponse = try await llmService.executeSinglePromptIdentification(image: image)
             let call1Time = Date().timeIntervalSince(call1Start)
@@ -1003,7 +1007,12 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         print("   │  Tier: \(searchEnabled ? "Ultra (with search)" : "Base (no search)")")
 
         do {
-            let phase2Response = try await LLMServiceFactory.getService().generateReviewPhase2(
+            #if DEBUG
+            let llmService = LLMServiceFactory.getService(for: appState?.selectedProvider ?? .openAI)
+            #else
+            let llmService = LLMServiceFactory.getService()
+            #endif
+            let phase2Response = try await llmService.generateReviewPhase2(
                 artistName: artistName,
                 albumTitle: albumTitle,
                 releaseYear: releaseYear,

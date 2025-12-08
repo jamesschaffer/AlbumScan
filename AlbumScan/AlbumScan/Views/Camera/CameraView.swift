@@ -1,6 +1,44 @@
 import SwiftUI
 import AVFoundation
 
+// MARK: - AI Provider Toggle (Debug Only)
+
+#if DEBUG
+/// Debug-only toggle for switching between AI providers (ChatGPT vs Gemini)
+/// This component is only visible in debug builds for local testing
+struct AIProviderToggle: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(LLMProvider.selectableProviders, id: \.rawValue) { provider in
+                Button(action: {
+                    appState.selectedProvider = provider
+                }) {
+                    Text(provider.displayName)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(appState.selectedProvider == provider ? .black : .white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(appState.selectedProvider == provider
+                                      ? Color(red: 0, green: 0.87, blue: 0.32)
+                                      : Color.white.opacity(0.2))
+                        )
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.6))
+        )
+    }
+}
+#endif
+
 // MARK: - Pressed Button Style
 
 struct PressedButtonStyle: ButtonStyle {
@@ -76,6 +114,12 @@ struct CameraView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 185)
                         .padding(.top, 20)
+
+                    #if DEBUG
+                    // AI Provider toggle (debug only - for A/B testing ChatGPT vs Gemini)
+                    AIProviderToggle()
+                        .padding(.top, 8)
+                    #endif
 
                     Spacer()
                 }

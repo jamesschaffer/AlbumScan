@@ -2,10 +2,17 @@ import Foundation
 import UIKit
 import FirebaseFunctions
 
-/// Service that proxies OpenAI API calls through Firebase Cloud Functions
+/// Service that proxies LLM API calls through Firebase Cloud Functions
 /// This provides server-side API key protection and rate limiting
+/// Supports multiple providers (OpenAI, Gemini) via provider-specific function names
 class CloudFunctionsService: LLMService {
     static let shared = CloudFunctionsService()
+
+    // MARK: - Provider Configuration
+    #if DEBUG
+    /// Current AI provider (debug-only, for A/B testing different providers)
+    var currentProvider: LLMProvider = .openAI
+    #endif
 
     private let functions: Functions
 
@@ -68,11 +75,31 @@ class CloudFunctionsService: LLMService {
         #endif
     }
 
+    // MARK: - Provider Routing
+
+    #if DEBUG
+    /// Returns the Cloud Function name for a given base function and provider
+    private func functionName(base: String) -> String {
+        switch currentProvider {
+        case .gemini:
+            return "\(base)Gemini"
+        case .openAI, .claude, .cloudFunctions:
+            return base
+        }
+    }
+    #else
+    /// Returns the Cloud Function name (production always uses OpenAI)
+    private func functionName(base: String) -> String {
+        return base
+    }
+    #endif
+
     // MARK: - Single-Prompt Identification (Call 1)
 
     func executeSinglePromptIdentification(image: UIImage) async throws -> AlbumIdentificationResponse {
         #if DEBUG
         print("🔍 [CloudFunctions ID Call 1] Starting single-prompt identification...")
+        print("🤖 [CloudFunctions ID Call 1] Provider: \(currentProvider.displayName)")
         #endif
 
         // Convert image to base64
@@ -90,13 +117,14 @@ class CloudFunctionsService: LLMService {
             "prompt": identificationPrompt
         ]
 
-        // Call Cloud Function
+        // Call Cloud Function (routes to OpenAI or Gemini based on provider)
+        let functionToCall = functionName(base: "identifyAlbum")
         #if DEBUG
-        print("📡 [CloudFunctions ID Call 1] Calling identifyAlbum function...")
+        print("📡 [CloudFunctions ID Call 1] Calling \(functionToCall) function...")
         #endif
 
         do {
-            let result = try await functions.httpsCallable("identifyAlbum").call(data)
+            let result = try await functions.httpsCallable(functionToCall).call(data)
 
             guard let resultData = result.data as? [String: Any],
                   let success = resultData["success"] as? Bool,
@@ -141,6 +169,7 @@ class CloudFunctionsService: LLMService {
         #if DEBUG
         print("🔍 [CloudFunctions ID Call 2] Starting search finalization...")
         print("🔍 [CloudFunctions ID Call 2] Search query: \(searchRequest.query)")
+        print("🤖 [CloudFunctions ID Call 2] Provider: \(currentProvider.displayName)")
         #endif
 
         // Build prompt with search request data
@@ -155,13 +184,14 @@ class CloudFunctionsService: LLMService {
             "prompt": prompt
         ]
 
-        // Call Cloud Function
+        // Call Cloud Function (routes to OpenAI or Gemini based on provider)
+        let functionToCall = functionName(base: "searchFinalizeAlbum")
         #if DEBUG
-        print("📡 [CloudFunctions ID Call 2] Calling searchFinalizeAlbum function...")
+        print("📡 [CloudFunctions ID Call 2] Calling \(functionToCall) function...")
         #endif
 
         do {
-            let result = try await functions.httpsCallable("searchFinalizeAlbum").call(data)
+            let result = try await functions.httpsCallable(functionToCall).call(data)
 
             guard let resultData = result.data as? [String: Any],
                   let success = resultData["success"] as? Bool,
@@ -209,6 +239,7 @@ class CloudFunctionsService: LLMService {
         #if DEBUG
         print("🔑 [CloudFunctions Review] Starting review generation...")
         print("🔍 [AlbumScan Ultra] Search enabled: \(searchEnabled)")
+        print("🤖 [CloudFunctions Review] Provider: \(currentProvider.displayName)")
         #endif
 
         // Choose prompt based on Ultra toggle
@@ -229,12 +260,14 @@ class CloudFunctionsService: LLMService {
             "useSearch": searchEnabled
         ]
 
+        // Call Cloud Function (routes to OpenAI or Gemini based on provider)
+        let functionToCall = functionName(base: "generateReview")
         #if DEBUG
-        print("📡 [CloudFunctions Review] Calling generateReview function...")
+        print("📡 [CloudFunctions Review] Calling \(functionToCall) function...")
         #endif
 
         do {
-            let result = try await functions.httpsCallable("generateReview").call(data)
+            let result = try await functions.httpsCallable(functionToCall).call(data)
 
             guard let resultData = result.data as? [String: Any],
                   let success = resultData["success"] as? Bool,

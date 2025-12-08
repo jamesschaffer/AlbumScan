@@ -27,6 +27,16 @@ class AppState: ObservableObject {
         }
     }
 
+    // MARK: - AI Provider Selection (Debug Only)
+    #if DEBUG
+    @Published var selectedProvider: LLMProvider {
+        didSet {
+            UserDefaults.standard.set(selectedProvider.rawValue, forKey: Config.UserDefaultsKeys.selectedLLMProvider)
+            print("🤖 [Provider] Changed to: \(selectedProvider.displayName)")
+        }
+    }
+    #endif
+
     init() {
         #if DEBUG
         // Dev Mode: Force welcome screen if enabled
@@ -46,6 +56,17 @@ class AppState: ObservableObject {
         // Load search toggle state from UserDefaults
         // Note: This will be automatically enabled when user subscribes
         self.searchEnabled = UserDefaults.standard.bool(forKey: "searchEnabled")
+
+        #if DEBUG
+        // Load saved provider preference (default to OpenAI for existing users)
+        if let savedProvider = UserDefaults.standard.string(forKey: Config.UserDefaultsKeys.selectedLLMProvider),
+           let provider = LLMProvider(rawValue: savedProvider) {
+            self.selectedProvider = provider
+        } else {
+            self.selectedProvider = .openAI  // Default for new users
+        }
+        print("🤖 [Provider] Initialized with: \(selectedProvider.displayName)")
+        #endif
 
         // Defer album check to avoid initialization issues
         checkForScannedAlbums()
