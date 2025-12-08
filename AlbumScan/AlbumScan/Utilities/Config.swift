@@ -2,17 +2,44 @@ import Foundation
 
 // MARK: - LLM Provider Selection
 
-enum LLMProvider {
-    case claude
-    case openAI
-    case cloudFunctions  // Secure proxy through Firebase Cloud Functions
+/// AI provider for album identification and review generation
+/// User-selectable providers route through Cloud Functions with different backends
+enum LLMProvider: String, CaseIterable {
+    case openAI = "openai"
+    case gemini = "gemini"
 
-    var name: String {
+    // Legacy providers (not user-selectable, kept for backwards compatibility)
+    case claude = "claude"
+    case cloudFunctions = "cloudFunctions"
+
+    /// Display name shown in UI
+    var displayName: String {
         switch self {
+        case .openAI: return "ChatGPT"
+        case .gemini: return "Gemini"
         case .claude: return "Claude"
-        case .openAI: return "OpenAI"
         case .cloudFunctions: return "Cloud Functions"
         }
+    }
+
+    /// Description for settings UI
+    var description: String {
+        switch self {
+        case .openAI: return "OpenAI GPT-4o"
+        case .gemini: return "Google Gemini 2.5 Flash"
+        case .claude: return "Anthropic Claude (Legacy)"
+        case .cloudFunctions: return "Firebase Proxy (Legacy)"
+        }
+    }
+
+    /// Providers that can be selected by users in debug mode
+    static var selectableProviders: [LLMProvider] {
+        [.openAI, .gemini]
+    }
+
+    // Legacy compatibility
+    var name: String {
+        displayName
     }
 }
 
@@ -80,5 +107,6 @@ enum Config {
 
     enum UserDefaultsKeys {
         static let hasLaunchedBefore = "hasLaunchedBefore"
+        static let selectedLLMProvider = "selectedLLMProvider"
     }
 }

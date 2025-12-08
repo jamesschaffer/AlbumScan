@@ -7,14 +7,15 @@ Follow this checklist to get your AlbumScan project up and running.
 - [ ] macOS 13.0+ installed
 - [ ] Xcode 15.0+ installed
 - [ ] Apple Developer account (free or paid)
-- [ ] Anthropic Claude API key obtained
-- [ ] iOS 16.0+ device or simulator ready
+- [ ] Firebase project configured (for Cloud Functions)
+- [ ] OpenAI API key obtained (for development/debugging)
+- [ ] iOS 16.0+ device ready (camera required)
 
 ## 📋 Setup Steps
 
 ### Step 1: Review Project Documentation
 - [ ] Read `README.md` for project overview
-- [ ] Read `PROJECT_CONTEXT.md` for complete specification
+- [ ] Read `Project_Context/` directory for complete specification
 - [ ] Read `FILE_STRUCTURE.md` to understand code organization
 
 ### Step 2: Create Xcode Project
@@ -46,18 +47,18 @@ Follow `SETUP_GUIDE.md` for detailed instructions:
 - [ ] Configure signing (select your team)
 - [ ] Enable automatic signing
 
-### Step 5: Set Up API Key
+### Step 5: Configure API Access
 Choose one method:
 
-**Option A: Environment Variable** (Recommended)
-- [ ] Edit Scheme → Run → Arguments tab
-- [ ] Add environment variable: `CLAUDE_API_KEY`
-- [ ] Paste your API key as the value
+**Option A: Cloud Functions (Production - Recommended)**
+- [ ] Follow `CLOUD_FUNCTIONS_SETUP.md` for deployment
+- [ ] Set OpenAI API key in Firebase Secrets: `firebase functions:secrets:set OPENAI_API_KEY`
+- [ ] Ensure `Config.currentProvider = .cloudFunctions` in Config.swift
 
-**Option B: Secrets.plist**
-- [ ] Create `Secrets.plist` file
-- [ ] Add your API key
+**Option B: Direct API (Development Only)**
+- [ ] Create `Secrets.plist` file with `OPENAI_API_KEY`
 - [ ] Verify file is in `.gitignore`
+- [ ] Change `Config.currentProvider` to `.openAI` for development
 
 ### Step 6: Build and Test
 - [ ] Clean build folder (⇧⌘K)
@@ -85,19 +86,21 @@ Choose one method:
 Use a well-known album for testing:
 - [ ] Point at album cover
 - [ ] Tap "SCAN" button
-- [ ] Loading spinner appears
-- [ ] "Identifying album..." text shows
-- [ ] Wait 3-10 seconds
+- [ ] Loading stage 1a: "Extracting text and examining album art..." (0-3.5s)
+- [ ] Loading stage 1b: "Flipping through every record bin in existence..." (3.5s+)
+- [ ] Loading stage 2: "We found [Album] by [Artist]" with artwork (2s confirmation)
+- [ ] Loading stage 3: "Writing a review that's somehow both pretentious and correct..."
+- [ ] Wait 5-13 seconds total
 - [ ] Album details appear
 - [ ] All information displays correctly:
-  - [ ] Album artwork
+  - [ ] Album artwork (from Cover Art Archive)
   - [ ] Artist name
   - [ ] Album title
-  - [ ] Recommendation badge (with emoji)
-  - [ ] Context summary
-  - [ ] Bullet points
-  - [ ] Rating
-  - [ ] Key tracks
+  - [ ] 8-tier recommendation badge (e.g., "ESSENTIAL CLASSIC")
+  - [ ] Context summary (2-3 sentences)
+  - [ ] Evidence bullets (3-5 points)
+  - [ ] Rating out of 10
+  - [ ] Key tracks (3-7 tracks)
   - [ ] Metadata (year, genre, label)
 
 ### History Test
@@ -114,9 +117,10 @@ Use a well-known album for testing:
 ### Error Handling Test
 - [ ] Enable airplane mode
 - [ ] Try to scan album
-- [ ] Error message appears
-- [ ] "TRY AGAIN" button works
-- [ ] Returns to camera view
+- [ ] Error banner appears at top (auto-dismisses in 3 seconds)
+- [ ] Camera returns to ready state
+- [ ] Disable airplane mode
+- [ ] Scan successfully completes
 
 ### Permission Test
 - [ ] Deny camera permission in Settings
@@ -142,9 +146,16 @@ These albums should identify easily:
 - **Problem**: Camera feed is black or frozen
 - **Solution**: Use physical device; simulator has limited camera support
 
-### API key not found
+### Cloud Functions not responding
+- **Problem**: "An unexpected error occurred" error
+- **Solution**:
+  1. Verify Cloud Functions deployed: `firebase deploy --only functions`
+  2. Check Firebase console for function logs
+  3. Ensure App Check is configured correctly
+
+### API key not found (Direct API mode)
 - **Problem**: "API key not configured" error
-- **Solution**: Verify environment variable is set in scheme
+- **Solution**: Verify `Secrets.plist` exists with `OPENAI_API_KEY` key
 
 ### Build errors
 - **Problem**: "Cannot find type in scope" errors
@@ -179,17 +190,19 @@ These albums should identify easily:
 
 ## 🔐 Security Checklist
 
-- [ ] API key NOT hardcoded in source
-- [ ] `.gitignore` includes `Secrets.plist`
-- [ ] `.gitignore` includes environment files
+- [ ] API keys stored in Firebase Secrets Manager (production)
+- [ ] `Secrets.plist` in `.gitignore` (development)
 - [ ] No sensitive data in git history
 - [ ] Camera permission properly described in Info.plist
+- [ ] Firebase App Check enabled and enforced
+- [ ] Rate limiting active (10 req/min/device)
 
 ## 📊 Performance Checklist
 
 - [ ] App launches in < 2 seconds
 - [ ] Camera feed starts immediately
-- [ ] API response in 3-10 seconds
+- [ ] ID Call 1 completes in 2-4 seconds
+- [ ] Full scan with review in 5-13 seconds
 - [ ] History scrolls smoothly
 - [ ] No memory leaks (test in Instruments)
 - [ ] Works on iOS 16.0+ devices
@@ -204,25 +217,25 @@ These albums should identify easily:
 - [ ] Loading states are clear
 - [ ] Error messages are helpful
 
-## ✨ Next Steps After MVP
+## ✨ Next Steps After Setup
 
-Once the MVP is working:
-1. Test with 20+ different albums
-2. Gather feedback from friends
-3. Refine UI based on usage
-4. Consider adding features from "Out of Scope" list
-5. Optimize API costs with caching
-6. Prepare for App Store submission
+Once the app is running:
+1. Test with 20+ different albums across genres
+2. Verify subscription flow works correctly
+3. Test error handling and edge cases
+4. Monitor Firebase console for function logs
+5. Check cost tracking in OpenAI dashboard
 
 ## 📚 Resources
 
-- [SETUP_GUIDE.md](SETUP_GUIDE.md) - Detailed setup instructions
-- [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) - Complete specification
+- [SETUP_GUIDE.md](SETUP_GUIDE.md) - Detailed Xcode setup instructions
+- [CLOUD_FUNCTIONS_SETUP.md](CLOUD_FUNCTIONS_SETUP.md) - Firebase deployment
+- [Project_Context/](Project_Context/) - Complete 11-document specification
 - [FILE_STRUCTURE.md](FILE_STRUCTURE.md) - Code organization
 - [README.md](README.md) - Project overview
 
 ---
 
-**Ready to build!** 🚀
+**Ready to build!**
 
 Start with Step 1 and work through each section. Good luck with your AlbumScan project!

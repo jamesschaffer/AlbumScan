@@ -1,9 +1,9 @@
 # AlbumScan - Project Context Documentation
 
-**Version:** 1.4 (Subscription Implementation)
-**Last Updated:** October 29, 2025
+**Version:** 1.6 (Firebase Cloud Functions + App Check)
+**Last Updated:** December 7, 2025
 **Platform:** iOS (Minimum iOS 16+)
-**Development Stack:** Swift + SwiftUI
+**Development Stack:** Swift + SwiftUI + Firebase Cloud Functions
 
 ---
 
@@ -73,14 +73,28 @@ Implemented freemium model: 10 free scans with Keychain persistence, $4.99/year 
 - Debug controls repositioned for cleaner screenshots
 - App submitted to iOS App Store for review
 
+### Version 1.6 (Firebase Cloud Functions + App Check - December 2025)
+**Backend security hardening:**
+- **Cloud Functions Proxy:** API keys removed from iOS app bundle
+- **Firebase App Check:** Device attestation via App Attest
+- **Rate Limiting:** 10 requests per minute per device
+- **Three Callable Functions:** `identifyAlbum`, `searchFinalizeAlbum`, `generateReview`
+
+**Architecture change:**
+- Default provider changed to `.cloudFunctions` (was `.openAI`)
+- Added `CloudFunctionsService.swift` for Firebase callable function integration
+- API keys now stored in Firebase Secrets Manager (server-side only)
+- Optional fallback to direct OpenAI API for development/debugging
+
 ---
 
-## CURRENT STATE (November 4, 2025)
+## CURRENT STATE (December 7, 2025)
 
-**Active Branch:** main
-**Production Branch:** main (two-tier subscription + App Store submission complete)
+**Active Branch:** event-directions
+**Production Branch:** main (Firebase Cloud Functions deployment complete)
+**API Architecture:** Firebase Cloud Functions proxy (secure, server-side API keys)
 **API Costs:** $0.10/day for 100 scans (98% reduction achieved)
-**App Status:** Submitted to App Store for review
+**App Status:** Published on App Store
 **Subscription Status:** Fully implemented with StoreKit 2 (Base + Ultra tiers)
 
 ---
@@ -131,16 +145,17 @@ Implemented freemium model: 10 free scans with Keychain persistence, $4.99/year 
 - **Version 1.3:** Cost optimization with regular `gpt-4o` for reviews (current implementation)
 - **Version 1.4:** Subscription monetization layer
 
-**Current Implementation (October 29, 2025):**
-- **API Provider:** OpenAI (not Claude)
-- **Architecture:** Two-tier identification system
-- **ID Call 1:** `gpt-4o` (no search capability)
-- **ID Call 2:** `gpt-4o-search-preview` (conditional, with search gate)
-- **Review Generation:** `gpt-4o` (no search capability)
+**Current Implementation (December 7, 2025):**
+- **API Provider:** Firebase Cloud Functions (proxies to OpenAI)
+- **Architecture:** Two-tier identification system with secure server-side API calls
+- **ID Call 1:** `gpt-4o` (no search capability) via `identifyAlbum` function
+- **ID Call 2:** `gpt-4o-search-preview` (conditional, with search gate) via `searchFinalizeAlbum` function
+- **Review Generation:** `gpt-4o` or `gpt-4o-search-preview` (based on Ultra tier) via `generateReview` function
 - **Cost per 100 scans:** $0.10/day
+- **Security:** API keys stored in Firebase Secrets Manager, never in app bundle
 
-**Status:** Table of contents now accurately reflects the current two-tier architecture and complete project evolution history
+**Status:** Table of contents now accurately reflects the current Cloud Functions architecture and complete project evolution history
 
 ---
 
-**Last Updated:** November 4, 2025
+**Last Updated:** December 7, 2025

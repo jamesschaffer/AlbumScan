@@ -71,77 +71,129 @@ Before App Store submission, create privacy policy explaining:
 
 ## Verification Summary
 
-**Document Accuracy:** This security and privacy document has been verified and updated to reflect the actual codebase implementation as of October 29, 2025.
+**Document Accuracy:** This security and privacy document has been verified and updated to reflect the actual codebase implementation as of December 7, 2025.
 
-**Major Corrections Made:**
+---
+
+## Version 1.6 Update: Firebase Cloud Functions Security
+
+### API Architecture Change (December 2025)
+
+**Current Production Architecture:** Firebase Cloud Functions proxy
+
+| Component | Change |
+|-----------|--------|
+| **API Keys** | Moved from app bundle to Firebase Secrets Manager |
+| **API Calls** | Routed through Firebase callable functions |
+| **Device Verification** | Firebase App Check with App Attest |
+| **Rate Limiting** | 10 requests/minute/device |
+
+### Cloud Functions Security Features
+
+**Server-Side API Key Storage:**
+- OpenAI API key stored in Firebase Secrets Manager
+- Key NEVER shipped in iOS app bundle (production)
+- Key retrieved server-side via `defineSecret("OPENAI_API_KEY")`
+- Development fallback: `Secrets.plist` (gitignored) for direct API mode
+
+**Firebase App Check:**
+- Device attestation via App Attest (iOS 14+)
+- Prevents unauthorized API access
+- Enforced on all Cloud Functions (`enforceAppCheck: true`)
+- Debug provider for development builds
+
+**Rate Limiting:**
+- 10 requests per minute per device
+- In-memory rate limiting (production could use Firestore)
+- Returns HTTP 429 on limit exceeded
+- Configurable via `RATE_LIMIT_MAX_REQUESTS` constant
+
+**Input Validation:**
+- Image size limit: 5MB maximum
+- Required field validation
+- Prevents abuse with oversized requests
+
+### Cloud Functions Deployed
+
+| Function | Purpose | Model | Security |
+|----------|---------|-------|----------|
+| `identifyAlbum` | ID Call 1 (vision) | gpt-4o | App Check + Rate Limit |
+| `searchFinalizeAlbum` | ID Call 2 (search) | gpt-4o-search-preview | App Check + Rate Limit |
+| `generateReview` | Review generation | gpt-4o or gpt-4o-search-preview | App Check + Rate Limit |
+| `healthCheck` | Monitoring | N/A | No Auth (health only) |
+
+### Data Flow (Cloud Functions Architecture)
+
+```
+1. User taps SCAN → Photo captured locally
+2. App Check token generated → Sent with request
+3. Cloud Function validates token → Checks rate limit
+4. Photo sent to Firebase → Cloud Function calls OpenAI API
+5. Response returned to app → Album identified
+6. If needed: Search finalization via `searchFinalizeAlbum`
+7. Album metadata sent to MusicBrainz → MBID retrieved (direct, no proxy)
+8. MBID sent to Cover Art Archive → Artwork URL retrieved (direct, no proxy)
+9. Review generated via `generateReview` function
+10. All data saved to CoreData locally
+```
+
+**Key Security Improvements:**
+- ✅ API keys never leave server
+- ✅ Device attestation prevents unauthorized access
+- ✅ Rate limiting prevents abuse
+- ✅ No credentials in iOS app bundle (production)
+
+---
+
+## Previous Version History
+
+**Major Corrections (October 2025):**
 
 1. **API Provider Update:**
-   - **Before:** "Anthropic Claude API"
-   - **After:** "OpenAI API"
-   - **Reason:** Complete migration from Claude to OpenAI completed in October 2025
+   - Migrated from Anthropic Claude API to OpenAI API
+   - Two-tier identification architecture implemented
 
 2. **API Key Management:**
-   - **Before:** Generic example with `CLAUDE_API_KEY`
-   - **After:** Updated to `OPENAI_API_KEY` with current implementation details
-   - **Added:** `Secrets.plist` implementation details
+   - Development: `Secrets.plist` (gitignored)
+   - Production: Firebase Secrets Manager (server-side only)
 
-3. **API Data Transmission:**
-   - **Before:** "Phase 1" and "Phase 2" terminology
-   - **After:** "ID Call 1", "ID Call 2 (conditional)", "Review Generation" terminology
-   - **Added:** Search-based identification clarification (10-20% of scans)
-   - **Added:** MusicBrainz and Cover Art Archive details (free public APIs)
-   - **Added:** TLS 1.2+ specification
-   - **Clarified:** No user accounts or authentication
+3. **Terminology Update:**
+   - "Phase 1/2" → "ID Call 1", "ID Call 2 (conditional)", "Review Generation"
 
-4. **Privacy Policy Section:**
-   - **Updated:** OpenAI API provider reference (not Anthropic)
-   - **Added:** MusicBrainz and Cover Art Archive usage disclosure
-   - **Added:** No user accounts clarification
-   - **Added:** Local-only history storage clarification
+---
 
-5. **Data Retention Section:**
-   - **Added:** New section covering data retention policies
-   - **OpenAI:** Reference to their data retention policies
-   - **MusicBrainz/Cover Art Archive:** No user data transmitted
-   - **Local device:** User controls all data
-
-**Security Implementation Verified:**
+**Security Implementation Verified (December 2025):**
 
 **API Key Storage:**
-- Stored in `Secrets.plist` (verified in Config.swift:18-19)
-- `Secrets.plist` added to .gitignore (verified in .gitignore file)
-- Template provided in repository with placeholder values
-- Keys loaded at runtime via `Config.swift`
+- Production: Firebase Secrets Manager (server-side)
+- Development: `Secrets.plist` (verified in Config.swift, gitignored)
+- Provider selection: `Config.currentProvider = .cloudFunctions` (default)
 
 **Data Privacy:**
 - ✅ No analytics or tracking implemented
 - ✅ No user behavior logging
 - ✅ No telemetry
 - ✅ CoreData local storage only (no cloud sync)
-- ✅ No third-party SDKs (besides OpenAI API client)
+- ✅ Firebase SDK for callable functions only (no Firestore, no Analytics)
 - ✅ Camera only used when user taps SCAN button
 - ✅ No photo library access
 
 **Network Security:**
-- ✅ All API calls use HTTPS (TLS 1.2+)
-- ✅ URLSession default configuration (App Transport Security enabled)
+- ✅ All API calls via Firebase Cloud Functions (HTTPS)
+- ✅ App Check token validation on every request
+- ✅ Rate limiting enforced server-side
+- ✅ TLS 1.2+ for all connections
 - ✅ No insecure HTTP connections
 
-**App Store Readiness:**
-- Privacy policy required before submission
-- Must disclose OpenAI API usage (data processing)
-- Must disclose camera usage (NSCameraUsageDescription in Info.plist)
-- Must disclose local data storage (CoreData)
-- No additional permissions required
+**App Store Status:**
+- ✅ Published on App Store
+- ✅ Privacy policy: docs/privacy-policy.html
+- ✅ Terms of service: docs/terms-of-service.html
+- ✅ Camera permission disclosed in Info.plist
+- ✅ API data transmission disclosed in privacy policy
 
-**Data Flow Summary:**
-1. User taps SCAN → Photo captured locally
-2. Photo sent to OpenAI API (ID Call 1) → Album identified
-3. If needed: Photo + query sent to OpenAI API (ID Call 2 with search)
-4. Album metadata sent to MusicBrainz → MBID retrieved
-5. MBID sent to Cover Art Archive → Artwork URL retrieved
-6. Album metadata sent to OpenAI API → Review generated
-7. All data (album + artwork + review) saved to CoreData locally
-8. No data leaves device except for API calls (identification, review, artwork)
+**Status:** Document accurately reflects current Firebase Cloud Functions architecture with server-side API key storage, App Check device attestation, and privacy-first design
 
-**Status:** Document accurately reflects current OpenAI API implementation, API key management via Secrets.plist, and privacy-first architecture with local-only data storage
+---
+
+**Last Updated:** December 7, 2025
