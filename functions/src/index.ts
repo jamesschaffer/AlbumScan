@@ -474,8 +474,9 @@ export const identifyAlbumGemini = onCall(
           },
         ],
         config: {
-          responseMimeType: "application/json",
+          // Note: Cannot use responseMimeType with tools, so we parse JSON manually
           maxOutputTokens: 2000,
+          tools: [{ googleSearch: {} }], // Enable search for visual recognition of text-sparse albums
         },
       });
 
