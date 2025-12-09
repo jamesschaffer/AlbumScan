@@ -1,11 +1,11 @@
 # PROJECT SUMMARY
 # AlbumScan - Music Album Discovery iOS App
 
-**Version:** 1.5 (Two-Tier Subscription & App Store Submission)
-**Last Updated:** November 4, 2025
+**Version:** 1.7 (Gemini Integration + Provider Selection)
+**Last Updated:** December 8, 2025
 **Platform:** iOS (Minimum iOS 16+)
-**Development Stack:** Swift + SwiftUI
-**Current API Provider:** OpenAI
+**Development Stack:** Swift + SwiftUI + Firebase Cloud Functions
+**Current API Providers:** OpenAI (default) or Gemini (user-selectable)
 
 ---
 
@@ -169,17 +169,23 @@ The app underwent major cost optimization in October 2025, achieving a **98% cos
 - CoreData for persistence
 
 **API Providers:**
-- **OpenAI** (primary LLM provider)
+- **OpenAI** (default LLM provider)
   - `gpt-4o` for identification (ID Call 1)
   - `gpt-4o-search-preview` for search finalization (ID Call 2, conditional)
   - `gpt-4o` for review generation (no search)
+- **Gemini** (alternative LLM provider - user selectable)
+  - `gemini-2.5-flash` for identification (ID Call 1)
+  - `gemini-2.5-flash` with Google Search grounding (ID Call 2)
+  - `gemini-2.5-flash` for review generation (± Google Search)
 - **MusicBrainz** (free album metadata)
 - **Cover Art Archive** (free album artwork)
+- **Firebase Cloud Functions** (secure API proxy)
 - **Firebase Remote Config** (kill switch, free tier)
 
-**Alternative Provider:**
-- Claude (Anthropic) - available via `LLMServiceFactory` but not currently active
-- Switch providers: `Config.currentProvider = .claude` or `.openAI`
+**Provider Selection:**
+- Users can switch between ChatGPT (OpenAI) and Gemini in Settings (DEBUG builds)
+- Runtime selection via `AppState.selectedProvider` persisted in UserDefaults
+- Legacy providers (Claude, direct API) available but not user-selectable
 
 **Storage:**
 - CoreData (local only, no cloud sync)
@@ -191,10 +197,11 @@ The app underwent major cost optimization in October 2025, achieving a **98% cos
 ## CURRENT STATE & NEXT STEPS
 
 **Production Status:**
-- Main branch: Two-tier subscription system fully implemented
-- App Store: Submitted for review (November 2025)
-- Current daily cost: $0.10 for 100 scans (98% reduction achieved)
-- OpenAI as primary provider
+- Main branch: v1.7 with Gemini integration and provider selection
+- App Store: Published (December 2025)
+- Current daily cost: $0.10 for 100 scans with OpenAI (98% reduction achieved)
+- Gemini provider: Estimated 70-80% additional savings when selected
+- Firebase Cloud Functions: 7 callable functions deployed (3 OpenAI + 3 Gemini + 1 healthCheck)
 
 **Subscription System (Implemented):**
 - Two-tier freemium model: Free (5 scans), Base ($4.99/year), Ultra ($11.99/year)
@@ -204,17 +211,17 @@ The app underwent major cost optimization in October 2025, achieving a **98% cos
 - Firebase Remote Config integration for kill switches
 - WelcomePurchaseSheet for onboarding and upsell
 
-**App Store Readiness (Complete):**
-- Privacy Policy and Terms of Service published (docs/privacy-policy.html, docs/terms-of-service.html)
-- Debug controls repositioned for cleaner screenshots
-- App Store Connect: Products configured (albumscan_base_annual, albumscan_ultra_annual)
-- App submitted to App Store for review
+**Gemini Integration (Implemented - December 2025):**
+- Provider toggle in Settings (DEBUG builds only during A/B testing)
+- 7 Cloud Functions supporting both OpenAI and Gemini backends
+- `AppState.selectedProvider` runtime selection
+- A/B testing metrics documented in `functions/AB_TESTING.md`
 
 **Next Steps:**
-- Monitor App Store review process
-- Real-world testing at record stores post-launch
-- Long-term cost monitoring to validate 98% savings
-- User feedback collection for v2.0 improvements
+- A/B testing to validate Gemini quality parity
+- Enable provider toggle for all users after quality validation
+- Long-term cost comparison: OpenAI vs Gemini
+- User feedback collection for provider preference
 
 ---
 
@@ -246,6 +253,12 @@ The app underwent major cost optimization in October 2025, achieving a **98% cos
    - Differentiator: Search capability (ID Call 2) only available in Ultra
    - Monthly limits prevent abuse while allowing generous usage (120 scans/month)
 
+6. **Multi-Provider Architecture (December 2025)**
+   - User-selectable AI backend: ChatGPT (OpenAI) or Gemini
+   - Firebase Cloud Functions proxy supports both providers seamlessly
+   - A/B testing infrastructure for quality comparison
+   - Estimated 70-80% cost savings when switching to Gemini
+
 ---
 
-**Document Purpose:** This summary provides an accurate snapshot of AlbumScan's current architecture, costs, and strategic direction as of November 4, 2025, reflecting the successful implementation of cost optimization strategies and two-tier subscription model ahead of App Store launch.
+**Document Purpose:** This summary provides an accurate snapshot of AlbumScan's current architecture, costs, and strategic direction as of December 8, 2025, reflecting v1.7 with Gemini integration, dual-provider support, and A/B testing capability.

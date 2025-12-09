@@ -2,8 +2,8 @@
 
 Complete file structure for the AlbumScan iOS project.
 
-**Last Updated:** December 7, 2025
-**Version:** 1.6 (Firebase Cloud Functions + App Check)
+**Last Updated:** December 8, 2025
+**Version:** 1.7 (Gemini Integration + Provider Selection)
 
 ```
 AlbumScan/
@@ -17,7 +17,7 @@ AlbumScan/
 ├── firebase.json                                ✅ Firebase project config
 ├── GoogleService-Info.plist                     ✅ Firebase iOS config
 │
-├── Project_Context/                             ✅ Complete specification (11 files)
+├── Project_Context/                             ✅ Complete specification (13 files)
 │   ├── 00_project_context.md                   ✅ Table of contents + version history
 │   ├── 01_summary.md                           ✅ Project overview
 │   ├── 02_user_personas.md                     ✅ Target users
@@ -28,14 +28,22 @@ AlbumScan/
 │   ├── 07_ux.md                                ✅ UX principles
 │   ├── 08_qa.md                                ✅ Testing strategy
 │   ├── 09_security_privacy.md                  ✅ Security & privacy
-│   └── 10_prompt_management.md                 ✅ Prompt engineering
+│   ├── 10_prompt_management.md                 ✅ Prompt engineering
+│   ├── 11_gemini_api_analysis.md               ✅ Gemini API evaluation
+│   └── 12_gemini_integration_plan.md           ✅ Gemini implementation (DONE)
 │
 ├── functions/                                   ✅ Firebase Cloud Functions
 │   ├── src/
-│   │   └── index.ts                            ✅ Cloud Functions (TypeScript)
+│   │   ├── index.ts                            ✅ Cloud Functions (7 functions)
+│   │   ├── utils/
+│   │   │   └── gemini-helpers.ts               ✅ Gemini API helpers
+│   │   └── __tests__/
+│   │       └── gemini-helpers.test.ts          ✅ Gemini unit tests
 │   ├── lib/                                    ✅ Compiled JavaScript
 │   ├── package.json                            ✅ Node dependencies
 │   ├── tsconfig.json                           ✅ TypeScript config
+│   ├── jest.config.js                          ✅ Jest test config
+│   ├── AB_TESTING.md                           ✅ A/B testing metrics guide
 │   └── .eslintrc.js                            ✅ ESLint config
 │
 ├── website/                                     ✅ Marketing website
@@ -218,19 +226,21 @@ AlbumScan/
 - ViewModels: AppState, CameraManager
 - Models: Album, ScanState, Response models
 
-**API Architecture (Three Providers)**:
-1. **CloudFunctionsService** (DEFAULT): Secure Firebase callable functions
+**API Architecture (Four Providers)**:
+1. **CloudFunctionsService** (DEFAULT): Secure Firebase callable functions (OpenAI or Gemini backend)
 2. **OpenAIAPIService**: Direct API calls (development fallback)
 3. **ClaudeAPIService**: Legacy backup provider
+4. **GeminiService** (via CloudFunctions): Gemini 2.5 Flash backend (user-selectable)
 
 **Two-Tier Identification Flow**:
 1. User taps SCAN → CameraManager captures photo
-2. CameraManager → CloudFunctionsService → `identifyAlbum` function
-3. If searchNeeded + passes search gate → `searchFinalizeAlbum` function
-4. After identification → Artwork retrieval (MusicBrainz + Cover Art Archive)
-5. Cache check → If miss: `generateReview` function
-6. Response → PersistenceController → CoreData
-7. CoreData → SwiftUI views (via @FetchRequest or @Published)
+2. CameraManager checks `AppState.selectedProvider` (OpenAI or Gemini)
+3. CameraManager → CloudFunctionsService → `identifyAlbum` or `identifyAlbumGemini`
+4. If searchNeeded + passes search gate → `searchFinalizeAlbum` or `searchFinalizeAlbumGemini`
+5. After identification → Artwork retrieval (MusicBrainz + Cover Art Archive)
+6. Cache check → If miss: `generateReview` or `generateReviewGemini`
+7. Response → PersistenceController → CoreData
+8. CoreData → SwiftUI views (via @FetchRequest or @Published)
 
 **Navigation Flow**:
 ```
@@ -256,8 +266,13 @@ iOS App → App Check Token → Cloud Functions → Firebase Secrets → OpenAI 
 
 ---
 
-**Status**: ✅ Production iOS app published on App Store
+**Status**: ✅ Production iOS app published on App Store (v1.7)
 
-**Current Implementation**: Firebase Cloud Functions (secure proxy to OpenAI) with 98% cost reduction
+**Current Implementation**: Firebase Cloud Functions with dual-provider support (OpenAI + Gemini)
 
-**API Provider**: `.cloudFunctions` (configurable in Config.swift)
+**API Provider**: `.cloudFunctions` default, with user-selectable backend (OpenAI or Gemini via Settings)
+
+**Cloud Functions Deployed** (7 total):
+- OpenAI: `identifyAlbum`, `searchFinalizeAlbum`, `generateReview`
+- Gemini: `identifyAlbumGemini`, `searchFinalizeAlbumGemini`, `generateReviewGemini`
+- Utility: `healthCheck`
