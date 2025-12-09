@@ -253,6 +253,34 @@ struct AlbumDetailsView: View {
                                 }
                                 .padding(.top, 8)
                             }
+
+                            // Reviews Section
+                            if !album.reviewURLs.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("📰 Reviews")
+                                        .font(
+                                            Font.custom("Helvetica Neue", size: albumTitleFontSize)
+                                                .weight(.bold)
+                                        )
+                                        .foregroundColor(albumTitleColor)
+
+                                    ForEach(album.reviewURLs, id: \.self) { urlString in
+                                        if let url = URL(string: urlString) {
+                                            Link(destination: url) {
+                                                HStack(spacing: 4) {
+                                                    Text("🔗")
+                                                    Text(extractDomain(from: urlString))
+                                                        .font(Font.custom("Helvetica Neue", size: bodyTextFontSize).weight(.bold))
+                                                        .underline()
+                                                }
+                                                .foregroundColor(.black)
+                                            }
+                                            .padding(.leading, listItemIndent)
+                                        }
+                                    }
+                                }
+                                .padding(.top, 8)
+                            }
                         }
                     }
 
@@ -356,6 +384,17 @@ struct AlbumDetailsView: View {
         default:
             return Color(red: 0.85, green: 0.85, blue: 0.85) // Light gray
         }
+    }
+
+    // MARK: - URL Domain Extractor
+
+    private func extractDomain(from urlString: String) -> String {
+        guard let url = URL(string: urlString),
+              let host = url.host else {
+            return urlString
+        }
+        // Remove "www." prefix if present
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
     }
 
     // MARK: - Markdown Link Parser
