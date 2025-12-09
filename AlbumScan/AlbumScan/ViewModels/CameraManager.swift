@@ -661,7 +661,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 phase2Failed: finalPhase2Result.failed,
                 musicbrainzID: finalArtworkResult.mbid,
                 artworkData: finalArtworkResult.data,
-                artworkFailed: finalArtworkResult.failed
+                artworkFailed: finalArtworkResult.failed,
+                relations: finalArtworkResult.relations
             )
 
             // Complete
@@ -953,7 +954,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 phase2Failed: finalPhase2Result.failed,
                 musicbrainzID: finalArtworkResult.mbid,
                 artworkData: finalArtworkResult.data,
-                artworkFailed: finalArtworkResult.failed
+                artworkFailed: finalArtworkResult.failed,
+                relations: finalArtworkResult.relations
             )
 
             let saveTime = Date().timeIntervalSince(saveStart)
@@ -1034,7 +1036,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         }
     }
 
-    private func executeArtworkFetch(artistName: String, albumTitle: String) async -> (mbid: String?, data: (highRes: Data?, thumbnail: Data?)?, failed: Bool) {
+    private func executeArtworkFetch(artistName: String, albumTitle: String) async -> (mbid: String?, data: (highRes: Data?, thumbnail: Data?)?, failed: Bool, relations: ReleaseGroupRelationsResult?) {
         let artStart = Date()
         print("   ├─ 🎨 [ARTWORK] Fetch")
 
@@ -1046,11 +1048,26 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 let mbTime = Date().timeIntervalSince(mbStart)
                 print("   │  │  ✅ Found MBID (\(String(format: "%.2f", mbTime))s)")
 
-                // Step 2: Cover Art Archive download
+                // Step 2: Cover Art Archive download (separate service, no rate limit issue)
                 let artDownloadStart = Date()
                 print("   │  └─ 📥 Cover Art download...")
                 let artwork = await CoverArtService.shared.retrieveArtwork(mbid: mbid)
                 let artDownloadTime = Date().timeIntervalSince(artDownloadStart)
+
+                // Step 3: Fetch release-group relations (singles + review URLs)
+                // Natural delay from Cover Art download typically satisfies 1 req/sec rate limit
+                let relationsStart = Date()
+                print("   │  └─ 🔗 MusicBrainz relations...")
+                var relations: ReleaseGroupRelationsResult?
+                do {
+                    relations = try await MusicBrainzService.shared.fetchReleaseGroupRelations(mbid: mbid)
+                    let relationsTime = Date().timeIntervalSince(relationsStart)
+                    print("   │     ✅ Relations fetched (\(String(format: "%.2f", relationsTime))s)")
+                    print("   │     Singles: \(relations?.singles.count ?? 0), Reviews: \(relations?.reviewURLs.count ?? 0)")
+                } catch {
+                    print("   │     ⚠️ Relations fetch failed: \(error.localizedDescription)")
+                    // Non-blocking - continue without relations
+                }
 
                 let artTime = Date().timeIntervalSince(artStart)
 
@@ -1065,22 +1082,22 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                         }
                     }
 
-                    return (mbid, artwork, false)
+                    return (mbid, artwork, false, relations)
                 } else {
                     print("⚠️ [TWO-TIER Artwork] No artwork available")
-                    return (mbid, nil, true)
+                    return (mbid, nil, true, relations)
                 }
             } else {
                 print("⚠️ [TWO-TIER Artwork] Album not found on MusicBrainz")
-                return (nil, nil, true)
+                return (nil, nil, true, nil)
             }
         } catch {
             print("❌ [TWO-TIER Artwork] Error: \(error.localizedDescription)")
-            return (nil, nil, true)
+            return (nil, nil, true, nil)
         }
     }
 
-    private func saveTwoTierAlbum(phase1: Phase1Response, phase2: Phase2Response?, phase2Failed: Bool, musicbrainzID: String?, artworkData: (highRes: Data?, thumbnail: Data?)?, artworkFailed: Bool) async throws -> Album {
+    private func saveTwoTierAlbum(phase1: Phase1Response, phase2: Phase2Response?, phase2Failed: Bool, musicbrainzID: String?, artworkData: (highRes: Data?, thumbnail: Data?)?, artworkFailed: Bool, relations: ReleaseGroupRelationsResult?) async throws -> Album {
         print("💾 [TWO-TIER Save] Saving to CoreData...")
 
         // This will need a new save function in PersistenceController
@@ -1103,7 +1120,6 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             album.contextBulletPoints = phase2.contextBullets
             album.rating = phase2.rating
             album.recommendation = phase2.recommendation
-            album.keyTracks = phase2.keyTracks
             album.phase2Completed = true
             album.phase2Failed = false
         } else {
@@ -1111,10 +1127,22 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             album.contextBulletPoints = []
             album.rating = 0.0
             album.recommendation = "SKIP"
-            album.keyTracks = []
             album.phase2Completed = false
             album.phase2Failed = phase2Failed
             album.phase2LastAttempt = Date()
+        }
+
+        // MusicBrainz relations data (singles as key tracks, review URLs)
+        if let relations = relations {
+            // Use singles from MusicBrainz as key tracks (replaces LLM-generated)
+            album.keyTracks = relations.singles
+            album.reviewURLs = relations.reviewURLs
+            print("💾 [TWO-TIER Save] Key tracks from MB: \(relations.singles)")
+            print("💾 [TWO-TIER Save] Review URLs: \(relations.reviewURLs)")
+        } else {
+            // Fallback to LLM key tracks if MusicBrainz relations unavailable
+            album.keyTracks = phase2?.keyTracks ?? []
+            album.reviewURLs = []
         }
 
         // Artwork data

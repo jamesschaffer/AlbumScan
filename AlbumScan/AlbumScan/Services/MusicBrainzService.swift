@@ -30,6 +30,46 @@ struct ReleaseGroup: Codable {
     let title: String?
 }
 
+// MARK: - Release Group Relations Response Models
+
+struct ReleaseGroupRelationsResponse: Codable {
+    let id: String
+    let title: String?
+    let relations: [Relation]?
+}
+
+struct Relation: Codable {
+    let type: String
+    let url: RelationURL?
+    let releaseGroup: RelatedReleaseGroup?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case url
+        case releaseGroup = "release_group"  // Note: underscore, not hyphen
+    }
+}
+
+struct RelationURL: Codable {
+    let resource: String
+}
+
+struct RelatedReleaseGroup: Codable {
+    let title: String
+    let firstReleaseDate: String?
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case firstReleaseDate = "first-release-date"
+    }
+}
+
+/// Result from fetching release-group relations
+struct ReleaseGroupRelationsResult {
+    let singles: [String]
+    let reviewURLs: [String]
+}
+
 struct ArtistCredit: Codable {
     let name: String
     let artist: Artist?
@@ -228,6 +268,73 @@ class MusicBrainzService {
         } catch {
             return false
         }
+    }
+
+    // MARK: - Release Group Relations
+
+    /// Fetch singles and review URLs for a release-group
+    /// This is a separate call that can run in parallel with other operations
+    func fetchReleaseGroupRelations(mbid: String) async throws -> ReleaseGroupRelationsResult {
+        #if DEBUG
+        print("🔗 [MusicBrainz] Fetching relations for release-group: \(mbid)")
+        #endif
+
+        // Construct URL: /ws/2/release-group/<MBID>?inc=release-group-rels+url-rels&fmt=json
+        guard var components = URLComponents(string: "\(baseURL)/release-group/\(mbid)") else {
+            throw MusicBrainzError.invalidURL
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "inc", value: "release-group-rels+url-rels"),
+            URLQueryItem(name: "fmt", value: "json")
+        ]
+
+        guard let url = components.url else {
+            throw MusicBrainzError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 10.0
+
+        #if DEBUG
+        print("🔗 [MusicBrainz] Relations URL: \(url.absoluteString)")
+        #endif
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw MusicBrainzError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw MusicBrainzError.httpError(httpResponse.statusCode)
+        }
+
+        let relationsResponse = try JSONDecoder().decode(ReleaseGroupRelationsResponse.self, from: data)
+
+        // Extract singles (type == "single from")
+        var singles: [String] = []
+        if let relations = relationsResponse.relations {
+            singles = relations
+                .filter { $0.type == "single from" && $0.releaseGroup != nil }
+                .compactMap { $0.releaseGroup?.title }
+        }
+
+        // Extract review URLs (type == "review")
+        var reviewURLs: [String] = []
+        if let relations = relationsResponse.relations {
+            reviewURLs = relations
+                .filter { $0.type == "review" && $0.url != nil }
+                .compactMap { $0.url?.resource }
+        }
+
+        #if DEBUG
+        print("🔗 [MusicBrainz] Found \(singles.count) singles: \(singles)")
+        print("🔗 [MusicBrainz] Found \(reviewURLs.count) review URLs: \(reviewURLs)")
+        #endif
+
+        return ReleaseGroupRelationsResult(singles: singles, reviewURLs: reviewURLs)
     }
 
     /// Get sorted candidates using existing matching logic (extracted for reuse)

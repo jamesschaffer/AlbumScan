@@ -16,6 +16,7 @@ public class Album: NSManagedObject, Identifiable {
     @NSManaged public var rating: Double
     @NSManaged public var recommendation: String
     @NSManaged public var keyTracksData: Data?
+    @NSManaged public var reviewURLsData: Data?
 
     // Album Art
     @NSManaged public var albumArtData: Data? // Legacy field - kept for backward compatibility
@@ -69,6 +70,16 @@ public class Album: NSManagedObject, Identifiable {
         }
         set {
             keyTracksData = try? JSONEncoder().encode(newValue)
+        }
+    }
+
+    var reviewURLs: [String] {
+        get {
+            guard let data = reviewURLsData else { return [] }
+            return (try? JSONDecoder().decode([String].self, from: data)) ?? []
+        }
+        set {
+            reviewURLsData = try? JSONEncoder().encode(newValue)
         }
     }
 
