@@ -24,14 +24,14 @@ AlbumScan is an iOS app that helps music collectors identify albums and understa
 - **UI Framework**: SwiftUI
 - **Data Storage**: CoreData
 - **Backend**: Firebase Cloud Functions (secure API proxy)
-- **API Provider**: OpenAI (gpt-4o, gpt-4o-search-preview)
+- **API Provider**: OpenAI or Gemini (user-selectable via Settings)
 - **Security**: Firebase App Check with App Attest
 
 ## Project Structure
 
 ```
 AlbumScan/
-├── Project_Context/                  # Complete specification (11 files)
+├── Project_Context/                  # Complete specification (13 files)
 ├── functions/                        # Firebase Cloud Functions (TypeScript)
 ├── website/                          # Marketing website
 ├── docs/                             # Legal documentation
@@ -138,7 +138,7 @@ See `docs/privacy-policy.html` for full privacy policy.
 
 ## Documentation
 
-Complete specification available in `Project_Context/` directory:
+Complete specification available in `Project_Context/` directory (13 files):
 - 00: Table of contents and version history
 - 01-03: Project overview, personas, features
 - 04-05: User flows and screen architecture
@@ -146,6 +146,8 @@ Complete specification available in `Project_Context/` directory:
 - 07: UX principles and design patterns
 - 08-09: Testing and security
 - 10: Prompt management
+- 11: Gemini API analysis
+- 12: Gemini integration plan (implemented)
 
 ## License
 

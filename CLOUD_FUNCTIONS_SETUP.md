@@ -50,12 +50,19 @@ gcloud services enable secretmanager.googleapis.com --project=albumscan-18308
 gcloud services enable cloudfunctions.googleapis.com --project=albumscan-18308
 ```
 
-### Step 4: Set the OpenAI API Key Secret
+### Step 4: Set API Key Secrets
 
+**OpenAI API Key (required):**
 ```bash
 cd functions
 firebase functions:secrets:set OPENAI_API_KEY
 # Paste your OpenAI API key when prompted (input is hidden)
+```
+
+**Gemini API Key (required for Gemini provider):**
+```bash
+firebase functions:secrets:set GEMINI_API_KEY
+# Paste your Google AI API key when prompted (input is hidden)
 ```
 
 ### Step 5: Upgrade to Blaze Plan (if needed)
@@ -79,6 +86,9 @@ Expected output:
 ✔ functions[identifyAlbum]: Successful create operation.
 ✔ functions[searchFinalizeAlbum]: Successful create operation.
 ✔ functions[generateReview]: Successful create operation.
+✔ functions[identifyAlbumGemini]: Successful create operation.
+✔ functions[searchFinalizeAlbumGemini]: Successful create operation.
+✔ functions[generateReviewGemini]: Successful create operation.
 ✔ functions[healthCheck]: Successful create operation.
 ```
 
@@ -129,14 +139,26 @@ functions.useEmulator(withHost: "localhost", port: 5001)
 2. Scan an album
 3. Check Firebase Console → Functions → Logs for activity
 
-## Deployed Functions
+## Deployed Functions (7 Total)
 
-| Function | Purpose | Endpoint |
-|----------|---------|----------|
-| `identifyAlbum` | ID Call 1 - Vision identification | Callable |
-| `searchFinalizeAlbum` | ID Call 2 - Web search fallback | Callable |
-| `generateReview` | Review generation | Callable |
-| `healthCheck` | Service health monitoring | Callable |
+### OpenAI Functions
+| Function | Purpose | Model |
+|----------|---------|-------|
+| `identifyAlbum` | ID Call 1 - Vision identification | gpt-4o |
+| `searchFinalizeAlbum` | ID Call 2 - Web search fallback | gpt-4o-search-preview |
+| `generateReview` | Review generation | gpt-4o (± search) |
+
+### Gemini Functions
+| Function | Purpose | Model |
+|----------|---------|-------|
+| `identifyAlbumGemini` | ID Call 1 - Vision identification | gemini-2.5-flash |
+| `searchFinalizeAlbumGemini` | ID Call 2 - Google Search grounding | gemini-2.5-flash |
+| `generateReviewGemini` | Review generation | gemini-2.5-flash (± grounding) |
+
+### Utility Functions
+| Function | Purpose | Auth |
+|----------|---------|------|
+| `healthCheck` | Service health monitoring | None |
 
 ## Monitoring
 

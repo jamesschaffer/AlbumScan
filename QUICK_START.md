@@ -15,7 +15,7 @@ Follow this checklist to get your AlbumScan project up and running.
 
 ### Step 1: Review Project Documentation
 - [ ] Read `README.md` for project overview
-- [ ] Read `Project_Context/` directory for complete specification
+- [ ] Read `Project_Context/` directory for complete specification (13 files)
 - [ ] Read `FILE_STRUCTURE.md` to understand code organization
 
 ### Step 2: Create Xcode Project
@@ -52,8 +52,10 @@ Choose one method:
 
 **Option A: Cloud Functions (Production - Recommended)**
 - [ ] Follow `CLOUD_FUNCTIONS_SETUP.md` for deployment
-- [ ] Set OpenAI API key in Firebase Secrets: `firebase functions:secrets:set OPENAI_API_KEY`
+- [ ] Set OpenAI API key: `firebase functions:secrets:set OPENAI_API_KEY`
+- [ ] Set Gemini API key: `firebase functions:secrets:set GEMINI_API_KEY`
 - [ ] Ensure `Config.currentProvider = .cloudFunctions` in Config.swift
+- [ ] Provider toggle in Settings allows switching between OpenAI and Gemini
 
 **Option B: Direct API (Development Only)**
 - [ ] Create `Secrets.plist` file with `OPENAI_API_KEY`
@@ -230,7 +232,7 @@ Once the app is running:
 
 - [SETUP_GUIDE.md](SETUP_GUIDE.md) - Detailed Xcode setup instructions
 - [CLOUD_FUNCTIONS_SETUP.md](CLOUD_FUNCTIONS_SETUP.md) - Firebase deployment
-- [Project_Context/](Project_Context/) - Complete 11-document specification
+- [Project_Context/](Project_Context/) - Complete 13-document specification
 - [FILE_STRUCTURE.md](FILE_STRUCTURE.md) - Code organization
 - [README.md](README.md) - Project overview
 

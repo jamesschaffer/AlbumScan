@@ -1,7 +1,7 @@
 # AlbumScan - Project Context Documentation
 
-**Version:** 1.6 (Firebase Cloud Functions + App Check)
-**Last Updated:** December 7, 2025
+**Version:** 1.7 (Gemini Integration + Provider Selection)
+**Last Updated:** December 8, 2025
 **Platform:** iOS (Minimum iOS 16+)
 **Development Stack:** Swift + SwiftUI + Firebase Cloud Functions
 
@@ -38,6 +38,12 @@ API key management, data privacy policies, and privacy-first architecture docume
 
 ### **10_prompt_management.md** - Prompt Engineering Strategy
 AI prompt file management, version control strategy, and cost optimization through prompt engineering.
+
+### **11_gemini_api_analysis.md** - Gemini API Analysis
+Technical evaluation of Google Gemini API as an alternative to OpenAI, including capability comparison and cost analysis.
+
+### **12_gemini_integration_plan.md** - Gemini Integration Plan (IMPLEMENTED)
+Implementation plan for user-facing provider toggle between ChatGPT and Gemini. Status: Implemented in v1.7.
 
 ---
 
@@ -86,9 +92,27 @@ Implemented freemium model: 10 free scans with Keychain persistence, $4.99/year 
 - API keys now stored in Firebase Secrets Manager (server-side only)
 - Optional fallback to direct OpenAI API for development/debugging
 
+### Version 1.7 (Gemini Integration + Provider Selection - December 2025)
+**User-facing AI provider toggle (A/B Testing):**
+- **Provider Selection:** Users can switch between ChatGPT (OpenAI) and Gemini
+- **Seven Callable Functions:** Added Gemini variants for all API calls
+  - OpenAI: `identifyAlbum`, `searchFinalizeAlbum`, `generateReview`
+  - Gemini: `identifyAlbumGemini`, `searchFinalizeAlbumGemini`, `generateReviewGemini`
+  - Utility: `healthCheck`
+- **Config.swift Updates:** `LLMProvider` enum with `.openAI` and `.gemini` selectable options
+- **AppState.selectedProvider:** Runtime provider selection persisted in UserDefaults
+- **Settings Toggle:** AI Engine toggle in Settings (DEBUG builds only for now)
+- **Gemini Model:** `gemini-2.5-flash` with Google Search grounding for ID Call 2
+
+**Implementation Status:**
+- ✅ Backend Cloud Functions deployed
+- ✅ iOS provider routing implemented
+- ✅ A/B testing infrastructure ready
+- ⚠️ Provider toggle UI: DEBUG builds only (awaiting quality validation)
+
 ---
 
-## CURRENT STATE (December 7, 2025)
+## CURRENT STATE (December 8, 2025)
 
 **Active Branch:** event-directions
 **Production Branch:** main (Firebase Cloud Functions deployment complete)
@@ -145,17 +169,22 @@ Implemented freemium model: 10 free scans with Keychain persistence, $4.99/year 
 - **Version 1.3:** Cost optimization with regular `gpt-4o` for reviews (current implementation)
 - **Version 1.4:** Subscription monetization layer
 
-**Current Implementation (December 7, 2025):**
-- **API Provider:** Firebase Cloud Functions (proxies to OpenAI)
+**Current Implementation (December 8, 2025):**
+- **API Provider:** Firebase Cloud Functions with selectable backend (OpenAI or Gemini)
 - **Architecture:** Two-tier identification system with secure server-side API calls
-- **ID Call 1:** `gpt-4o` (no search capability) via `identifyAlbum` function
-- **ID Call 2:** `gpt-4o-search-preview` (conditional, with search gate) via `searchFinalizeAlbum` function
-- **Review Generation:** `gpt-4o` or `gpt-4o-search-preview` (based on Ultra tier) via `generateReview` function
-- **Cost per 100 scans:** $0.10/day
+- **OpenAI Functions:**
+  - ID Call 1: `gpt-4o` (no search capability) via `identifyAlbum` function
+  - ID Call 2: `gpt-4o-search-preview` (conditional, with search gate) via `searchFinalizeAlbum` function
+  - Review: `gpt-4o` or `gpt-4o-search-preview` (based on Ultra tier) via `generateReview` function
+- **Gemini Functions:**
+  - ID Call 1: `gemini-2.5-flash` via `identifyAlbumGemini` function
+  - ID Call 2: `gemini-2.5-flash` with Google Search grounding via `searchFinalizeAlbumGemini` function
+  - Review: `gemini-2.5-flash` (± Google Search) via `generateReviewGemini` function
+- **Cost per 100 scans:** $0.10/day (OpenAI), estimated 70-80% lower with Gemini
 - **Security:** API keys stored in Firebase Secrets Manager, never in app bundle
 
-**Status:** Table of contents now accurately reflects the current Cloud Functions architecture and complete project evolution history
+**Status:** Table of contents now accurately reflects v1.7 architecture with dual-provider support and complete project evolution history
 
 ---
 
-**Last Updated:** December 7, 2025
+**Last Updated:** December 8, 2025
