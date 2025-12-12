@@ -11,7 +11,6 @@ class OpenAIAPIService: LLMService {
     private let identificationPrompt: String
     private let searchFinalizationPrompt: String
     private let reviewPrompt: String
-    private let reviewUltraPrompt: String
 
     private init() {
         self.apiKey = Config.openAIAPIKey
@@ -29,10 +28,6 @@ class OpenAIAPIService: LLMService {
             fatalError("❌ Could not find album_review.txt in bundle")
         }
 
-        guard let reviewUltraURL = Bundle.main.url(forResource: "album_review_ultra", withExtension: "txt") else {
-            fatalError("❌ Could not find album_review_ultra.txt in bundle")
-        }
-
         guard let identificationContent = try? String(contentsOf: identificationURL) else {
             fatalError("❌ Could not read single_prompt_identification.txt")
         }
@@ -45,20 +40,14 @@ class OpenAIAPIService: LLMService {
             fatalError("❌ Could not read album_review.txt")
         }
 
-        guard let reviewUltraContent = try? String(contentsOf: reviewUltraURL) else {
-            fatalError("❌ Could not read album_review_ultra.txt")
-        }
-
         self.identificationPrompt = identificationContent
         self.searchFinalizationPrompt = searchContent
         self.reviewPrompt = reviewContent
-        self.reviewUltraPrompt = reviewUltraContent
 
         #if DEBUG
         print("✅ [OpenAIAPIService] Loaded identification prompt from bundle")
         print("✅ [OpenAIAPIService] Loaded search finalization prompt from bundle")
         print("✅ [OpenAIAPIService] Loaded review prompt from bundle")
-        print("✅ [OpenAIAPIService] Loaded Ultra review prompt from bundle")
         #endif
     }
 
@@ -178,33 +167,30 @@ class OpenAIAPIService: LLMService {
         return try parseIdentificationResponse(from: apiResponse)
     }
 
-    // MARK: - Review Generation (with AlbumScan Ultra support)
+    // MARK: - Review Generation (with web search)
 
     func generateReviewPhase2(
         artistName: String,
         albumTitle: String,
         releaseYear: String,
         genres: [String],
-        recordLabel: String,
-        searchEnabled: Bool = false
+        recordLabel: String
     ) async throws -> Phase2Response {
         #if DEBUG
         print("🔑 [OpenAI Review] Starting review generation...")
-        print("🔍 [AlbumScan Ultra] Search enabled: \(searchEnabled)")
         #endif
 
-        // Choose prompt and model based on Ultra toggle
-        let selectedPrompt = searchEnabled ? reviewUltraPrompt : reviewPrompt
-        let model = searchEnabled ? "gpt-4o-search-preview" : "gpt-4o"
+        // Use search-enabled model for reviews
+        let model = "gpt-4o-search-preview"
 
         #if DEBUG
-        print("📝 [OpenAI Review] Using prompt: \(searchEnabled ? "album_review_ultra.txt" : "album_review.txt")")
+        print("📝 [OpenAI Review] Using prompt: album_review.txt")
         print("🤖 [OpenAI Review] Using model: \(model)")
         #endif
 
         // Build prompt with album data
         let genresString = genres.joined(separator: ", ")
-        let prompt = selectedPrompt
+        let prompt = reviewPrompt
             .replacingOccurrences(of: "{artistName}", with: artistName)
             .replacingOccurrences(of: "{albumTitle}", with: albumTitle)
             .replacingOccurrences(of: "{releaseYear}", with: releaseYear)

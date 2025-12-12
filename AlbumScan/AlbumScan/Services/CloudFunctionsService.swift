@@ -20,7 +20,6 @@ class CloudFunctionsService: LLMService {
     private let identificationPrompt: String
     private let searchFinalizationPrompt: String
     private let reviewPrompt: String
-    private let reviewUltraPrompt: String
 
     private init() {
         // Initialize Firebase Functions
@@ -45,10 +44,6 @@ class CloudFunctionsService: LLMService {
             fatalError("❌ Could not find album_review.txt in bundle")
         }
 
-        guard let reviewUltraURL = Bundle.main.url(forResource: "album_review_ultra", withExtension: "txt") else {
-            fatalError("❌ Could not find album_review_ultra.txt in bundle")
-        }
-
         guard let identificationContent = try? String(contentsOf: identificationURL) else {
             fatalError("❌ Could not read single_prompt_identification.txt")
         }
@@ -61,14 +56,9 @@ class CloudFunctionsService: LLMService {
             fatalError("❌ Could not read album_review.txt")
         }
 
-        guard let reviewUltraContent = try? String(contentsOf: reviewUltraURL) else {
-            fatalError("❌ Could not read album_review_ultra.txt")
-        }
-
         self.identificationPrompt = identificationContent
         self.searchFinalizationPrompt = searchContent
         self.reviewPrompt = reviewContent
-        self.reviewUltraPrompt = reviewUltraContent
 
         #if DEBUG
         print("✅ [CloudFunctionsService] Initialized with Firebase Functions")
@@ -233,31 +223,26 @@ class CloudFunctionsService: LLMService {
         albumTitle: String,
         releaseYear: String,
         genres: [String],
-        recordLabel: String,
-        searchEnabled: Bool = false
+        recordLabel: String
     ) async throws -> Phase2Response {
         #if DEBUG
         print("🔑 [CloudFunctions Review] Starting review generation...")
-        print("🔍 [AlbumScan Ultra] Search enabled: \(searchEnabled)")
         print("🤖 [CloudFunctions Review] Provider: \(currentProvider.displayName)")
         #endif
 
-        // Choose prompt based on Ultra toggle
-        let selectedPrompt = searchEnabled ? reviewUltraPrompt : reviewPrompt
-
         // Build prompt with album data
         let genresString = genres.joined(separator: ", ")
-        let prompt = selectedPrompt
+        let prompt = reviewPrompt
             .replacingOccurrences(of: "{artistName}", with: artistName)
             .replacingOccurrences(of: "{albumTitle}", with: albumTitle)
             .replacingOccurrences(of: "{releaseYear}", with: releaseYear)
             .replacingOccurrences(of: "{genres}", with: genresString)
             .replacingOccurrences(of: "{recordLabel}", with: recordLabel)
 
-        // Prepare data for Cloud Function
+        // Prepare data for Cloud Function (always enable search)
         let data: [String: Any] = [
             "prompt": prompt,
-            "useSearch": searchEnabled
+            "useSearch": true
         ]
 
         // Call Cloud Function (routes to OpenAI or Gemini based on provider)
