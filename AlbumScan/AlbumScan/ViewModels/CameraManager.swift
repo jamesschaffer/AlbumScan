@@ -1003,10 +1003,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
     private func executePhase2(artistName: String, albumTitle: String, releaseYear: String, genres: [String], recordLabel: String) async -> (response: Phase2Response?, failed: Bool) {
         let phase2Start = Date()
-        let searchEnabled = subscriptionManager?.subscriptionTier == .ultra
 
         print("   ├─ 📝 [PHASE 2] Review Generation")
-        print("   │  Tier: \(searchEnabled ? "Ultra (with search)" : "Base (no search)")")
 
         do {
             #if DEBUG
@@ -1019,8 +1017,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 albumTitle: albumTitle,
                 releaseYear: releaseYear,
                 genres: genres,
-                recordLabel: recordLabel,
-                searchEnabled: searchEnabled
+                recordLabel: recordLabel
             )
             let phase2Time = Date().timeIntervalSince(phase2Start)
             print("   │  ✅ Complete (\(String(format: "%.2f", phase2Time))s)")

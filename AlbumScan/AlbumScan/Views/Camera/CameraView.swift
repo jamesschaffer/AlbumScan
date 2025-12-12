@@ -60,6 +60,7 @@ struct CameraView: View {
     @State private var showingHistory = false
     @State private var showSettings = false
     @State private var showWelcomeSheet = false
+    @State private var hasCheckedWelcomeSheet = false  // Prevents re-triggering welcome sheet
     @State private var showErrorBanner = false
     @State private var showingMaintenanceAlert = false
     @State private var welcomeSheetHeight: CGFloat = 520  // Dynamic height for welcome sheet
@@ -82,7 +83,7 @@ struct CameraView: View {
 
                 // Show scan count or lightning bolt icon inside circle
                 // Show bolt if: user has subscription OR no scans remaining
-                if subscriptionManager.subscriptionTier != .none || scanLimitManager.remainingFreeScans == 0 {
+                if subscriptionManager.isSubscribed || scanLimitManager.remainingFreeScans == 0 {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
@@ -131,11 +132,11 @@ struct CameraView: View {
 
                     // Bottom control bar container
                     HStack(alignment: .center, spacing: 0) {
-                        // Left side - scan counter/upgrade button (hide for Ultra subscribers)
-                        if subscriptionManager.subscriptionTier != .ultra {
+                        // Left side - scan counter/upgrade button (hide for subscribers)
+                        if !subscriptionManager.isSubscribed {
                             settingsButton
                         } else {
-                            // Placeholder to maintain spacing when Ultra
+                            // Placeholder to maintain spacing when subscribed
                             Color.clear
                                 .frame(width: 64, height: 64)
                         }
@@ -213,19 +214,8 @@ struct CameraView: View {
                             .foregroundColor(.orange)
 
                         HStack(spacing: 8) {
-                            Button("Base") {
-                                subscriptionManager.debugSetTier(.base)
-                                subscriptionManager.debugPrintState()
-                            }
-                            .font(.system(size: 11))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(6)
-
-                            Button("Ultra") {
-                                subscriptionManager.debugSetTier(.ultra)
+                            Button("Subscribe") {
+                                subscriptionManager.debugSetSubscribed(true)
                                 subscriptionManager.debugPrintState()
                             }
                             .font(.system(size: 11))
@@ -236,9 +226,8 @@ struct CameraView: View {
                             .cornerRadius(6)
 
                             Button("Clear") {
-                                subscriptionManager.debugClearTier()
+                                subscriptionManager.debugClearSubscription()
                                 scanLimitManager.resetForTesting()
-                                appState.searchEnabled = false
                                 subscriptionManager.debugPrintState()
                             }
                             .font(.system(size: 11))
@@ -328,14 +317,6 @@ struct CameraView: View {
         .onAppear {
             cameraManager.startSession()
 
-            // Show welcome sheet on first launch
-            if appState.isFirstLaunch {
-                // Show sheet with a small delay to ensure camera view is visible
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    showWelcomeSheet = true
-                }
-            }
-
             // Setup guide coordinates (use a small delay to ensure preview layer is sized)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 let screenSize = UIScreen.main.bounds.size
@@ -348,6 +329,16 @@ struct CameraView: View {
         }
         .onDisappear {
             cameraManager.stopSession()
+        }
+        // Show welcome sheet reactively once subscription status is known
+        // This prevents race condition where sheet shows before StoreKit verification completes
+        .onChange(of: subscriptionManager.hasAttemptedLoad) { _, hasLoaded in
+            if hasLoaded && !hasCheckedWelcomeSheet {
+                hasCheckedWelcomeSheet = true
+                if appState.isFirstLaunch && !subscriptionManager.isSubscribed {
+                    showWelcomeSheet = true
+                }
+            }
         }
         .onChange(of: cameraManager.scannedAlbum) { _, newAlbum in
             if newAlbum != nil {

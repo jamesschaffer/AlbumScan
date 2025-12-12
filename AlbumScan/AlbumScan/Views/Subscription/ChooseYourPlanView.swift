@@ -13,15 +13,13 @@ enum LegalConstants {
     static let termsOfUseURL = "https://jamesschaffer.github.io/AlbumScan/terms-of-service.html"
 }
 
-/// Comprehensive subscription component that handles all subscription states
-/// Automatically shows the appropriate UI based on current subscription tier:
-/// - .none: Shows "Choose Your Plan" with Base/Ultra tabs (and optional skip button)
-/// - .base: Shows upgrade to Ultra opportunity
-/// - .ultra: Shows success state
+/// Subscription component that handles purchase states
+/// Shows the appropriate UI based on subscription status:
+/// - Not subscribed: Shows purchase option with features
+/// - Subscribed: Shows success state
 struct SubscriptionCardView: View {
     @EnvironmentObject var subscriptionManager: SubscriptionManager
 
-    @State private var selectedTier: SubscriptionTier = .base
     @State private var isPurchasing = false
 
     let onPurchaseSuccess: () -> Void
@@ -31,51 +29,25 @@ struct SubscriptionCardView: View {
 
     private let brandGreen = Color(red: 0, green: 0.87, blue: 0.32)
 
-    // Fallback pricing when StoreKit unavailable
-    private let fallbackBasePrice = "$4.99/year"
-    private let fallbackUltraPrice = "$11.99/year"
-    private let fallbackBasePriceShort = "$4.99"
-    private let fallbackUltraPriceShort = "$11.99"
+    // Fallback pricing when StoreKit unavailable (matches App Store price for albumscan_ultra_annual)
+    private let fallbackPrice = "$4.99/year"
+    private let fallbackPriceShort = "$4.99"
 
     // Helper computed properties for prices with fallback
-    private var basePriceDisplay: String {
-        subscriptionManager.availableBaseProduct?.displayPrice ?? fallbackBasePriceShort
+    private var priceDisplay: String {
+        subscriptionManager.availableProduct?.displayPrice ?? fallbackPriceShort
     }
 
-    private var ultraPriceDisplay: String {
-        subscriptionManager.availableUltraProduct?.displayPrice ?? fallbackUltraPriceShort
-    }
-
-    private var basePriceFullDisplay: String {
-        if let product = subscriptionManager.availableBaseProduct {
+    private var priceFullDisplay: String {
+        if let product = subscriptionManager.availableProduct {
             return "\(product.displayPrice)/yr"
         }
-        return fallbackBasePrice
+        return fallbackPrice
     }
 
-    private var ultraPriceFullDisplay: String {
-        if let product = subscriptionManager.availableUltraProduct {
-            return "\(product.displayPrice)/yr"
-        }
-        return fallbackUltraPrice
-    }
-
-    // Check if the selected product is available
+    // Check if the product is available
     private var isProductAvailable: Bool {
-        if subscriptionManager.subscriptionTier == .base {
-            // For Base users upgrading to Ultra
-            return subscriptionManager.availableUltraProduct != nil
-        } else {
-            // For new users choosing between Base and Ultra
-            switch selectedTier {
-            case .base:
-                return subscriptionManager.availableBaseProduct != nil
-            case .ultra:
-                return subscriptionManager.availableUltraProduct != nil
-            case .none:
-                return false
-            }
-        }
+        return subscriptionManager.availableProduct != nil
     }
 
     // Check if products are still loading
@@ -112,96 +84,35 @@ struct SubscriptionCardView: View {
             }
             // Show normal subscription UI
             else {
-                // Show different UI based on current subscription tier
-                switch subscriptionManager.subscriptionTier {
-                case .none:
-                    // No subscription - Show "Choose Your Plan"
-                    noSubscriptionView
-
-                case .base:
-                    // Base subscriber - Show upgrade to Ultra
-                    baseUpgradeView
-
-                case .ultra:
-                    // Ultra subscriber - Show success state
-                    ultraSuccessView
+                if subscriptionManager.isSubscribed {
+                    // Subscribed - Show success state
+                    subscribedSuccessView
+                } else {
+                    // Not subscribed - Show purchase option
+                    purchaseView
                 }
             }
         }
     }
 
-    // MARK: - No Subscription View
+    // MARK: - Purchase View
 
-    private var noSubscriptionView: some View {
+    private var purchaseView: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Choose Your Plan")
+            Text("Get AlbumScan")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.white)
                 .onAppear {
-                    print("⏱️ [TIMING] Subscription view READY - products loaded, UI interactive")
-                    print("⏱️ [TIMING] Base product: \(subscriptionManager.availableBaseProduct?.displayName ?? "nil")")
-                    print("⏱️ [TIMING] Ultra product: \(subscriptionManager.availableUltraProduct?.displayName ?? "nil")")
+                    print("⏱️ [TIMING] Subscription view READY - product loaded, UI interactive")
+                    print("⏱️ [TIMING] Product: \(subscriptionManager.availableProduct?.displayName ?? "nil")")
                 }
 
-            // Tab Selector
-            HStack(spacing: 0) {
-                // Base Tab
-                Button(action: { selectedTier = .base }) {
-                    VStack(spacing: 8) {
-                        Text("Base")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(selectedTier == .base ? .white : .white.opacity(0.6))
-                        Text(basePriceFullDisplay)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(selectedTier == .base ? brandGreen : .white.opacity(0.6))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(selectedTier == .base ? Color.white.opacity(0.1) : Color.clear)
-                    .overlay(
-                        Rectangle()
-                            .frame(height: 2)
-                            .foregroundColor(selectedTier == .base ? brandGreen : Color.clear),
-                        alignment: .bottom
-                    )
-                }
-
-                // Ultra Tab
-                Button(action: { selectedTier = .ultra }) {
-                    VStack(spacing: 8) {
-                        Text("Ultra")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(selectedTier == .ultra ? .white : .white.opacity(0.6))
-                        Text(ultraPriceFullDisplay)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(selectedTier == .ultra ? brandGreen : .white.opacity(0.6))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(selectedTier == .ultra ? Color.white.opacity(0.1) : Color.clear)
-                    .overlay(
-                        Rectangle()
-                            .frame(height: 2)
-                            .foregroundColor(selectedTier == .ultra ? brandGreen : Color.clear),
-                        alignment: .bottom
-                    )
-                }
-            }
-            .padding(.top, 8)
-
-            // Features for selected tier
+            // Features list
             VStack(alignment: .leading, spacing: 12) {
-                if selectedTier == .base {
-                    // Base Features
-                    BenefitRow(text: "One-click search, unlike clunky search engines", color: brandGreen)
-                    BenefitRow(text: "Concise, reviews that communicate album importance and context", color: brandGreen)
-                    BenefitRow(text: "8-tier recommendation system that identifies albums that matter", color: brandGreen)
-                } else {
-                    // Ultra Features
-                    BenefitRow(text: "Improve matches on obscure and new albums", color: brandGreen)
-                    BenefitRow(text: "Access reviews from credible industry experts - Pitchform, Rolling Stone, etc.", color: brandGreen)
-                    BenefitRow(text: "Benefit from improved scoring and categorozation accuracy", color: brandGreen)
-                }
+                BenefitRow(text: "One-click search, unlike clunky search engines", color: brandGreen)
+                BenefitRow(text: "Reviews from credible industry experts - Pitchfork, Rolling Stone, etc.", color: brandGreen)
+                BenefitRow(text: "Concise reviews that communicate album importance and context", color: brandGreen)
+                BenefitRow(text: "8-tier recommendation system that identifies albums that matter", color: brandGreen)
             }
             .padding(.top, 8)
 
@@ -212,9 +123,7 @@ struct SubscriptionCardView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
-                        Text(selectedTier == .base
-                             ? "Buy Base - \(basePriceDisplay)"
-                             : "Buy Ultra - \(ultraPriceDisplay)")
+                        Text("Buy AlbumScan - \(priceDisplay)")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.white)
                     }
@@ -259,64 +168,6 @@ struct SubscriptionCardView: View {
         }
     }
 
-    // MARK: - Base Upgrade View
-
-    private var baseUpgradeView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("You have AlbumScan Base")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(brandGreen)
-
-            Text("Upgrade to AlbumScan Ultra")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundColor(.white)
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(ultraPriceFullDisplay)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(brandGreen)
-
-            VStack(alignment: .leading, spacing: 12) {
-                BenefitRow(text: "Improve matches on obscure and new albums", color: brandGreen)
-                BenefitRow(text: "Access reviews from credible industry experts - Pitchfork, Rolling Stone, etc.", color: brandGreen)
-                BenefitRow(text: "Benefit from improved scoring and categorozation accuracy", color: brandGreen)
-            }
-            .padding(.top, 8)
-
-            Button(action: handlePurchase) {
-                HStack {
-                    if isPurchasing {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    } else {
-                        Text("Upgrade to Ultra")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(brandGreen)
-                .cornerRadius(12)
-            }
-            .disabled(isPurchasing || !isProductAvailable)
-            .padding(.top, 16)
-
-            // Auto-renewal notice (required by Apple)
-            Text("Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.")
-                .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.5))
-                .multilineTextAlignment(.center)
-                .padding(.top, 12)
-                .padding(.horizontal, 8)
-
-            // Legal links (required for App Store subscription approval)
-            LegalLinksView(onError: onError)
-                .padding(.top, 16)
-        }
-    }
-
     // MARK: - Loading View
 
     private var loadingView: some View {
@@ -325,7 +176,7 @@ struct SubscriptionCardView: View {
                 .progressViewStyle(CircularProgressViewStyle(tint: brandGreen))
                 .scaleEffect(1.5)
 
-            Text("Loading subscription options...")
+            Text("Loading...")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(.white.opacity(0.7))
         }
@@ -333,15 +184,15 @@ struct SubscriptionCardView: View {
         .padding(.vertical, 60)
     }
 
-    // MARK: - Ultra Success View
+    // MARK: - Subscribed Success View
 
-    private var ultraSuccessView: some View {
+    private var subscribedSuccessView: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("AlbumScan Ultra")
+            Text("AlbumScan")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.white)
 
-            Text("You are now leveraging AlbumScan Ultra")
+            Text("You have full access to AlbumScan")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(brandGreen)
                 .padding(.top, 8)
@@ -375,7 +226,7 @@ struct SubscriptionCardView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.orange)
 
-            Text("Unable to Load Subscriptions")
+            Text("Unable to Load")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
@@ -443,20 +294,10 @@ struct SubscriptionCardView: View {
             print("⏱️ [TIMING] Task started after \(String(format: "%.2f", taskDelay))ms from button tap")
 
             do {
-                // Determine which tier to purchase
-                let tierToPurchase: SubscriptionTier
-                if subscriptionManager.subscriptionTier == .base {
-                    // Base user upgrading to Ultra
-                    tierToPurchase = .ultra
-                } else {
-                    // New user choosing between Base and Ultra
-                    tierToPurchase = selectedTier
-                }
-
                 let beforePurchaseTime = Date()
                 print("⏱️ [TIMING] Calling purchase() after \(String(format: "%.2f", beforePurchaseTime.timeIntervalSince(buttonTapTime) * 1000))ms")
 
-                try await subscriptionManager.purchase(tier: tierToPurchase)
+                try await subscriptionManager.purchase()
 
                 let afterPurchaseTime = Date()
                 let purchaseDuration = afterPurchaseTime.timeIntervalSince(beforePurchaseTime)
@@ -479,6 +320,25 @@ struct SubscriptionCardView: View {
                     isPurchasing = false
                 }
             }
+        }
+    }
+}
+
+// MARK: - Benefit Row
+
+struct BenefitRow: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18))
+                .foregroundColor(color)
+            Text(text)
+                .font(.system(size: 15))
+                .foregroundColor(.white.opacity(0.9))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

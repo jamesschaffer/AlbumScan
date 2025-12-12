@@ -15,18 +15,6 @@ class AppState: ObservableObject {
     @Published var cameraPermissionDenied: Bool = false
     @Published var hasScannedAlbums: Bool = false
 
-    // MARK: - AlbumScan Ultra Search Toggle
-    // Note: Subscription state managed by SubscriptionManager
-
-    @Published var searchEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(searchEnabled, forKey: "searchEnabled")
-            #if DEBUG
-            print("🔍 [AlbumScan Ultra] Search enabled changed to: \(searchEnabled)")
-            #endif
-        }
-    }
-
     // MARK: - AI Provider Selection (Debug Only)
     #if DEBUG
     @Published var selectedProvider: LLMProvider {
@@ -52,10 +40,6 @@ class AppState: ObservableObject {
         let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
         self.isFirstLaunch = !hasLaunchedBefore
         #endif
-
-        // Load search toggle state from UserDefaults
-        // Note: This will be automatically enabled when user subscribes
-        self.searchEnabled = UserDefaults.standard.bool(forKey: "searchEnabled")
 
         #if DEBUG
         // Load saved provider preference (default to OpenAI for existing users)

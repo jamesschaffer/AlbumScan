@@ -2,14 +2,7 @@ import Foundation
 import StoreKit
 import Combine
 
-/// Subscription tier options
-enum SubscriptionTier: String, Codable {
-    case none = "none"           // No active subscription
-    case base = "base"           // Base plan: $4.99/year, ID Call 1 only
-    case ultra = "ultra"         // Ultra plan: $11.99/year, full two-tier with search
-}
-
-/// Manages in-app subscription using StoreKit 2
+/// Manages in-app purchase using StoreKit 2
 /// Handles purchase, restoration, and subscription status checking
 @MainActor
 class SubscriptionManager: ObservableObject {
@@ -19,21 +12,20 @@ class SubscriptionManager: ObservableObject {
     // MARK: - Published Properties
 
     @Published private(set) var isSubscribed: Bool = false
-    @Published private(set) var subscriptionTier: SubscriptionTier = .none
     @Published private(set) var isLoading: Bool = false
-    @Published private(set) var availableBaseProduct: Product?
-    @Published private(set) var availableUltraProduct: Product?
+    @Published private(set) var availableProduct: Product?
     @Published var errorMessage: String?
     @Published private(set) var productsLoadFailed: Bool = false
     @Published private(set) var hasAttemptedLoad: Bool = false
 
     // MARK: - Constants
 
-    static let baseProductID = "albumscan_base_annual"      // $4.99/year
-    static let ultraProductID = "albumscan_ultra_annual"    // $11.99/year
+    static let productID = "albumscan_ultra_annual"    // $4.99/year - single purchase option (full features)
 
-    // Keychain keys for subscription tier tracking
-    private let keychainTierKey = "subscriptionTier"
+    // Keychain key for subscription status
+    // NOTE: Legacy key "subscriptionTier" may exist in user Keychains from v1.x (two-tier model).
+    // It stores tier strings like "base", "ultra", "none". We no longer read it but existing
+    // users may still have it. The new key below supersedes it with a simple boolean approach.
     private let keychainActiveKey = "subscriptionActive"
 
     // MARK: - Private Properties
@@ -43,11 +35,13 @@ class SubscriptionManager: ObservableObject {
     // MARK: - Initialization
 
     private init() {
+        #if DEBUG
         let initStartTime = Date()
         print("⏱️ [TIMING] SubscriptionManager init started at \(initStartTime.timeIntervalSince1970)")
+        #endif
 
-        // Load saved subscription tier from Keychain
-        loadSubscriptionTier()
+        // Load saved subscription status from Keychain
+        loadSubscriptionStatus()
 
         // Start listening for transaction updates
         updateListenerTask = listenForTransactions()
@@ -61,21 +55,27 @@ class SubscriptionManager: ObservableObject {
         // Check current subscription status
         // IMPORTANT: Load products FIRST so UI has pricing data
         Task {
+            #if DEBUG
             let taskStartTime = Date()
             print("⏱️ [TIMING] Starting background tasks (loadProducts + checkStatus)")
+            #endif
 
             // Load products first - this is fast and UI needs them
             await loadProducts()
 
+            #if DEBUG
             let afterLoadTime = Date()
             print("⏱️ [TIMING] loadProducts completed in \(String(format: "%.2f", afterLoadTime.timeIntervalSince(taskStartTime)))s")
+            #endif
 
             // Check subscription status second - this is slower but can happen in background
             await checkSubscriptionStatus()
 
+            #if DEBUG
             let afterStatusTime = Date()
             print("⏱️ [TIMING] checkSubscriptionStatus completed in \(String(format: "%.2f", afterStatusTime.timeIntervalSince(afterLoadTime)))s")
             print("⏱️ [TIMING] Total initialization time: \(String(format: "%.2f", afterStatusTime.timeIntervalSince(initStartTime)))s")
+            #endif
         }
     }
 
@@ -85,11 +85,13 @@ class SubscriptionManager: ObservableObject {
 
     // MARK: - Public Methods
 
-    /// Load available subscription products from App Store
+    /// Load available product from App Store
     /// Implements retry logic with exponential backoff (3 attempts max)
     func loadProducts() async {
+        #if DEBUG
         let loadStartTime = Date()
         print("⏱️ [TIMING] Starting product load at \(loadStartTime.timeIntervalSince1970)")
+        #endif
 
         isLoading = true
         errorMessage = nil
@@ -115,43 +117,34 @@ class SubscriptionManager: ObservableObject {
                 if attempt > 1 {
                     print("🔄 [Subscription] Retry attempt \(attempt) of \(maxAttempts)")
                 }
-                #endif
-
                 let beforeFetchTime = Date()
                 print("⏱️ [TIMING] Calling Product.products() (attempt \(attempt)) after \(String(format: "%.2f", beforeFetchTime.timeIntervalSince(loadStartTime) * 1000))ms")
+                #endif
 
-                let products = try await Product.products(for: [Self.baseProductID, Self.ultraProductID])
-
-                let afterFetchTime = Date()
-                let fetchDuration = afterFetchTime.timeIntervalSince(beforeFetchTime)
-                print("⏱️ [TIMING] Product.products() completed in \(String(format: "%.2f", fetchDuration))s")
+                let products = try await Product.products(for: [Self.productID])
 
                 // Cancel timeout if we got a response
                 timeoutTask.cancel()
 
                 #if DEBUG
+                let afterFetchTime = Date()
+                let fetchDuration = afterFetchTime.timeIntervalSince(beforeFetchTime)
+                print("⏱️ [TIMING] Product.products() completed in \(String(format: "%.2f", fetchDuration))s")
                 print("📦 [Subscription] Loaded \(products.count) products")
                 #endif
 
-                for product in products {
-                    if product.id == Self.baseProductID {
-                        availableBaseProduct = product
-                        #if DEBUG
-                        print("✅ [Subscription] Base loaded: \(product.displayName) - \(product.displayPrice)")
-                        #endif
-                    } else if product.id == Self.ultraProductID {
-                        availableUltraProduct = product
-                        #if DEBUG
-                        print("✅ [Subscription] Ultra loaded: \(product.displayName) - \(product.displayPrice)")
-                        #endif
-                    }
+                if let product = products.first {
+                    availableProduct = product
+                    #if DEBUG
+                    print("✅ [Subscription] Product loaded: \(product.displayName) - \(product.displayPrice)")
+                    #endif
                 }
 
-                if availableBaseProduct == nil || availableUltraProduct == nil {
+                if availableProduct == nil {
                     productsLoadFailed = true
-                    errorMessage = "Some subscription products are not available. Please try again later."
+                    errorMessage = "Product is not available. Please try again later."
                     #if DEBUG
-                    print("⚠️ [Subscription] Missing products - Base: \(availableBaseProduct != nil), Ultra: \(availableUltraProduct != nil)")
+                    print("⚠️ [Subscription] Product not found")
                     #endif
                 }
 
@@ -188,22 +181,11 @@ class SubscriptionManager: ObservableObject {
         isLoading = false
     }
 
-    /// Purchase a subscription tier
-    func purchase(tier: SubscriptionTier) async throws {
-        // Select the correct product based on tier
-        let product: Product?
-        switch tier {
-        case .base:
-            product = availableBaseProduct
-        case .ultra:
-            product = availableUltraProduct
-        case .none:
-            throw SubscriptionError.productNotAvailable
-        }
-
-        guard let selectedProduct = product else {
+    /// Purchase the app
+    func purchase() async throws {
+        guard let product = availableProduct else {
             #if DEBUG
-            print("❌ [Subscription] Product not available for tier: \(tier.rawValue)")
+            print("❌ [Subscription] Product not available")
             #endif
             throw SubscriptionError.productNotAvailable
         }
@@ -213,14 +195,14 @@ class SubscriptionManager: ObservableObject {
         errorMessage = nil
 
         #if DEBUG
-        print("💳 [Subscription] Starting purchase for \(tier.rawValue)...")
-        print("   Product: \(selectedProduct.displayName) - \(selectedProduct.displayPrice)")
+        print("💳 [Subscription] Starting purchase...")
+        print("   Product: \(product.displayName) - \(product.displayPrice)")
         let purchaseCallStart = Date()
         print("⏱️ [TIMING] About to call Product.purchase() at \(purchaseCallStart.timeIntervalSince1970)")
         #endif
 
         do {
-            let result = try await selectedProduct.purchase()
+            let result = try await product.purchase()
 
             #if DEBUG
             let purchaseCallEnd = Date()
@@ -240,7 +222,7 @@ class SubscriptionManager: ObservableObject {
                 await transaction.finish()
 
                 #if DEBUG
-                print("✅ [Subscription] Purchase successful for \(tier.rawValue)")
+                print("✅ [Subscription] Purchase successful")
                 #endif
 
             case .userCancelled:
@@ -310,52 +292,47 @@ class SubscriptionManager: ObservableObject {
     /// Check current subscription status
     /// - Parameter forceRefresh: If true, will overwrite cache even if no subscription found (for restore purchases)
     func checkSubscriptionStatus(forceRefresh: Bool = false) async {
+        #if DEBUG
         let checkStart = Date()
         print("⏱️ [TIMING] checkSubscriptionStatus: Starting entitlements check (forceRefresh: \(forceRefresh))")
+        var entitlementCount = 0
+        #endif
 
-        var detectedTier: SubscriptionTier = .none
+        var foundSubscription = false
 
         // Check for active subscription entitlements
         // Add timeout to prevent hanging
         let timeoutTask = Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+            #if DEBUG
             if !Task.isCancelled {
                 print("⏱️ [TIMING] checkSubscriptionStatus: Timeout after 3 seconds")
             }
+            #endif
         }
 
-        var entitlementCount = 0
         for await result in Transaction.currentEntitlements {
             timeoutTask.cancel() // Cancel timeout if we get results
+            #if DEBUG
             entitlementCount += 1
             print("⏱️ [TIMING] checkSubscriptionStatus: Processing entitlement #\(entitlementCount)")
+            #endif
 
             do {
                 let transaction = try checkVerified(result)
 
-                // Check which subscription product is active
-                if transaction.productID == Self.baseProductID {
-                    detectedTier = .base
+                // Check if our product is active
+                if transaction.productID == Self.productID {
+                    foundSubscription = true
                     #if DEBUG
-                    print("✅ [Subscription] Active BASE subscription found")
+                    print("✅ [Subscription] Active subscription found")
                     print("   Product: \(transaction.productID)")
                     print("   Purchase Date: \(transaction.purchaseDate)")
                     if let expirationDate = transaction.expirationDate {
                         print("   Expires: \(expirationDate)")
                     }
                     #endif
-                    // Don't break - keep checking in case Ultra is also present (upgrade scenario)
-                } else if transaction.productID == Self.ultraProductID {
-                    detectedTier = .ultra
-                    #if DEBUG
-                    print("✅ [Subscription] Active ULTRA subscription found")
-                    print("   Product: \(transaction.productID)")
-                    print("   Purchase Date: \(transaction.purchaseDate)")
-                    if let expirationDate = transaction.expirationDate {
-                        print("   Expires: \(expirationDate)")
-                    }
-                    #endif
-                    break // Ultra is highest tier, no need to keep checking
+                    break
                 }
             } catch {
                 #if DEBUG
@@ -367,51 +344,35 @@ class SubscriptionManager: ObservableObject {
         // Cancel timeout task now that loop completed
         timeoutTask.cancel()
 
-        // Update subscription state
-        isSubscribed = (detectedTier != .none)
-
-        // Save detected tier to Keychain if it changed
+        // Save subscription status to Keychain if it changed
         // IMPORTANT: Only overwrite cache if we found an ACTUAL subscription
-        // Don't overwrite to .none unless forceRefresh=true (restore purchases)
+        // Don't overwrite to false unless forceRefresh=true (restore purchases)
         // (protects against sandbox/entitlements quirks)
-        if detectedTier != subscriptionTier {
-            // If we detected a subscription (base or ultra), always save it
-            if detectedTier != .none {
-                saveSubscriptionTier(detectedTier)
-                #if DEBUG
-                print("📝 [Subscription] Tier changed: \(subscriptionTier.rawValue) → \(detectedTier.rawValue)")
-                #endif
-            }
-            // If we detected .none but had a subscription before
-            else if subscriptionTier != .none {
-                if forceRefresh {
-                    // User explicitly ran restore - trust the result
-                    saveSubscriptionTier(.none)
-                    #if DEBUG
-                    print("📝 [Subscription] Force refresh: Clearing cached subscription")
-                    #endif
-                } else {
-                    // Background check - don't overwrite cache
-                    #if DEBUG
-                    print("⚠️ [Subscription] Status check found no subscription, but cache shows \(subscriptionTier.rawValue)")
-                    print("   Keeping cached tier. Run restore purchases to force refresh.")
-                    #endif
-                    // Keep the cached tier for now
-                    isSubscribed = true // Trust the cache
-                }
-            }
-            // If both are .none, no need to save
-        } else {
-            // No change detected, keep current tier
-            subscriptionTier = detectedTier
+        if foundSubscription && !isSubscribed {
+            // New subscription found - save it
+            saveSubscriptionStatus(true)
+            #if DEBUG
+            print("📝 [Subscription] Status changed: not subscribed → subscribed")
+            #endif
+        } else if !foundSubscription && isSubscribed && forceRefresh {
+            // User explicitly ran restore and no subscription found - clear cache
+            saveSubscriptionStatus(false)
+            #if DEBUG
+            print("📝 [Subscription] Force refresh: Clearing cached subscription")
+            #endif
+        } else if !foundSubscription && isSubscribed {
+            // Background check found nothing but cache says subscribed - keep cache
+            #if DEBUG
+            print("⚠️ [Subscription] Status check found no subscription, but cache shows subscribed")
+            print("   Keeping cached status. Run restore purchases to force refresh.")
+            #endif
         }
 
+        #if DEBUG
         let checkEnd = Date()
         let checkDuration = checkEnd.timeIntervalSince(checkStart)
         print("⏱️ [TIMING] checkSubscriptionStatus: Completed in \(String(format: "%.2f", checkDuration))s")
         print("⏱️ [TIMING] checkSubscriptionStatus: Processed \(entitlementCount) entitlements")
-
-        #if DEBUG
         if !isSubscribed {
             print("⚠️ [Subscription] No active subscription")
         }
@@ -455,31 +416,31 @@ class SubscriptionManager: ObservableObject {
         }
     }
 
-    // MARK: - Subscription Tier Management
+    // MARK: - Subscription Status Management
 
-    /// Load subscription tier from Keychain
-    private func loadSubscriptionTier() {
-        if let tierString = KeychainHelper.shared.getString(forKey: keychainTierKey),
-           let tier = SubscriptionTier(rawValue: tierString) {
-            self.subscriptionTier = tier
+    /// Load subscription status from Keychain
+    private func loadSubscriptionStatus() {
+        if let statusString = KeychainHelper.shared.getString(forKey: keychainActiveKey),
+           statusString == "true" {
+            self.isSubscribed = true
             #if DEBUG
-            print("💳 [Subscription] Loaded tier from Keychain: \(tier.rawValue)")
+            print("💳 [Subscription] Loaded status from Keychain: subscribed")
             #endif
         } else {
-            self.subscriptionTier = .none
+            self.isSubscribed = false
             #if DEBUG
-            print("💳 [Subscription] No tier in Keychain, defaulting to .none")
+            print("💳 [Subscription] No status in Keychain, defaulting to not subscribed")
             #endif
         }
     }
 
-    /// Save subscription tier to Keychain
-    private func saveSubscriptionTier(_ tier: SubscriptionTier) {
-        _ = KeychainHelper.shared.save(tier.rawValue, forKey: keychainTierKey)
-        self.subscriptionTier = tier
+    /// Save subscription status to Keychain
+    private func saveSubscriptionStatus(_ subscribed: Bool) {
+        _ = KeychainHelper.shared.save(subscribed ? "true" : "false", forKey: keychainActiveKey)
+        self.isSubscribed = subscribed
 
         #if DEBUG
-        print("💾 [Subscription] Saved tier to Keychain: \(tier.rawValue)")
+        print("💾 [Subscription] Saved status to Keychain: \(subscribed ? "subscribed" : "not subscribed")")
         #endif
     }
 
@@ -498,29 +459,24 @@ class SubscriptionManager: ObservableObject {
         isSubscribed = true
     }
 
-    /// Set subscription tier for testing (Debug only)
-    /// - Parameter tier: The tier to set (.none, .base, or .ultra)
-    func debugSetTier(_ tier: SubscriptionTier) {
-        saveSubscriptionTier(tier)
-        isSubscribed = (tier != .none)
-        print("🔧 [Subscription] Debug: Set tier to \(tier.rawValue), isSubscribed = \(isSubscribed)")
+    /// Set subscription status for testing (Debug only)
+    func debugSetSubscribed(_ subscribed: Bool) {
+        saveSubscriptionStatus(subscribed)
+        print("🔧 [Subscription] Debug: Set isSubscribed = \(subscribed)")
     }
 
-    /// Clear subscription tier for testing (Debug only)
-    func debugClearTier() {
-        KeychainHelper.shared.delete(forKey: keychainTierKey)
-        subscriptionTier = .none
+    /// Clear subscription status for testing (Debug only)
+    func debugClearSubscription() {
+        KeychainHelper.shared.delete(forKey: keychainActiveKey)
         isSubscribed = false
-        print("🗑️ [Subscription] Debug: Cleared tier from Keychain")
+        print("🗑️ [Subscription] Debug: Cleared subscription from Keychain")
     }
 
     /// Print current subscription state (Debug only)
     func debugPrintState() {
         print("📊 [Subscription] Debug State:")
         print("   - isSubscribed: \(isSubscribed)")
-        print("   - subscriptionTier: \(subscriptionTier.rawValue)")
-        print("   - availableBaseProduct: \(availableBaseProduct?.displayName ?? "none")")
-        print("   - availableUltraProduct: \(availableUltraProduct?.displayName ?? "none")")
+        print("   - availableProduct: \(availableProduct?.displayName ?? "none")")
     }
     #endif
 }

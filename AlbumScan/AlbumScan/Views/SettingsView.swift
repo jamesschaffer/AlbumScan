@@ -28,16 +28,16 @@ struct SettingsView: View {
                 // Single comprehensive subscription component
                 SubscriptionCardView(
                     onPurchaseSuccess: {
-                        // Purchase successful - tier is automatically detected and saved
+                        // Purchase successful - status is automatically detected and saved
                     },
                     onError: { error in
                         errorMessage = error
                         showError = true
                     },
-                    onSkip: subscriptionManager.subscriptionTier == .none ? {
-                        // User has no subscription - allow them to use free scans
+                    onSkip: !subscriptionManager.isSubscribed ? {
+                        // User is not subscribed - allow them to use free scans
                         dismiss()
-                    } : nil, // Base/Ultra users don't need skip button
+                    } : nil, // Subscribers don't need skip button
                     hasScansRemaining: scanLimitManager.remainingFreeScans > 0
                 )
                 .padding(24)
@@ -83,26 +83,6 @@ struct SettingsView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
-        }
-    }
-}
-
-struct BenefitRow: View {
-    let text: String
-    let color: Color
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 20))
-                .foregroundColor(color)
-                .frame(width: 20, alignment: .center)
-
-            Text(text)
-                .font(.system(size: 16))
-                .foregroundColor(.white.opacity(0.9))
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
