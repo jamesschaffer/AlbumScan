@@ -458,7 +458,7 @@ export const identifyAlbumGemini = onCall(
       const ai = new GoogleGenAI({ apiKey: geminiKey.value() });
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: [
           {
             role: "user",
@@ -581,7 +581,7 @@ export const searchFinalizeAlbumGemini = onCall(
       const ai = new GoogleGenAI({ apiKey: geminiKey.value() });
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }], // Enable Google Search grounding
@@ -712,7 +712,7 @@ export const generateReviewGemini = onCall(
       }
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: prompt,
         config,
       });

@@ -26,7 +26,7 @@ enum LLMProvider: String, CaseIterable {
     var description: String {
         switch self {
         case .openAI: return "OpenAI GPT-4o"
-        case .gemini: return "Google Gemini 2.5 Flash"
+        case .gemini: return "Google Gemini 3 Flash"
         case .claude: return "Anthropic Claude (Legacy)"
         case .cloudFunctions: return "Firebase Proxy (Legacy)"
         }

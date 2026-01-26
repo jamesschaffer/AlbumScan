@@ -78,9 +78,9 @@ class CloudFunctionsService: LLMService {
         }
     }
     #else
-    /// Returns the Cloud Function name (production always uses OpenAI)
+    /// Returns the Cloud Function name (production uses Gemini)
     private func functionName(base: String) -> String {
-        return base
+        return "\(base)Gemini"
     }
     #endif
 
