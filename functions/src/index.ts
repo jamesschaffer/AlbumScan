@@ -76,6 +76,44 @@ function checkRateLimit(deviceId: string): boolean {
 }
 
 /**
+ * Extract clean JSON from a response that may contain markdown code fences
+ * Handles: ```json, ```, various whitespace patterns, and extracts JSON objects
+ */
+function extractCleanJson(text: string): string {
+  if (!text || text.trim().length === 0) {
+    throw new Error("Empty response received");
+  }
+
+  let cleaned = text.trim();
+
+  // Remove markdown code fences (case insensitive, handles extra whitespace)
+  // Matches: ```json, ```JSON, ``` json, ```javascript, etc.
+  cleaned = cleaned.replace(/^```\s*\w*\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+
+  // If still not starting with {, try to extract JSON object
+  if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    }
+  }
+
+  return cleaned;
+}
+
+/**
+ * Validate album identification response has required fields
+ */
+function validateIdentificationResponse(parsed: Record<string, unknown>): void {
+  const requiredFields = ["artistName", "albumTitle"];
+  for (const field of requiredFields) {
+    if (parsed[field] === undefined) {
+      throw new Error(`Missing required field: ${field}`);
+    }
+  }
+}
+
+/**
  * Get device identifier from App Check token or fallback
  */
 function getDeviceId(request: CallableRequest): string {
@@ -485,34 +523,47 @@ export const identifyAlbumGemini = onCall(
       const responseAny = response as any;
       let text = "";
 
-      // Try the .text accessor first (may work in some SDK versions)
-      if (typeof response.text === "string") {
-        text = response.text;
-      } else if (responseAny.candidates?.[0]?.content?.parts?.[0]?.text) {
-        // Fall back to extracting from candidates structure
+      // Try the .text accessor first (may throw on blocked content)
+      try {
+        if (typeof response.text === "string") {
+          text = response.text;
+        }
+      } catch {
+        // .text accessor threw, fall back to candidates
+      }
+
+      // Fall back to extracting from candidates structure
+      if (!text && responseAny.candidates?.[0]?.content?.parts?.[0]?.text) {
         text = responseAny.candidates[0].content.parts[0].text;
       }
 
-      console.log(`[identifyAlbumGemini] Finish reason: ${responseAny.candidates?.[0]?.finishReason}`);
+      const finishReason = responseAny.candidates?.[0]?.finishReason || "unknown";
+      console.log(`[identifyAlbumGemini] Finish reason: ${finishReason}`);
       console.log(`[identifyAlbumGemini] Response received, length: ${text.length}`);
 
-      // Clean up Gemini response - strip markdown code fences
-      let cleanedText = text.trim();
-      if (cleanedText.startsWith("```json")) {
-        cleanedText = cleanedText.replace(/^```json\s*/, "").replace(/```\s*$/, "").trim();
-      } else if (cleanedText.startsWith("```")) {
-        cleanedText = cleanedText.replace(/^```\s*/, "").replace(/```\s*$/, "").trim();
+      // Check for empty response (safety filters, API issues)
+      if (!text || text.trim().length === 0) {
+        console.error(`[identifyAlbumGemini] Empty response. Finish reason: ${finishReason}`);
+        throw new HttpsError(
+          "internal",
+          finishReason === "SAFETY"
+            ? "Image could not be processed due to content restrictions."
+            : "No response received. Please try again with a clearer image."
+        );
       }
 
-      // Validate JSON before returning
+      // Clean up Gemini response and validate JSON
+      let cleanedText: string;
       try {
+        cleanedText = extractCleanJson(text);
         const parsed = JSON.parse(cleanedText);
+        validateIdentificationResponse(parsed);
         // Re-serialize to ensure clean JSON
         cleanedText = JSON.stringify(parsed);
         console.log("[identifyAlbumGemini] JSON validated successfully");
       } catch (jsonError) {
         console.error(`[identifyAlbumGemini] JSON validation failed: ${jsonError}`);
-        console.error(`[identifyAlbumGemini] Raw text (first 500 chars): ${cleanedText.substring(0, 500)}`);
+        console.error(`[identifyAlbumGemini] Raw text (first 500 chars): ${text.substring(0, 500)}`);
         throw new HttpsError(
           "internal",
           "Failed to parse album identification. Please try again."
@@ -594,9 +645,17 @@ export const searchFinalizeAlbumGemini = onCall(
       const responseAny = response as any;
       let text = "";
 
-      if (typeof response.text === "string") {
-        text = response.text;
-      } else if (responseAny.candidates?.[0]?.content?.parts?.[0]?.text) {
+      // Try the .text accessor first (may throw on blocked content)
+      try {
+        if (typeof response.text === "string") {
+          text = response.text;
+        }
+      } catch {
+        // .text accessor threw, fall back to candidates
+      }
+
+      // Fall back to extracting from candidates structure
+      if (!text && responseAny.candidates?.[0]?.content?.parts?.[0]?.text) {
         text = responseAny.candidates[0].content.parts[0].text;
       }
 
@@ -606,28 +665,35 @@ export const searchFinalizeAlbumGemini = onCall(
         console.log(
           `[searchFinalizeAlbumGemini] Search queries: ${JSON.stringify(groundingMetadata.webSearchQueries)}`
         );
+      } else {
+        console.warn("[searchFinalizeAlbumGemini] No grounding sources returned from Google Search");
       }
 
-      console.log(`[searchFinalizeAlbumGemini] Finish reason: ${responseAny.candidates?.[0]?.finishReason}`);
+      const finishReason = responseAny.candidates?.[0]?.finishReason || "unknown";
+      console.log(`[searchFinalizeAlbumGemini] Finish reason: ${finishReason}`);
       console.log(`[searchFinalizeAlbumGemini] Response received, length: ${text.length}`);
 
-      // Clean up Gemini response - strip markdown code fences
-      let cleanedText = text.trim();
-      if (cleanedText.startsWith("```json")) {
-        cleanedText = cleanedText.replace(/^```json\s*/, "").replace(/```\s*$/, "").trim();
-      } else if (cleanedText.startsWith("```")) {
-        cleanedText = cleanedText.replace(/^```\s*/, "").replace(/```\s*$/, "").trim();
+      // Check for empty response
+      if (!text || text.trim().length === 0) {
+        console.error(`[searchFinalizeAlbumGemini] Empty response. Finish reason: ${finishReason}`);
+        throw new HttpsError(
+          "internal",
+          "Search returned no results. Please try again."
+        );
       }
 
-      // Validate JSON before returning
+      // Clean up Gemini response and validate JSON
+      let cleanedText: string;
       try {
+        cleanedText = extractCleanJson(text);
         const parsed = JSON.parse(cleanedText);
+        validateIdentificationResponse(parsed);
         // Re-serialize to ensure clean JSON
         cleanedText = JSON.stringify(parsed);
         console.log("[searchFinalizeAlbumGemini] JSON validated successfully");
       } catch (jsonError) {
         console.error(`[searchFinalizeAlbumGemini] JSON validation failed: ${jsonError}`);
-        console.error(`[searchFinalizeAlbumGemini] Raw text (first 500 chars): ${cleanedText.substring(0, 500)}`);
+        console.error(`[searchFinalizeAlbumGemini] Raw text (first 500 chars): ${text.substring(0, 500)}`);
         throw new HttpsError(
           "internal",
           "Failed to finalize album identification. Please try again."
@@ -723,9 +789,17 @@ export const generateReviewGemini = onCall(
       const candidate = responseAny.candidates?.[0];
       let text = "";
 
-      if (typeof response.text === "string") {
-        text = response.text;
-      } else if (candidate?.content?.parts) {
+      // Try the .text accessor first (may throw on blocked content)
+      try {
+        if (typeof response.text === "string") {
+          text = response.text;
+        }
+      } catch {
+        // .text accessor threw, fall back to candidates
+      }
+
+      // Fall back to extracting from candidates structure
+      if (!text && candidate?.content?.parts) {
         // Concatenate all text parts (search grounding may return multiple parts)
         text = candidate.content.parts
           .filter((part: Record<string, unknown>) => typeof part.text === "string")
@@ -738,13 +812,19 @@ export const generateReviewGemini = onCall(
         `[generateReviewGemini] Response: ${text.length} chars, finish: ${finishReason}`
       );
 
-      // Clean up Gemini response - strip markdown code fences
-      let cleanedText = text.trim();
-      if (cleanedText.startsWith("```json")) {
-        cleanedText = cleanedText.replace(/^```json\s*/, "").replace(/```\s*$/, "").trim();
-      } else if (cleanedText.startsWith("```")) {
-        cleanedText = cleanedText.replace(/^```\s*/, "").replace(/```\s*$/, "").trim();
+      // Check for empty response
+      if (!text || text.trim().length === 0) {
+        console.error(`[generateReviewGemini] Empty response. Finish reason: ${finishReason}`);
+        throw new HttpsError(
+          "internal",
+          finishReason === "SAFETY"
+            ? "Review could not be generated due to content restrictions."
+            : "Failed to generate review. Please try again."
+        );
       }
+
+      // Clean up Gemini response using robust extraction
+      let cleanedText = extractCleanJson(text);
 
       // Extract grounding sources from metadata
       const groundingMetadata = candidate?.groundingMetadata;
@@ -755,6 +835,9 @@ export const generateReviewGemini = onCall(
 
       if (useSearch) {
         console.log(`[generateReviewGemini] Grounding sources: ${groundingChunks.length}`);
+        if (groundingChunks.length === 0) {
+          console.warn("[generateReviewGemini] Search enabled but no grounding sources returned");
+        }
       }
 
       // Validate JSON and fix common Gemini issues

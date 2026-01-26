@@ -208,6 +208,8 @@ class CloudFunctionsService: LLMService {
                     throw APIError.rateLimitExceeded
                 case .unauthenticated:
                     throw APIError.appCheckFailed
+                case .invalidArgument:
+                    throw APIError.invalidRequest
                 default:
                     throw APIError.httpError(statusCode: error.code)
                 }
@@ -311,14 +313,8 @@ class CloudFunctionsService: LLMService {
         print("📝 [CloudFunctions] Raw response:\n\(content)")
         #endif
 
-        // Clean up response - strip markdown code fences if present
-        var cleanedText = content.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if cleanedText.hasPrefix("```json") {
-            cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
-            cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
-            cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        // Cloud Functions already clean and validate JSON, so we just trim whitespace
+        let cleanedText = content.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard let jsonData = cleanedText.data(using: .utf8) else {
             throw APIError.invalidResponseFormat
@@ -350,14 +346,8 @@ class CloudFunctionsService: LLMService {
         print("📝 [CloudFunctions Review] Raw response:\n\(content)")
         #endif
 
-        // Clean up response
-        var cleanedText = content.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if cleanedText.hasPrefix("```json") {
-            cleanedText = cleanedText.replacingOccurrences(of: "```json", with: "")
-            cleanedText = cleanedText.replacingOccurrences(of: "```", with: "")
-            cleanedText = cleanedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        // Cloud Functions already clean and validate JSON, so we just trim whitespace
+        let cleanedText = content.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard let jsonData = cleanedText.data(using: .utf8) else {
             throw APIError.invalidResponseFormat
