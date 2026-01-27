@@ -827,16 +827,45 @@ export const generateReviewGemini = onCall(
       let cleanedText = extractCleanJson(text);
 
       // Extract grounding sources from metadata
-      const groundingMetadata = candidate?.groundingMetadata;
-      interface GroundingChunk {
-        web?: { uri?: string; title?: string };
+      // Gemini 3 uses searchEntryPoint.renderedContent (HTML) instead of groundingChunks
+      const groundingMetadata = candidate?.groundingMetadata || responseAny.groundingMetadata;
+
+      interface ExtractedSource {
+        title: string;
+        url: string;
       }
-      const groundingChunks: GroundingChunk[] = groundingMetadata?.groundingChunks || [];
+
+      // Extract sources from the HTML renderedContent
+      const extractedSources: ExtractedSource[] = [];
+      if (groundingMetadata?.searchEntryPoint?.renderedContent) {
+        const html = groundingMetadata.searchEntryPoint.renderedContent as string;
+        // Extract links from HTML: <a href="url">title</a>
+        const linkRegex = /<a[^>]+href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
+        let match;
+        const seenDomains = new Set<string>();
+        while ((match = linkRegex.exec(html)) !== null && extractedSources.length < 6) {
+          const url = match[1];
+          if (url) {
+            // Extract domain name as the outlet (e.g., "pitchfork.com" -> "Pitchfork")
+            try {
+              const domain = new URL(url).hostname.replace("www.", "");
+              const outlet = domain.split(".")[0]; // Get first part before .com
+              const outletName = outlet.charAt(0).toUpperCase() + outlet.slice(1); // Capitalize
+              if (!seenDomains.has(domain)) {
+                seenDomains.add(domain);
+                extractedSources.push({ title: outletName, url });
+              }
+            } catch {
+              // Skip invalid URLs
+            }
+          }
+        }
+      }
 
       if (useSearch) {
-        console.log(`[generateReviewGemini] Grounding sources: ${groundingChunks.length}`);
-        if (groundingChunks.length === 0) {
-          console.warn("[generateReviewGemini] Search enabled but no grounding sources returned");
+        console.log(`[generateReviewGemini] Grounding sources extracted: ${extractedSources.length}`);
+        if (extractedSources.length === 0) {
+          console.warn("[generateReviewGemini] Search enabled but no grounding sources found in response");
         }
       }
 
@@ -851,31 +880,15 @@ export const generateReviewGemini = onCall(
           throw new Error("Missing required fields");
         }
 
-        // Post-process: Add source citations to bullet points using grounding metadata
-        if (groundingChunks.length > 0 && useSearch && Array.isArray(parsed.context_bullets)) {
-          // Get unique sources (dedupe by title)
-          const seenTitles = new Set<string>();
-          const uniqueSources = groundingChunks
-            .filter((chunk: GroundingChunk) => {
-              if (!chunk.web?.uri || !chunk.web?.title) return false;
-              if (seenTitles.has(chunk.web.title)) return false;
-              seenTitles.add(chunk.web.title);
-              return true;
-            })
-            .slice(0, 6); // Limit to 6 unique sources
-
-          // Distribute sources across bullet points
-          if (uniqueSources.length > 0) {
-            const bulletsCount = parsed.context_bullets.length;
-            for (let i = 0; i < bulletsCount && i < uniqueSources.length; i++) {
-              const source = uniqueSources[i];
-              const domain = source.web?.title || "source";
-              const url = source.web?.uri || "";
-              // Append citation to bullet
-              parsed.context_bullets[i] = `${parsed.context_bullets[i]} ([${domain}](${url}))`;
-            }
-            console.log(`[generateReviewGemini] Added citations to ${Math.min(bulletsCount, uniqueSources.length)} bullet points`);
+        // Post-process: Add source citations to bullet points using extracted sources
+        if (extractedSources.length > 0 && useSearch && Array.isArray(parsed.context_bullets)) {
+          const bulletsCount = parsed.context_bullets.length;
+          for (let i = 0; i < bulletsCount && i < extractedSources.length; i++) {
+            const source = extractedSources[i];
+            // Append citation to bullet
+            parsed.context_bullets[i] = `${parsed.context_bullets[i]} ([${source.title}](${source.url}))`;
           }
+          console.log(`[generateReviewGemini] Added citations to ${Math.min(bulletsCount, extractedSources.length)} bullet points`);
         }
 
         // Re-serialize to ensure clean JSON
