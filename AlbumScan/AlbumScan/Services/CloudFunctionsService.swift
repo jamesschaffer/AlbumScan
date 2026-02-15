@@ -19,7 +19,6 @@ class CloudFunctionsService: LLMService {
     // Prompt storage (loaded from bundle)
     private let identificationPrompt: String
     private let searchFinalizationPrompt: String
-    private let reviewPrompt: String
 
     private init() {
         // Initialize Firebase Functions
@@ -40,10 +39,6 @@ class CloudFunctionsService: LLMService {
             fatalError("❌ Could not find search_finalization.txt in bundle")
         }
 
-        guard let reviewURL = Bundle.main.url(forResource: "album_review", withExtension: "txt") else {
-            fatalError("❌ Could not find album_review.txt in bundle")
-        }
-
         guard let identificationContent = try? String(contentsOf: identificationURL) else {
             fatalError("❌ Could not read single_prompt_identification.txt")
         }
@@ -52,13 +47,8 @@ class CloudFunctionsService: LLMService {
             fatalError("❌ Could not read search_finalization.txt")
         }
 
-        guard let reviewContent = try? String(contentsOf: reviewURL) else {
-            fatalError("❌ Could not read album_review.txt")
-        }
-
         self.identificationPrompt = identificationContent
         self.searchFinalizationPrompt = searchContent
-        self.reviewPrompt = reviewContent
 
         #if DEBUG
         print("✅ [CloudFunctionsService] Initialized with Firebase Functions")
@@ -232,19 +222,14 @@ class CloudFunctionsService: LLMService {
         print("🤖 [CloudFunctions Review] Provider: \(currentProvider.displayName)")
         #endif
 
-        // Build prompt with album data
+        // Send individual fields — the Cloud Function builds its own prompt
         let genresString = genres.joined(separator: ", ")
-        let prompt = reviewPrompt
-            .replacingOccurrences(of: "{artistName}", with: artistName)
-            .replacingOccurrences(of: "{albumTitle}", with: albumTitle)
-            .replacingOccurrences(of: "{releaseYear}", with: releaseYear)
-            .replacingOccurrences(of: "{genres}", with: genresString)
-            .replacingOccurrences(of: "{recordLabel}", with: recordLabel)
-
-        // Prepare data for Cloud Function (always enable search)
         let data: [String: Any] = [
-            "prompt": prompt,
-            "useSearch": true
+            "artistName": artistName,
+            "albumTitle": albumTitle,
+            "releaseYear": releaseYear,
+            "genres": genresString,
+            "recordLabel": recordLabel
         ]
 
         // Call Cloud Function (routes to OpenAI or Gemini based on provider)

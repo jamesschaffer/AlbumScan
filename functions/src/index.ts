@@ -336,12 +336,25 @@ export const searchFinalizeAlbum = onCall(
 // Review Generation
 // ============================================================================
 
-interface ReviewRequest {
+// New structured format (v2 clients)
+interface ReviewRequestStructured {
   artistName: string;
   albumTitle: string;
   releaseYear: string;
   genres: string;
   recordLabel: string;
+}
+
+// Legacy format (v1 clients still on App Store)
+interface ReviewRequestLegacy {
+  prompt: string;
+  useSearch?: boolean;
+}
+
+type ReviewRequest = ReviewRequestStructured | ReviewRequestLegacy;
+
+function isLegacyRequest(data: ReviewRequest): data is ReviewRequestLegacy {
+  return "prompt" in data && typeof (data as ReviewRequestLegacy).prompt === "string";
 }
 
 // Albums released in or after this year use Google Search grounding
@@ -354,6 +367,15 @@ function shouldUseSearch(releaseYear: string): boolean {
 }
 
 function validateReviewRequest(data: ReviewRequest): void {
+  if (isLegacyRequest(data)) {
+    // Legacy format: just needs a non-empty prompt string
+    if (!data.prompt || typeof data.prompt !== "string") {
+      throw new HttpsError("invalid-argument", "Missing required field: prompt");
+    }
+    return;
+  }
+
+  // Structured format: validate all individual fields
   const { artistName, albumTitle, releaseYear, genres, recordLabel } = data;
 
   if (!artistName || typeof artistName !== "string" ||
@@ -456,7 +478,7 @@ Return ONLY valid JSON in this exact format:
   "key_tracks": ["string", "string", "string"]
 }`;
 
-function buildUserMessage(req: ReviewRequest): string {
+function buildUserMessage(req: ReviewRequestStructured): string {
   return `**Album Metadata:**
 Artist: ${req.artistName}
 Album: ${req.albumTitle}
@@ -791,22 +813,45 @@ export const generateReviewGemini = onCall(
 
     validateReviewRequest(request.data);
 
-    const useSearch = shouldUseSearch(request.data.releaseYear);
-    const userMessage = buildUserMessage(request.data);
+    const legacy = isLegacyRequest(request.data);
+    const useSearch = legacy
+      ? (request.data as ReviewRequestLegacy).useSearch ?? false
+      : shouldUseSearch((request.data as ReviewRequestStructured).releaseYear);
+    const userMessage = legacy
+      ? null
+      : buildUserMessage(request.data as ReviewRequestStructured);
 
     try {
-      console.log(
-        `[generateReviewGemini] Processing request from device: ${deviceId}, ` +
-        `album: "${request.data.albumTitle}" by ${request.data.artistName}, useSearch: ${useSearch}`
-      );
+      if (legacy) {
+        console.log(
+          `[generateReviewGemini] Processing LEGACY request from device: ${deviceId}, useSearch: ${useSearch}`
+        );
+      } else {
+        const structured = request.data as ReviewRequestStructured;
+        console.log(
+          `[generateReviewGemini] Processing request from device: ${deviceId}, ` +
+          `album: "${structured.albumTitle}" by ${structured.artistName}, useSearch: ${useSearch}`
+        );
+      }
 
       const ai = new GoogleGenAI({ apiKey: geminiKey.value() });
 
       // Helper to call Gemini with or without search grounding
       const callGemini = async (withSearch: boolean) => {
+        // Legacy clients send a pre-built prompt; new clients get server-built prompt + system instruction
+        if (legacy) {
+          return ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: (request.data as ReviewRequestLegacy).prompt,
+            config: {
+              maxOutputTokens: 4000,
+              ...(withSearch ? { tools: [{ googleSearch: {} }] } : {}),
+            },
+          });
+        }
         return ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: [{ role: "user", parts: [{ text: userMessage }] }],
+          contents: [{ role: "user", parts: [{ text: userMessage! }] }],
           config: {
             systemInstruction: REVIEW_SYSTEM_INSTRUCTION,
             maxOutputTokens: 4000,
