@@ -14,7 +14,8 @@ The Cloud Functions implementation provides:
 
 - Firebase CLI installed (`npm install -g firebase-tools`)
 - Firebase project: `albumscan-18308`
-- OpenAI API key
+- Gemini API key (required for production)
+- OpenAI API key (optional, for fallback functions)
 
 ## Setup Steps
 
@@ -85,7 +86,6 @@ Expected output:
 ```
 ✔ functions[identifyAlbum]: Successful create operation.
 ✔ functions[searchFinalizeAlbum]: Successful create operation.
-✔ functions[generateReview]: Successful create operation.
 ✔ functions[identifyAlbumGemini]: Successful create operation.
 ✔ functions[searchFinalizeAlbumGemini]: Successful create operation.
 ✔ functions[generateReviewGemini]: Successful create operation.
@@ -139,21 +139,24 @@ functions.useEmulator(withHost: "localhost", port: 5001)
 2. Scan an album
 3. Check Firebase Console → Functions → Logs for activity
 
-## Deployed Functions (7 Total)
+## Deployed Functions (6 Total)
 
-### OpenAI Functions
+**Important:** These Cloud Functions are shared with the Crate app (same Firebase project `albumscan-18308`). Any changes to function contracts affect both apps. See `DECISIONS.md` for the backward-compatibility pattern.
+
+### Gemini Functions (Production)
+| Function | Purpose | Model |
+|----------|---------|-------|
+| `identifyAlbumGemini` | ID Call 1 - Vision identification | gemini-3-flash-preview |
+| `searchFinalizeAlbumGemini` | ID Call 2 - Google Search grounding | gemini-3-flash-preview |
+| `generateReviewGemini` | Review generation (backward-compatible: accepts legacy and structured formats) | gemini-3-flash-preview (± grounding) |
+
+### OpenAI Functions (Fallback, DEBUG only)
 | Function | Purpose | Model |
 |----------|---------|-------|
 | `identifyAlbum` | ID Call 1 - Vision identification | gpt-4o |
 | `searchFinalizeAlbum` | ID Call 2 - Web search fallback | gpt-4o-search-preview |
-| `generateReview` | Review generation | gpt-4o (± search) |
 
-### Gemini Functions
-| Function | Purpose | Model |
-|----------|---------|-------|
-| `identifyAlbumGemini` | ID Call 1 - Vision identification | gemini-2.5-flash |
-| `searchFinalizeAlbumGemini` | ID Call 2 - Google Search grounding | gemini-2.5-flash |
-| `generateReviewGemini` | Review generation | gemini-2.5-flash (± grounding) |
+Note: The OpenAI `generateReview` function has been removed. Production always uses `generateReviewGemini`.
 
 ### Utility Functions
 | Function | Purpose | Auth |

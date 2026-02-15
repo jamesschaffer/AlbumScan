@@ -23,9 +23,10 @@ AlbumScan is an iOS app that helps music collectors identify albums and understa
 - **Language**: Swift 5.9+
 - **UI Framework**: SwiftUI
 - **Data Storage**: CoreData
-- **Backend**: Firebase Cloud Functions (secure API proxy)
-- **API Provider**: OpenAI or Gemini (user-selectable via Settings)
+- **Backend**: Firebase Cloud Functions (secure API proxy, project `albumscan-18308`)
+- **AI Provider**: Gemini 3 Flash (production default); OpenAI available in DEBUG builds
 - **Security**: Firebase App Check with App Attest
+- **Shared Backend**: Cloud Functions are shared with the Crate app (same Firebase project)
 
 ## Project Structure
 
@@ -63,8 +64,8 @@ AlbumScan/
 
 1. macOS 13.0+ with Xcode 15+ installed
 2. Apple Developer account (for device testing)
-3. Firebase project (for Cloud Functions)
-4. OpenAI API key (for development/debugging)
+3. Firebase project `albumscan-18308` (for Cloud Functions)
+4. `GoogleService-Info.plist` downloaded from Firebase Console (gitignored)
 
 ### Installation
 
@@ -74,7 +75,9 @@ AlbumScan/
    cd AlbumScan
    ```
 
-2. For local development, create `Secrets.plist` with API keys (gitignored):
+2. **Firebase config (required):** Download `GoogleService-Info.plist` from the Firebase Console for project `albumscan-18308` and place it in the project root. This file is gitignored. See `GoogleService-Info.plist.example` for the expected structure.
+
+3. For local development, create `Secrets.plist` with API keys (gitignored):
    ```xml
    <dict>
        <key>OPENAI_API_KEY</key>
@@ -82,12 +85,12 @@ AlbumScan/
    </dict>
    ```
 
-3. Open the project in Xcode:
+4. Open the project in Xcode:
    ```bash
    open AlbumScan/AlbumScan.xcodeproj
    ```
 
-4. Build and run on your device (iOS 16.0+)
+5. Build and run on your device (iOS 16.0+)
 
 ### Cloud Functions Deployment
 
@@ -106,14 +109,16 @@ See `CLOUD_FUNCTIONS_SETUP.md` for Firebase deployment instructions.
 Current Phase: **Production (App Store Published)**
 
 ### Completed
-- ✅ Two-tier identification system (gpt-4o + gpt-4o-search-preview)
-- ✅ Firebase Cloud Functions backend (secure API proxy)
-- ✅ StoreKit 2 subscription system (Base + Ultra tiers)
-- ✅ Firebase App Check with App Attest
-- ✅ 98% cost reduction achieved ($0.10/day for 100 scans)
-- ✅ Four-stage loading UX with progressive messaging
-- ✅ 8-tier recommendation label system
-- ✅ Aggressive review caching (70-80% hit rate)
+- Two-tier identification system (Gemini 3 Flash with Google Search grounding)
+- Firebase Cloud Functions backend (secure API proxy, shared with Crate app)
+- Backward-compatible review API (supports both legacy and structured request formats)
+- Server-side prompt construction for review generation (prompts no longer shipped in app bundle)
+- StoreKit 2 subscription system (Base + Ultra tiers)
+- Firebase App Check with App Attest
+- 98% cost reduction achieved ($0.10/day for 100 scans)
+- Four-stage loading UX with progressive messaging
+- 8-tier recommendation label system
+- Aggressive review caching (70-80% hit rate)
 
 ## Cost Architecture
 
@@ -131,6 +136,8 @@ Current Phase: **Production (App Store Published)**
 - **No analytics or tracking**
 - **Album data stored locally only** (CoreData)
 - **API keys server-side only** (Firebase Secrets Manager)
+- **Review prompts server-side only** (constructed in Cloud Functions, not shipped in app)
+- **GoogleService-Info.plist gitignored** (must be downloaded from Firebase Console)
 - **Device attestation** (Firebase App Check)
 - **Rate limiting** (10 requests/minute/device)
 
