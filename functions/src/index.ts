@@ -337,96 +337,135 @@ export const searchFinalizeAlbum = onCall(
 // ============================================================================
 
 interface ReviewRequest {
-  prompt: string;
-  useSearch: boolean; // true for Ultra subscribers
+  artistName: string;
+  albumTitle: string;
+  releaseYear: string;
+  genres: string;
+  recordLabel: string;
 }
 
-export const generateReview = onCall(
-  {
-    secrets: [openAiKey],
-    enforceAppCheck: true,
-    cors: true,
-    memory: "256MiB",
-    timeoutSeconds: 120,
-  },
-  async (request: CallableRequest<ReviewRequest>) => {
-    const deviceId = getDeviceId(request);
+// Albums released in or after this year use Google Search grounding
+const SEARCH_CUTOFF_YEAR = 2024;
 
-    // Rate limit check
-    if (!checkRateLimit(deviceId)) {
-      throw new HttpsError(
-        "resource-exhausted",
-        "Too many requests. Please wait a moment and try again."
-      );
-    }
+function shouldUseSearch(releaseYear: string): boolean {
+  if (releaseYear === "Unknown") return true;
+  const year = parseInt(releaseYear, 10);
+  return isNaN(year) || year >= SEARCH_CUTOFF_YEAR;
+}
 
-    const { prompt, useSearch = false } = request.data;
+function validateReviewRequest(data: ReviewRequest): void {
+  const { artistName, albumTitle, releaseYear, genres, recordLabel } = data;
 
-    if (!prompt) {
-      throw new HttpsError("invalid-argument", "Missing required field: prompt");
-    }
-
-    try {
-      const apiKey = openAiKey.value();
-
-      // Use search-enabled model for Ultra subscribers
-      const model = useSearch ? "gpt-4o-search-preview" : "gpt-4o";
-
-      console.log(
-        `[generateReview] Processing request from device: ${deviceId}, model: ${model}`
-      );
-
-      const response = await fetch(OPENAI_API_URL, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 1500,
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[generateReview] OpenAI API error: ${response.status} - ${errorText}`);
-        throw new HttpsError(
-          "internal",
-          "Failed to generate review. Please try again."
-        );
-      }
-
-      const result = await response.json() as OpenAIResponse;
-
-      if (result.usage) {
-        console.log(
-          `[generateReview] Tokens used: ${result.usage.total_tokens}`
-        );
-      }
-
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      if (error instanceof HttpsError) {
-        throw error;
-      }
-      console.error("[generateReview] Unexpected error:", error);
-      throw new HttpsError(
-        "internal",
-        "An unexpected error occurred. Please try again."
-      );
-    }
+  if (!artistName || typeof artistName !== "string" ||
+      !albumTitle || typeof albumTitle !== "string" ||
+      !releaseYear || typeof releaseYear !== "string" ||
+      !genres || typeof genres !== "string" ||
+      !recordLabel || typeof recordLabel !== "string") {
+    throw new HttpsError(
+      "invalid-argument",
+      "Missing required fields: artistName, albumTitle, releaseYear, genres, recordLabel"
+    );
   }
-);
+
+  if (artistName.length > 200 || albumTitle.length > 200 || recordLabel.length > 200) {
+    throw new HttpsError(
+      "invalid-argument",
+      "artistName, albumTitle, and recordLabel must be 200 characters or fewer"
+    );
+  }
+
+  if (genres.length > 500) {
+    throw new HttpsError(
+      "invalid-argument",
+      "genres must be 500 characters or fewer"
+    );
+  }
+
+  if (releaseYear !== "Unknown" && !/^\d{4}$/.test(releaseYear)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "releaseYear must be a 4-digit year or \"Unknown\""
+    );
+  }
+}
+
+// System instruction: persona, source rules, output format, tier system
+const REVIEW_SYSTEM_INSTRUCTION = `You are a music critic writing an honest, evidence-based album review for collectors who care about artistic merit, not financial value.
+
+**Your Task:**
+Generate a concise, honest assessment of this album's cultural significance and musical merit based on your knowledge of music history, critical reception, influence, and cultural impact.
+
+**Source Prioritization:**
+When searching for evidence and critical reception, prioritize these sources (in order):
+- Metacritic
+- Album of the Year
+- Pitchfork
+- Rolling Stone
+- AllMusic
+- The Guardian
+
+**Source Diversity Rules:**
+To ensure comprehensive and credible reviews, follow these citation rules:
+- Use NO MORE than 2 URLs from any single domain (e.g., max 2 Wikipedia links)
+- Aim to cite at least 3 different sources from the priority list
+- Prefer Metacritic/Pitchfork for review scores and critical consensus
+- Use Wikipedia for general context, background, and album basics
+- Use music publications (Rolling Stone, AllMusic) for in-depth analysis and cultural impact
+- Diversify your sources to provide multiple perspectives
+
+**Required Output Structure:**
+
+1. **context_summary** (2-3 sentences): Opening paragraph that captures the album's core essence and importance. Be specific about what makes it matter (or not).
+
+2. **context_bullets** (3-5 bullet points): Concrete evidence supporting your assessment:
+   - Critical reception (scores from Pitchfork, Rolling Stone, Metacritic when available)
+   - Concrete impact examples (chart performance, sales figures, awards)
+   - Specific standout tracks and sonic qualities
+   - Genre innovation or influence on other artists
+   - Reputation evolution (initially panned vs. later acclaimed, etc.)
+
+3. **rating** (number 0-10): Your assessment based on the album's artistic merit and cultural significance.
+
+4. **recommendation** (string): Choose ONE label that best captures this album's place in music:
+
+   TIER 1 (Undeniable Greatness): Essential Classic | Genre Landmark | Cultural Monument
+   TIER 2 (Critical Darlings): Indie Masterpiece | Cult Essential | Critics' Choice
+   TIER 3 (Crowd Pleasers): Crowd Favorite | Radio Gold | Crossover Success
+   TIER 4 (Hidden Gems): Deep Cut | Surprise Excellence | Scene Favorite
+   TIER 5 (Historical Interest): Time Capsule | Influential Curio | Pioneering Effort
+   TIER 6 (Solid Work): Reliable Listen | Fan Essential | Genre Staple
+   TIER 7 (Problematic): Ambitious Failure | Divisive Work | Uneven Effort
+   TIER 8 (Pass): Forgettable Entry | Career Low | Avoid Entirely
+
+**Critical Requirements:**
+- Use honest, direct language - call out mediocre or bad albums explicitly
+- Focus on what actually matters about the album (no filler or generic praise)
+- Evaluate albums purely on musical merit - artist's personal controversies or social issues may be mentioned for context but do NOT devalue their musical contributions or impact
+- Provide specific evidence (scores, chart positions, awards, influence examples)
+- Choose the recommendation carefully based on the album's actual place in music history, not just your personal opinion
+- Reserve Tier 1 labels for genuinely canonical/influential albums only
+- NEVER mention price, monetary value, market considerations, investment potential, pressing details, or collectibility
+- Be the honest music historian, not the investment advisor
+
+Return ONLY valid JSON in this exact format:
+{
+  "context_summary": "string",
+  "context_bullets": ["string", "string", "string"],
+  "rating": number,
+  "recommendation": "string (exactly as written above)",
+  "key_tracks": ["string", "string", "string"]
+}`;
+
+function buildUserMessage(req: ReviewRequest): string {
+  return `**Album Metadata:**
+Artist: ${req.artistName}
+Album: ${req.albumTitle}
+Year: ${req.releaseYear}
+Genre: ${req.genres}
+Label: ${req.recordLabel}
+
+Generate a concise, honest assessment of this album's cultural significance and musical merit.`;
+}
 
 // ============================================================================
 // Health Check (for monitoring)
@@ -750,38 +789,48 @@ export const generateReviewGemini = onCall(
       );
     }
 
-    const { prompt, useSearch = false } = request.data;
+    validateReviewRequest(request.data);
 
-    if (!prompt) {
-      throw new HttpsError("invalid-argument", "Missing required field: prompt");
-    }
+    const useSearch = shouldUseSearch(request.data.releaseYear);
+    const userMessage = buildUserMessage(request.data);
 
     try {
       console.log(
-        `[generateReviewGemini] Processing request from device: ${deviceId}, useSearch: ${useSearch}`
+        `[generateReviewGemini] Processing request from device: ${deviceId}, ` +
+        `album: "${request.data.albumTitle}" by ${request.data.artistName}, useSearch: ${useSearch}`
       );
 
       const ai = new GoogleGenAI({ apiKey: geminiKey.value() });
 
-      // Configure with or without search based on Ultra tier
-      interface GenerateConfig {
-        maxOutputTokens: number;
-        tools?: Array<{ googleSearch: Record<string, never> }>;
-      }
-
-      const config: GenerateConfig = {
-        maxOutputTokens: 4000, // Reviews need more tokens, especially with search
+      // Helper to call Gemini with or without search grounding
+      const callGemini = async (withSearch: boolean) => {
+        return ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: [{ role: "user", parts: [{ text: userMessage }] }],
+          config: {
+            systemInstruction: REVIEW_SYSTEM_INSTRUCTION,
+            maxOutputTokens: 4000,
+            ...(withSearch ? { tools: [{ googleSearch: {} }] } : {}),
+          },
+        });
       };
 
-      if (useSearch) {
-        config.tools = [{ googleSearch: {} }];
-      }
+      let response;
+      let actualSearch = useSearch;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config,
-      });
+      if (useSearch) {
+        try {
+          response = await callGemini(true);
+        } catch (searchError) {
+          console.warn(
+            `[generateReviewGemini] Search attempt failed — retrying without search grounding. Error: ${searchError}`
+          );
+          response = await callGemini(false);
+          actualSearch = false;
+        }
+      } else {
+        response = await callGemini(false);
+      }
 
       // Extract text from response
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -862,7 +911,7 @@ export const generateReviewGemini = onCall(
         }
       }
 
-      if (useSearch) {
+      if (actualSearch) {
         console.log(`[generateReviewGemini] Grounding sources extracted: ${extractedSources.length}`);
         if (extractedSources.length === 0) {
           console.warn("[generateReviewGemini] Search enabled but no grounding sources found in response");
@@ -881,7 +930,7 @@ export const generateReviewGemini = onCall(
         }
 
         // Post-process: Add source citations to bullet points using extracted sources
-        if (extractedSources.length > 0 && useSearch && Array.isArray(parsed.context_bullets)) {
+        if (extractedSources.length > 0 && actualSearch && Array.isArray(parsed.context_bullets)) {
           const bulletsCount = parsed.context_bullets.length;
           for (let i = 0; i < bulletsCount && i < extractedSources.length; i++) {
             const source = extractedSources[i];
