@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook: block secrets from being committed.
+# Installed via: git config core.hooksPath .githooks
+#
+
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+BLOCKED=0
+
+# --- 1. Block known secret files by name ---
+BLOCKED_FILES=(
+    "GoogleService-Info.plist"
+    "Secrets.plist"
+    "google-services.json"
+    "serviceAccountKey.json"
+)
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+for file in $STAGED_FILES; do
+    basename=$(basename "$file")
+    for blocked in "${BLOCKED_FILES[@]}"; do
+        if [ "$basename" = "$blocked" ]; then
+            echo -e "${RED}BLOCKED:${NC} $file — this file should never be committed"
+            BLOCKED=1
+        fi
+    done
+
+    # Block .env files (but allow .env.example)
+    if [[ "$basename" == .env* && "$basename" != *.example ]]; then
+        echo -e "${RED}BLOCKED:${NC} $file — env files must not be committed"
+        BLOCKED=1
+    fi
+done
+
+# --- 2. Scan staged file contents for secret patterns ---
+# Only check text files that are being added or modified.
+PATTERNS=(
+    'AIza[A-Za-z0-9_\-]{20,}'          # Google API keys
+    'sk-[A-Za-z0-9]{20,}'              # OpenAI / Anthropic keys
+    'sk-ant-[A-Za-z0-9\-]{20,}'        # Anthropic API keys
+    'ghp_[A-Za-z0-9]{20,}'             # GitHub personal access tokens
+    'gho_[A-Za-z0-9]{20,}'             # GitHub OAuth tokens
+    'xox[bpors]-[A-Za-z0-9\-]{10,}'    # Slack tokens
+)
+
+for file in $STAGED_FILES; do
+    # Skip binary files and example/template files
+    [[ "$file" == *.example ]] && continue
+    [[ "$file" == *.template ]] && continue
+
+    # Get staged content (not working tree)
+    content=$(git diff --cached --diff-filter=ACM -p -- "$file" 2>/dev/null | grep '^+' | grep -v '^+++')
+
+    for pattern in "${PATTERNS[@]}"; do
+        match=$(echo "$content" | grep -oE "$pattern" | head -1)
+        if [ -n "$match" ]; then
+            # Don't print the full key — show just enough to identify
+            preview="${match:0:12}..."
+            echo -e "${RED}BLOCKED:${NC} $file — contains what looks like a secret (${preview})"
+            BLOCKED=1
+            break
+        fi
+    done
+done
+
+# --- Result ---
+if [ $BLOCKED -ne 0 ]; then
+    echo ""
+    echo -e "${YELLOW}Commit aborted.${NC} Remove secrets before committing."
+    echo "If this is a false positive, use: git commit --no-verify"
+    exit 1
+fi
+
+exit 0
