@@ -92,6 +92,7 @@ iOSInjectionProject/
 # Secrets and API Keys
 Secrets.plist
 Config/Secrets.plist
+GoogleService-Info.plist
 *.secret
 *.secrets
 
