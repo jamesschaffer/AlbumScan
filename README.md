@@ -32,8 +32,15 @@ AlbumScan is an iOS app that helps music collectors identify albums and understa
 
 ```
 AlbumScan/
+├── .github/workflows/                # CI/CD pipelines
+│   ├── test.yml                      # iOS + Cloud Functions test workflow
+│   └── deploy-pages.yml              # Website deployment
 ├── Project_Context/                  # Complete specification (13 files)
 ├── functions/                        # Firebase Cloud Functions (TypeScript)
+├── fastlane/                         # Fastlane config for TestFlight deployment
+│   ├── Fastfile                      # Beta lane definition
+│   ├── Appfile                       # App identifier and team ID
+│   └── .env.example                  # Required environment variables (gitignored)
 ├── website/                          # Marketing website
 ├── docs/                             # Legal documentation
 ├── AlbumScan/
@@ -54,7 +61,9 @@ AlbumScan/
 │       ├── Services/                 # OpenAIAPIService, CloudFunctionsService, SubscriptionManager
 │       ├── Utilities/                # Config, KeychainHelper
 │       └── Prompts/                  # AI prompt files
-├── AlbumScanTests/
+├── AlbumScan/AlbumScanTests/         # 41 unit tests across 5 suites
+├── Gemfile                           # Fastlane Ruby dependency
+├── Secrets.plist.example             # CI stub for secrets (gitignored at runtime)
 └── AlbumScanUITests/
 ```
 
@@ -96,6 +105,52 @@ AlbumScan/
 
 See `CLOUD_FUNCTIONS_SETUP.md` for Firebase deployment instructions.
 
+## Testing
+
+### Running iOS Tests Locally
+
+```bash
+xcodebuild test \
+  -scheme AlbumScan \
+  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  CODE_SIGNING_ALLOWED=NO
+```
+
+The test suite contains 41 unit tests across 5 test suites:
+
+| Suite | What it covers |
+|-------|---------------|
+| `ScanStateTests` | State machine properties (`isProcessing`, `isLoading`, `description`) |
+| `Phase1ResponseTests` | First-tier identification response parsing |
+| `Phase2ResponseTests` | Second-tier (search-grounded) response parsing |
+| `AlbumIdentificationResponseTests` | Album identification response model |
+| `AlbumModelTests` | CoreData model, JSON array round-trips, recommendation enum, `toPhase2Response` |
+
+Tests use Swift Testing (`@Test`, `#expect`) and require no network access or API keys. CI stubs `GoogleService-Info.plist` and `Secrets.plist` from the provided `.example` files.
+
+### CI/CD (GitHub Actions)
+
+The workflow at `.github/workflows/test.yml` runs automatically on pushes and pull requests to `main`. It contains three jobs:
+
+1. **iOS Tests** -- Runs the full Xcode test suite on macOS 15 with an iPhone 16 simulator. Stubs config files from examples so no secrets are needed.
+2. **Cloud Functions Tests** -- Runs `npm test` in the `functions/` directory on Ubuntu with Node.js 20.
+3. **Test Summary** -- Gates on both jobs above; fails the workflow if either job fails.
+
+### TestFlight Deployment (Fastlane)
+
+Fastlane is configured for one-command TestFlight uploads:
+
+```bash
+bundle exec fastlane beta
+```
+
+**Prerequisites:**
+- App Store Connect API key file at `fastlane/AuthKey.p8` (gitignored)
+- Environment variables `ASC_KEY_ID` and `ASC_ISSUER_ID` set (use `fastlane/.env` or export directly)
+- Valid provisioning profile with automatic signing enabled
+
+The `beta` lane auto-increments the build number using a timestamp (`YYYYMMDDHHmm`), builds for App Store distribution, and uploads to TestFlight.
+
 ## Usage
 
 1. **First Launch**: Grant camera permissions and view subscription options
@@ -119,6 +174,9 @@ Current Phase: **Production (App Store Published)**
 - Four-stage loading UX with progressive messaging
 - 8-tier recommendation label system
 - Aggressive review caching (70-80% hit rate)
+- 41 unit tests across 5 test suites (models, state machine, response parsing)
+- GitHub Actions CI pipeline (iOS tests + Cloud Functions tests)
+- Fastlane beta lane for TestFlight deployment
 
 ## Cost Architecture
 

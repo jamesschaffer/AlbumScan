@@ -8,10 +8,11 @@ The app is published on the App Store and in active production use.
 
 ## Current State
 
-**Last Updated:** February 15, 2026
+**Last Updated:** February 20, 2026
 **App Version:** 1.8 (Review API backward compatibility)
 **Production AI Provider:** Gemini 3 Flash (via Firebase Cloud Functions)
 **Firebase Project:** `albumscan-18308` (shared with Crate app)
+**CI/CD:** GitHub Actions (tests) + Fastlane (TestFlight)
 
 ### What is built and working
 
@@ -23,8 +24,17 @@ The app is published on the App Store and in active production use.
 - CoreData persistence with aggressive review caching (70-80% hit rate)
 - Rate limiting at 10 requests per minute per device
 
-### What was recently changed (commit 2a4e15d, February 2026)
+### What was recently changed (February 2026)
 
+**CI/CD and test infrastructure (latest commit, feature/ci-cd-setup branch):**
+- Added 41 unit tests across 5 Swift Testing suites: `ScanStateTests`, `Phase1ResponseTests`, `Phase2ResponseTests`, `AlbumIdentificationResponseTests`, and `AlbumModelTests`. Tests cover model properties, state machine behavior, JSON round-trips, and response parsing. No network or API keys required.
+- Added GitHub Actions workflow (`.github/workflows/test.yml`) with three jobs: iOS tests (macOS 15, iPhone 16 simulator), Cloud Functions tests (Node.js 20, `npm test`), and a summary gate job.
+- Added Fastlane configuration (`Gemfile`, `fastlane/Fastfile`, `fastlane/Appfile`) with a `beta` lane for one-command TestFlight deployment. Build numbers auto-increment via timestamp.
+- Added `Secrets.plist.example` as a CI stub so the Xcode project builds without real API keys.
+- Hardened `.gitignore` with `*.p8`, `*.p12`, `*.pem`, `*.crash`, `vendor/bundle/`, and `.bundle/` entries to prevent accidental commit of signing keys or Ruby dependencies.
+- This brings AlbumScan to CI/CD parity with Crate and QueryGram.
+
+**Prior changes (commit 2a4e15d):**
 - **Backend:** `generateReviewGemini` now accepts both legacy and structured request formats using an `isLegacyRequest()` type guard. Legacy requests are logged with a `LEGACY` tag for monitoring deprecation progress.
 - **iOS client:** `CloudFunctionsService.swift` updated to send structured fields (`artistName`, `albumTitle`, `releaseYear`, `genres`, `recordLabel`) directly instead of building a prompt string client-side. The `reviewPrompt` property and `album_review.txt` bundle loading were removed.
 - **Removed:** The OpenAI `generateReview` function was deleted from deployed functions. Production always routes to the Gemini variant.
@@ -34,7 +44,7 @@ The app is published on the App Store and in active production use.
 
 - Legacy `{prompt, useSearch}` format is still supported but should be monitored for deprecation. Once all App Store users have updated, the legacy path can be removed.
 - The OpenAI `identifyAlbum` and `searchFinalizeAlbum` functions are still deployed but unused in production (Gemini is the default). They exist as a fallback option.
-- Test suites (`AlbumScanTests/`, `AlbumScanUITests/`) are empty.
+- UI test suite (`AlbumScanUITests/`) is still empty. Unit tests are now implemented but UI tests are not.
 
 ## Architecture
 
@@ -80,6 +90,22 @@ The Firebase project `albumscan-18308` serves both **AlbumScan** and the **Crate
 8. Cloud Function builds the review prompt server-side and calls Gemini API
 9. Response saved to CoreData; UI updates
 
+### CI/CD Pipeline
+
+```
+GitHub (push/PR to main)
+  --> GitHub Actions (.github/workflows/test.yml)
+        --> iOS Tests (macOS 15, Xcode, iPhone 16 Simulator)
+        --> Cloud Functions Tests (Node.js 20, npm test)
+        --> Summary gate (fails if either job fails)
+
+Local (developer machine)
+  --> bundle exec fastlane beta
+        --> Auto-increment build number (timestamp)
+        --> Build .ipa (App Store export method)
+        --> Upload to TestFlight
+```
+
 ### Security Model
 
 ```
@@ -106,10 +132,13 @@ iOS App
 | Provider Selection | Gemini (production default), OpenAI (debug toggle) |
 | Review Caching | Aggressive caching with 70-80% hit rate, title normalization for deduplication |
 | Backward-Compatible API | Review endpoint accepts both legacy and structured formats for safe rolling updates |
+| Unit Test Suite | 41 tests across 5 suites covering models, state machine, and response parsing (Swift Testing) |
+| GitHub Actions CI | Automated iOS and Cloud Functions tests on push/PR to main |
+| Fastlane TestFlight | One-command beta deployment via `bundle exec fastlane beta` |
 
 ## Known Issues / Technical Debt
 
-- **Empty test suites**: No unit or UI tests are implemented.
+- **UI tests not implemented**: Unit tests are in place (41 tests, 5 suites) but `AlbumScanUITests/` remains empty.
 - **Legacy request format**: The `{prompt, useSearch}` format in `generateReviewGemini` should be removed once all users have updated past the breaking change.
 - **Legacy services in codebase**: `ClaudeAPIService.swift`, `OpenAIAPIService.swift`, and several legacy response models (`Phase1AResponse`, `Phase1Response`) remain in the codebase but are not used in production.
 - **OpenAI functions still deployed**: `identifyAlbum` and `searchFinalizeAlbum` are deployed but unused in production release builds. They could be removed to simplify the deployed surface area.
@@ -121,5 +150,6 @@ iOS App
 - **Deprecate legacy review format**: Monitor `LEGACY` log tags in Cloud Functions logs. Once traffic drops to zero, remove the `isLegacyRequest` code path.
 - **Remove unused OpenAI functions**: Once confirmed unnecessary, delete `identifyAlbum`, `searchFinalizeAlbum` from deployed functions.
 - **Clean up legacy iOS services**: Remove `ClaudeAPIService.swift` and unused response models.
-- **Add automated tests**: The empty test directories are ready for unit and UI test implementation.
+- **Add UI tests**: Unit tests are in place; UI tests are the next gap. The `AlbumScanUITests/` directory exists and is ready for implementation.
+- **Automate TestFlight via CI**: The Fastlane `beta` lane currently runs locally. A future GitHub Actions workflow could trigger TestFlight uploads on tagged releases or merges to main.
 - **Persistent rate limiting**: Move from in-memory `Map` to Firestore for rate limiting that survives cold starts.
