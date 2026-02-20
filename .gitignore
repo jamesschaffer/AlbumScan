@@ -81,6 +81,7 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+fastlane/README.md
 
 # Code Injection
 #
@@ -96,12 +97,29 @@ GoogleService-Info.plist
 *.secret
 *.secrets
 
+# Signing keys
+*.p8
+*.p12
+*.pem
+
+# Crash logs
+*.crash
+
 # Environment files
 .env
+.env.*
+!.env.example
 .env.local
+fastlane/.env
+fastlane/.env.*
+!fastlane/.env.example
 
 # Build logs
 build.log
+
+# Ruby (Bundler/Fastlane)
+vendor/bundle/
+.bundle/
 
 # macOS
 .DS_Store

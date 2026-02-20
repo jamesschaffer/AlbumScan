@@ -1,0 +1,21 @@
+default_platform(:ios)
+
+platform :ios do
+  lane :beta do
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: "fastlane/AuthKey.p8"
+    )
+    increment_build_number(
+      build_number: Time.now.strftime("%Y%m%d%H%M"),
+      xcodeproj: "AlbumScan.xcodeproj"
+    )
+    build_app(
+      scheme: "AlbumScan",
+      export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates"
+    )
+    upload_to_testflight(skip_waiting_for_build_processing: true)
+  end
+end

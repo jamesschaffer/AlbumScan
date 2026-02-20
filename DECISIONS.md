@@ -1,5 +1,45 @@
 # Decision Log
 
+## 2026-02-20 - CI/CD pipeline with GitHub Actions and Fastlane
+
+**Context:** AlbumScan had no automated tests and no CI/CD pipeline. The Crate and QueryGram projects already had GitHub Actions workflows and Fastlane TestFlight integration. Bringing AlbumScan to parity reduces risk of regressions and streamlines the release process.
+
+**Decision:** Implement three things in a single commit: (1) a unit test suite with 41 tests across 5 suites using Swift Testing, (2) a GitHub Actions workflow that runs iOS and Cloud Functions tests on every push/PR to main, and (3) a Fastlane `beta` lane for local TestFlight deployment.
+
+**Alternatives Considered:**
+1. *Tests only, no CI* -- Tests that only run when a developer remembers to run them get skipped. CI enforces the discipline.
+2. *Xcode Cloud instead of GitHub Actions* -- Would keep everything in the Apple ecosystem, but GitHub Actions is already in use for Crate and QueryGram. Standardizing across projects reduces the learning curve and allows reusing workflow patterns.
+3. *Automate TestFlight in CI immediately* -- Would require storing signing certificates and App Store Connect keys as GitHub Secrets. Deferred to a future iteration to keep this change focused on testing infrastructure.
+
+**Rationale:** Matching the CI/CD approach used by Crate and QueryGram means one pattern to maintain across all three projects. GitHub Actions is free for public repos and has generous free minutes for private repos. Fastlane is the de facto standard for iOS deployment automation and handles build number incrementing, code signing, and TestFlight upload in a single command. Swift Testing was chosen over XCTest because it is the modern framework direction and provides clearer test declarations.
+
+**Consequences:**
+- Every PR to main now requires passing iOS and Cloud Functions tests before merge.
+- TestFlight builds are a single `bundle exec fastlane beta` command but still require a local machine with signing credentials. CI-based deployment is deferred.
+- The `.gitignore` now covers signing keys (`*.p8`, `*.p12`, `*.pem`), crash logs, and Ruby vendor bundles to prevent accidental credential commits.
+- `Secrets.plist.example` and `GoogleService-Info.plist.example` serve as CI stubs so the Xcode project compiles without real secrets.
+
+---
+
+## 2026-02-20 - Swift Testing over XCTest for unit tests
+
+**Context:** When adding the first unit tests to AlbumScan, a choice was needed between Apple's legacy XCTest framework and the newer Swift Testing framework (available since Xcode 16 / Swift 6).
+
+**Decision:** Use Swift Testing (`import Testing`, `@Test`, `@Suite`, `#expect`) for all new unit tests.
+
+**Alternatives Considered:**
+1. *XCTest* -- Well-established, more documentation available, but more verbose. Requires subclassing `XCTestCase` and using `XCTAssert*` macros.
+2. *Mix both* -- Would create inconsistency in test style across the project.
+
+**Rationale:** Swift Testing is the direction Apple is moving. It produces cleaner test code (`@Test func` instead of `class ... : XCTestCase`), has better parameterized test support, and integrates with the same `xcodebuild test` command used by CI. Since this is a greenfield test suite with no existing XCTest code to maintain compatibility with, there is no migration cost.
+
+**Consequences:**
+- Requires Xcode 16+ to run the tests (the project already targets recent Xcode).
+- Future test authors should use Swift Testing conventions, not XCTest.
+- The CI workflow runs tests via `xcodebuild test`, which supports Swift Testing natively.
+
+---
+
 ## 2026-02-15 - Backward-compatible review API contract
 
 **Context:** Commit 5377766 changed the `generateReviewGemini` Cloud Function to expect structured fields (`artistName`, `albumTitle`, `releaseYear`, `genres`, `recordLabel`) instead of the original `{prompt, useSearch}` format. However, the iOS client was not updated in the same commit. This broke review generation for all existing App Store installs, because those installs still sent the old format. The issue also affected the Crate app, which shares the same Firebase Cloud Functions backend (project `albumscan-18308`).
